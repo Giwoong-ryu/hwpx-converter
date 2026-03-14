@@ -261,7 +261,7 @@ def create_app():
                 )
 
         gr.Markdown("---")
-        gr.Markdown("HWPX (OWPML) 표준 기반 | API 키 없이 사용 가능 | [GitHub](https://github.com)")
+        gr.Markdown("HWPX (OWPML) 표준 기반 | API 키 없이 사용 가능 | [GitHub](https://github.com/Giwoong-ryu/hwpx-converter)")
 
     return app
 
