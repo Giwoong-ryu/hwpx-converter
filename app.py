@@ -229,24 +229,12 @@ FOOTER_HTML = """
 
 def create_app():
     theme = gr.themes.Soft(
-        primary_hue=gr.themes.colors.purple,
+        primary_hue=gr.themes.colors.indigo,
         secondary_hue=gr.themes.colors.blue,
         neutral_hue=gr.themes.colors.slate,
         radius_size=gr.themes.sizes.radius_lg,
         spacing_size=gr.themes.sizes.spacing_md,
         font=[gr.themes.GoogleFont("Inter"), "system-ui", "sans-serif"],
-    ).set(
-        body_background_fill="transparent",
-        block_background_fill="rgba(255,255,255,0.5)",
-        block_border_width="1px",
-        block_border_color="rgba(124,58,237,0.08)",
-        block_shadow="0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.02)",
-        block_radius="12px",
-        button_primary_background_fill="linear-gradient(135deg, #7c3aed, #6d28d9)",
-        button_primary_text_color="white",
-        button_primary_border_color="transparent",
-        input_radius="10px",
-        input_border_color="rgba(124,58,237,0.15)",
     )
 
     with gr.Blocks(title="HWPX Converter", theme=theme, css_paths=[_CSS_PATH]) as app:

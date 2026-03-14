@@ -3,40 +3,21 @@
 /* ===== 전역 ===== */
 .gradio-container {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 30%, #e0f2fe 70%, #f0fdf4 100%) !important;
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 40%, #dbeafe 70%, #ecfdf5 100%) !important;
     background-attachment: fixed !important;
     min-height: 100vh;
-    background-size: 200% 200% !important;
-    animation: gradientShift 15s ease infinite !important;
-}
-
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
 }
 
 /* ===== 히어로 ===== */
 .hero-section {
     text-align: center;
     padding: 48px 24px 32px;
-    animation: fadeInDown 0.8s ease-out;
-}
-
-@keyframes fadeInDown {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 .hero-title {
     font-size: 48px;
     font-weight: 800;
-    background: linear-gradient(135deg, #7c3aed, #2563eb, #0891b2);
+    background: linear-gradient(135deg, #4f46e5, #2563eb, #0891b2);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -47,7 +28,7 @@
 
 .hero-sub {
     font-size: 18px;
-    color: #64748b;
+    color: #475569;
     font-weight: 400;
     margin: 0 0 24px;
     line-height: 1.6;
@@ -58,7 +39,6 @@
     justify-content: center;
     gap: 10px;
     flex-wrap: wrap;
-    animation: fadeInUp 0.8s ease-out 0.3s both;
 }
 
 .badge {
@@ -66,48 +46,23 @@
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
-    background: rgba(255,255,255,0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(124,58,237,0.15);
+    background: #ffffff;
+    border: 1px solid #c7d2fe;
     border-radius: 20px;
     font-size: 13px;
     font-weight: 500;
-    color: #4c1d95;
-    transition: all 0.3s ease;
+    color: #3730a3;
 }
 
 .badge:hover {
-    background: rgba(124,58,237,0.1);
-    border-color: rgba(124,58,237,0.3);
+    background: #eef2ff;
+    border-color: #818cf8;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(124,58,237,0.15);
-}
-
-/* ===== 글래스 카드 ===== */
-.glass-card {
-    background: rgba(255, 255, 255, 0.6) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.5) !important;
-    border-radius: 16px !important;
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.06),
-        0 8px 32px rgba(0, 0, 0, 0.04) !important;
-    padding: 24px !important;
-    transition: all 0.3s ease !important;
-    animation: fadeInUp 0.6s ease-out both;
-}
-
-.glass-card:hover {
-    box-shadow:
-        0 2px 6px rgba(0, 0, 0, 0.08),
-        0 12px 40px rgba(124, 58, 237, 0.08) !important;
-    border-color: rgba(124, 58, 237, 0.2) !important;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+    transition: all 0.2s ease;
 }
 
 /* ===== 탭 ===== */
-.tabs { animation: fadeInUp 0.6s ease-out 0.2s both; }
-
 button.tab-nav {
     font-family: 'Inter', sans-serif !important;
     font-weight: 600 !important;
@@ -120,99 +75,52 @@ button.tab-nav {
 }
 
 button.tab-nav.selected {
-    background: linear-gradient(135deg, #7c3aed, #6d28d9) !important;
+    background: linear-gradient(135deg, #4f46e5, #4338ca) !important;
     color: white !important;
-    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3) !important;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3) !important;
 }
 
 button.tab-nav:not(.selected) {
-    background: rgba(255,255,255,0.5) !important;
+    background: #ffffff !important;
     color: #6b7280 !important;
 }
 
 button.tab-nav:not(.selected):hover {
-    background: rgba(124, 58, 237, 0.08) !important;
-    color: #7c3aed !important;
+    background: #eef2ff !important;
+    color: #4f46e5 !important;
 }
 
 /* ===== 버튼 ===== */
 .primary-btn {
-    background: linear-gradient(135deg, #7c3aed, #6d28d9) !important;
+    background: linear-gradient(135deg, #4f46e5, #4338ca) !important;
     border: none !important;
     border-radius: 12px !important;
     padding: 12px 32px !important;
     font-weight: 600 !important;
     font-size: 15px !important;
-    letter-spacing: 0.3px !important;
-    transition: all 0.3s ease !important;
-    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.25) !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.25) !important;
 }
 
 .primary-btn:hover {
     transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.35) !important;
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35) !important;
 }
 
 .primary-btn:active { transform: translateY(0) !important; }
 
 .secondary-btn {
-    background: rgba(255,255,255,0.6) !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(124,58,237,0.2) !important;
+    background: #ffffff !important;
+    border: 1px solid #c7d2fe !important;
     border-radius: 12px !important;
-    color: #7c3aed !important;
+    color: #4f46e5 !important;
     font-weight: 500 !important;
-    transition: all 0.3s ease !important;
+    transition: all 0.2s ease !important;
 }
 
 .secondary-btn:hover {
-    background: rgba(124,58,237,0.08) !important;
-    border-color: rgba(124,58,237,0.4) !important;
-}
-
-/* ===== 파일 업로드 ===== */
-.file-upload {
-    border: 2px dashed rgba(124, 58, 237, 0.2) !important;
-    border-radius: 16px !important;
-    background: rgba(255, 255, 255, 0.4) !important;
-    transition: all 0.3s ease !important;
-    min-height: 160px !important;
-}
-
-.file-upload:hover {
-    border-color: rgba(124, 58, 237, 0.5) !important;
-    background: rgba(124, 58, 237, 0.03) !important;
-}
-
-/* ===== 입력 필드 ===== */
-textarea, input[type="text"], input[type="password"] {
-    border-radius: 10px !important;
-    border: 1px solid rgba(124, 58, 237, 0.15) !important;
-    background: rgba(255, 255, 255, 0.7) !important;
-    backdrop-filter: blur(10px) !important;
-    transition: all 0.3s ease !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
-    border-color: #7c3aed !important;
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1) !important;
-}
-
-/* ===== 결과 영역 ===== */
-.result-box {
-    border-radius: 12px !important;
-    border: 1px solid rgba(16, 185, 129, 0.2) !important;
-    background: rgba(240, 253, 244, 0.6) !important;
-    backdrop-filter: blur(10px) !important;
-}
-
-/* ===== 아코디언 ===== */
-.accordion {
-    border-radius: 12px !important;
-    border: 1px solid rgba(124, 58, 237, 0.1) !important;
-    background: rgba(255, 255, 255, 0.4) !important;
-    backdrop-filter: blur(10px) !important;
+    background: #eef2ff !important;
+    border-color: #818cf8 !important;
 }
 
 /* ===== 모드 설명 ===== */
@@ -221,10 +129,9 @@ textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
     align-items: flex-start;
     gap: 12px;
     padding: 16px;
-    background: rgba(255,255,255,0.5);
-    backdrop-filter: blur(10px);
+    background: #f8fafc;
     border-radius: 12px;
-    border: 1px solid rgba(124,58,237,0.08);
+    border: 1px solid #e2e8f0;
     margin-bottom: 16px;
 }
 
@@ -234,7 +141,7 @@ textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
     margin: 0 0 4px;
     font-size: 15px;
     font-weight: 600;
-    color: #1e1b4b;
+    color: #1e293b;
 }
 
 .mode-text p {
@@ -248,7 +155,6 @@ textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
 .footer-section {
     text-align: center;
     padding: 32px 24px 16px;
-    animation: fadeInUp 0.6s ease-out 0.5s both;
 }
 
 .footer-links {
@@ -259,14 +165,14 @@ textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
 }
 
 .footer-links a {
-    color: #7c3aed;
+    color: #4f46e5;
     text-decoration: none;
     font-weight: 500;
     font-size: 14px;
-    transition: all 0.2s ease;
+    transition: color 0.2s ease;
 }
 
-.footer-links a:hover { color: #6d28d9; }
+.footer-links a:hover { color: #3730a3; }
 
 .footer-copy {
     font-size: 12px;
@@ -277,5 +183,4 @@ textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
 @media (max-width: 768px) {
     .hero-title { font-size: 32px; }
     .hero-sub { font-size: 15px; }
-    .glass-card { padding: 16px !important; }
 }
