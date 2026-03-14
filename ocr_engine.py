@@ -14,7 +14,7 @@ def ocr_with_paddle(image_path: str) -> dict:
     """PaddleOCR로 이미지 텍스트 추출 -> 구조 JSON"""
     from paddleocr import PaddleOCR
 
-    ocr = PaddleOCR(use_angle_cls=True, lang='korean', show_log=False)
+    ocr = PaddleOCR(use_angle_cls=True, lang='korean')
     result = ocr.ocr(image_path, cls=True)
 
     if not result or not result[0]:
