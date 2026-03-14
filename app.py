@@ -157,20 +157,53 @@ def process_json(json_text, template, title, creator, progress=gr.Progress()):
     return build_hwpx_from_structure(doc_structure, template, title, creator, progress)
 
 
-def process_image(image, template, title, creator, ocr_engine, gemini_key, progress=gr.Progress()):
+_GEMINI_FREE_LIMIT = 3  # 세션당 Gemini 무료 횟수
+
+
+def process_image(image, template, title, creator, ocr_engine_choice, gemini_key, ocr_count, progress=gr.Progress()):
     if image is None:
         raise gr.Error("이미지를 업로드해주세요")
-    try:
-        progress(0.05, desc="OCR 분석 중...")
-        from ocr_engine import process_image as run_ocr
-        doc_structure = run_ocr(image, engine=ocr_engine, api_key=gemini_key or "")
-        return build_hwpx_from_structure(doc_structure, template, title, creator, progress)
-    except gr.Error:
-        raise
-    except ImportError as e:
-        raise gr.Error(f"OCR 모듈 로드 실패: {e}")
-    except Exception as e:
-        raise gr.Error(f"이미지 처리 오류: {e}")
+
+    count = ocr_count or 0
+
+    if ocr_engine_choice == "gemini":
+        user_key = gemini_key or ""
+        env_key = os.getenv("GEMINI_API_KEY", "")
+
+        # 본인 키가 있으면 제한 없음
+        if user_key:
+            api_key = user_key
+        elif count < _GEMINI_FREE_LIMIT and env_key:
+            api_key = env_key
+        else:
+            raise gr.Error(
+                f"Gemini 무료 체험 {_GEMINI_FREE_LIMIT}회를 모두 사용했습니다. "
+                "본인의 Gemini API Key를 입력하거나 EasyOCR을 사용해주세요."
+            )
+
+        try:
+            progress(0.05, desc="Gemini Vision 분석 중...")
+            from ocr_engine import process_image as run_ocr
+            doc_structure = run_ocr(image, engine="gemini", api_key=api_key)
+            result = build_hwpx_from_structure(doc_structure, template, title, creator, progress)
+            new_count = count + 1 if not user_key else count  # 본인 키 사용 시 카운트 안 함
+            return result[0], result[1], new_count
+        except gr.Error:
+            raise
+        except Exception as e:
+            raise gr.Error(f"이미지 처리 오류: {e}")
+    else:
+        # EasyOCR (무제한)
+        try:
+            progress(0.05, desc="EasyOCR 분석 중 (첫 실행 시 모델 다운로드)...")
+            from ocr_engine import process_image as run_ocr
+            doc_structure = run_ocr(image, engine="easyocr")
+            result = build_hwpx_from_structure(doc_structure, template, title, creator, progress)
+            return result[0], result[1], count
+        except gr.Error:
+            raise
+        except Exception as e:
+            raise gr.Error(f"이미지 처리 오류: {e}")
 
 
 # === JSON 예제 ===
@@ -343,22 +376,25 @@ def create_app():
                         <span class="mode-icon">&#x1F5BC;</span>
                         <div class="mode-text">
                             <h4>이미지 OCR 변환</h4>
-                            <p>문서 이미지를 OCR로 분석하여 HWPX로 변환합니다. PaddleOCR(기본)은 API 키 없이 사용 가능합니다.</p>
+                            <p>Gemini Vision (고정밀, 3회 무료) 또는 EasyOCR (무제한) 중 선택하세요.</p>
                         </div>
                     </div>""")
                     image_input = gr.Image(label="문서 이미지", type="filepath")
                     with gr.Row():
-                        ocr_engine = gr.Radio(
-                            choices=["paddle", "gemini"],
-                            value="paddle",
+                        ocr_engine_choice = gr.Radio(
+                            choices=[
+                                ("Gemini Vision (고정밀)", "gemini"),
+                                ("EasyOCR (무제한)", "easyocr"),
+                            ],
+                            value="gemini",
                             label="OCR 엔진",
-                            info="PaddleOCR: 무료 | Gemini: 고정밀 (API Key 필요)",
                         )
                         gemini_key = gr.Textbox(
-                            label="Gemini API Key",
+                            label="Gemini API Key (선택)",
                             type="password",
-                            placeholder="Gemini 선택 시 입력",
+                            placeholder="미입력 시 무료 체험 3회",
                         )
+                    ocr_count = gr.State(value=0)
                     image_btn = gr.Button(
                         "HWPX 변환",
                         variant="primary",
@@ -369,8 +405,8 @@ def create_app():
 
                     image_btn.click(
                         fn=process_image,
-                        inputs=[image_input, template, title_input, creator_input, ocr_engine, gemini_key],
-                        outputs=[image_output, image_log],
+                        inputs=[image_input, template, title_input, creator_input, ocr_engine_choice, gemini_key, ocr_count],
+                        outputs=[image_output, image_log, ocr_count],
                     )
 
         # 푸터

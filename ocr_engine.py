@@ -1,37 +1,39 @@
 """
 OCR 엔진 모듈
-PaddleOCR (기본, API 불필요) + Gemini Vision (선택, API 필요)
+Gemini Vision (고정밀) + EasyOCR (무료 폴백)
 이미지 -> 구조 JSON 변환
 """
 import json
 import os
-import sys
-import tempfile
 from pathlib import Path
 
 
-def ocr_with_paddle(image_path: str) -> dict:
-    """PaddleOCR로 이미지 텍스트 추출 -> 구조 JSON"""
-    from paddleocr import PaddleOCR
+# ──────────────────────────────────────────
+# EasyOCR (무료, 무제한)
+# ──────────────────────────────────────────
 
-    ocr = PaddleOCR(use_angle_cls=True, lang='korean', show_log=False)
-    result = ocr.ocr(image_path, cls=True)
+_easyocr_reader = None  # 싱글톤 (모델 로딩 1회)
 
-    if not result or not result[0]:
+
+def ocr_with_easyocr(image_path: str) -> dict:
+    """EasyOCR로 이미지 텍스트 추출 -> 구조 JSON"""
+    import easyocr
+
+    global _easyocr_reader
+    if _easyocr_reader is None:
+        _easyocr_reader = easyocr.Reader(['ko', 'en'], gpu=False)
+
+    results = _easyocr_reader.readtext(image_path)
+
+    if not results:
         return {
             "document": {"title": "OCR 결과 없음", "page_width_hu": 42520},
             "sections": [{"type": "paragraph", "content": "(텍스트를 인식하지 못했습니다)"}]
         }
 
-    lines = result[0]
-
-    # bbox 기반으로 행 그룹핑
+    # bbox -> 행 데이터 변환 (PaddleOCR과 동일 구조)
     line_data = []
-    for item in lines:
-        bbox = item[0]
-        text = item[1][0]
-        confidence = item[1][1]
-
+    for bbox, text, confidence in results:
         x_min = min(p[0] for p in bbox)
         y_min = min(p[1] for p in bbox)
         x_max = max(p[0] for p in bbox)
@@ -46,7 +48,89 @@ def ocr_with_paddle(image_path: str) -> dict:
             "h": y_max - y_min,
         })
 
-    # Y좌표 기반 행 그룹핑
+    return _group_and_build(line_data)
+
+
+# ──────────────────────────────────────────
+# Gemini Vision (고정밀, API 키 필요)
+# ──────────────────────────────────────────
+
+def ocr_with_gemini(image_path: str, api_key: str) -> dict:
+    """Gemini Vision API로 이미지 레이아웃 분석 -> 구조 JSON"""
+    import base64
+    import urllib.request
+    import urllib.error
+
+    ext = Path(image_path).suffix.lower()
+    mime_map = {
+        ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+        ".gif": "image/gif", ".webp": "image/webp", ".bmp": "image/bmp",
+    }
+    mime = mime_map.get(ext, "image/png")
+
+    with open(image_path, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+
+    prompt = """이 문서 이미지를 분석하여 HWPX 구조 JSON으로 변환하세요.
+
+출력 형식:
+{
+  "document": {"title": "문서 제목", "page_width_hu": 42520},
+  "sections": [
+    {"type": "paragraph", "content": "텍스트", "align": "CENTER", "style": {"bold": true, "font_size_pt": 16}},
+    {"type": "table", "table": {"rows": 3, "cols": 2, "col_widths_ratio": [50, 50], "cells": [
+      {"row": 0, "col": 0, "text": "헤더1", "style": {"bold": true, "align": "CENTER", "is_header": true}},
+      {"row": 0, "col": 1, "text": "헤더2", "style": {"bold": true, "align": "CENTER", "is_header": true}}
+    ]}}
+  ]
+}
+
+규칙:
+1. 모든 텍스트를 빠짐없이 추출
+2. 표는 table 타입으로, 일반 텍스트는 paragraph 타입으로
+3. 병합 셀은 colspan/rowspan으로 표현
+4. 배경색은 bg_color, 글자색은 text_color (hex)
+5. 반드시 JSON만 출력"""
+
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+    payload = json.dumps({
+        "contents": [{"parts": [
+            {"inlineData": {"mimeType": mime, "data": b64}},
+            {"text": prompt}
+        ]}],
+        "generationConfig": {
+            "temperature": 0.1,
+            "maxOutputTokens": 32768,
+            "responseMimeType": "application/json"
+        }
+    }).encode("utf-8")
+
+    req = urllib.request.Request(f"{url}?key={api_key}", data=payload, method="POST")
+    req.add_header("Content-Type", "application/json")
+    req.add_header("x-goog-api-key", api_key)
+
+    try:
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8")
+        raise RuntimeError(f"Gemini API 오류 ({e.code}): {body[:300]}")
+
+    try:
+        text = result["candidates"][0]["content"]["parts"][0]["text"]
+        return json.loads(text)
+    except (KeyError, json.JSONDecodeError) as e:
+        raise RuntimeError(f"Gemini 응답 파싱 실패: {e}")
+
+
+# ──────────────────────────────────────────
+# 공통: bbox 그룹핑 + 구조 빌드
+# ──────────────────────────────────────────
+
+def _group_and_build(line_data: list) -> dict:
+    """bbox 데이터 -> Y좌표 그룹핑 -> 테이블/문단 판별 -> 구조 JSON"""
     Y_TOLERANCE = 15
     line_data.sort(key=lambda d: (d["y"], d["x"]))
 
@@ -60,7 +144,6 @@ def ocr_with_paddle(image_path: str) -> dict:
             current_row = [item]
     rows.append(current_row)
 
-    # 행 수와 열 패턴으로 테이블 vs 문단 판별
     col_counts = [len(row) for row in rows]
     avg_cols = sum(col_counts) / len(col_counts) if col_counts else 1
     is_table = avg_cols >= 2 and len(rows) >= 3
@@ -144,81 +227,17 @@ def _build_paragraph_structure(rows: list) -> dict:
     }
 
 
-def ocr_with_gemini(image_path: str, api_key: str) -> dict:
-    """Gemini Vision API로 이미지 레이아웃 분석 -> 구조 JSON"""
-    import base64
-    import urllib.request
-    import urllib.error
+# ──────────────────────────────────────────
+# 엔트리 포인트
+# ──────────────────────────────────────────
 
-    ext = Path(image_path).suffix.lower()
-    mime_map = {
-        ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-        ".gif": "image/gif", ".webp": "image/webp", ".bmp": "image/bmp",
-    }
-    mime = mime_map.get(ext, "image/png")
-
-    with open(image_path, "rb") as f:
-        b64 = base64.b64encode(f.read()).decode("utf-8")
-
-    prompt = """이 문서 이미지를 분석하여 HWPX 구조 JSON으로 변환하세요.
-
-출력 형식:
-{
-  "document": {"title": "문서 제목", "page_width_hu": 42520},
-  "sections": [
-    {"type": "paragraph", "content": "텍스트", "align": "CENTER", "style": {"bold": true, "font_size_pt": 16}},
-    {"type": "table", "table": {"rows": 3, "cols": 2, "col_widths_ratio": [50, 50], "cells": [
-      {"row": 0, "col": 0, "text": "헤더1", "style": {"bold": true, "align": "CENTER", "is_header": true}},
-      {"row": 0, "col": 1, "text": "헤더2", "style": {"bold": true, "align": "CENTER", "is_header": true}}
-    ]}}
-  ]
-}
-
-규칙:
-1. 모든 텍스트를 빠짐없이 추출
-2. 표는 table 타입으로, 일반 텍스트는 paragraph 타입으로
-3. 병합 셀은 colspan/rowspan으로 표현
-4. 배경색은 bg_color, 글자색은 text_color (hex)
-5. 반드시 JSON만 출력"""
-
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-
-    payload = json.dumps({
-        "contents": [{"parts": [
-            {"inlineData": {"mimeType": mime, "data": b64}},
-            {"text": prompt}
-        ]}],
-        "generationConfig": {
-            "temperature": 0.1,
-            "maxOutputTokens": 32768,
-            "responseMimeType": "application/json"
-        }
-    }).encode("utf-8")
-
-    req = urllib.request.Request(f"{url}?key={api_key}", data=payload, method="POST")
-    req.add_header("Content-Type", "application/json")
-    req.add_header("x-goog-api-key", api_key)
-
-    try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            result = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8")
-        raise RuntimeError(f"Gemini API 오류 ({e.code}): {body[:300]}")
-
-    try:
-        text = result["candidates"][0]["content"]["parts"][0]["text"]
-        return json.loads(text)
-    except (KeyError, json.JSONDecodeError) as e:
-        raise RuntimeError(f"Gemini 응답 파싱 실패: {e}")
-
-
-def process_image(image_path: str, engine: str = "paddle", api_key: str = "") -> dict:
+def process_image(image_path: str, engine: str = "gemini", api_key: str = "") -> dict:
     """이미지 -> 구조 JSON (엔진 선택)"""
+    resolved_key = api_key or os.getenv("GEMINI_API_KEY", "")
+
     if engine == "gemini":
-        if not api_key:
-            raise ValueError("Gemini 엔진 사용 시 API 키가 필요합니다")
-        return ocr_with_gemini(image_path, api_key)
+        if not resolved_key:
+            raise ValueError("Gemini API 키가 필요합니다.")
+        return ocr_with_gemini(image_path, resolved_key)
     else:
-        return ocr_with_paddle(image_path)
+        return ocr_with_easyocr(image_path)
