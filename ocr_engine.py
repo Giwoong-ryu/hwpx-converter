@@ -15,7 +15,7 @@ def ocr_with_paddle(image_path: str) -> dict:
     from paddleocr import PaddleOCR
 
     ocr = PaddleOCR(use_angle_cls=True, lang='korean')
-    result = ocr.ocr(image_path, cls=True)
+    result = ocr.ocr(image_path)
 
     if not result or not result[0]:
         return {
