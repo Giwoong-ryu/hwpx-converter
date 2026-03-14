@@ -60,6 +60,10 @@ HERO_HTML = """
             No API Key
         </span>
     </div>
+    <p style="margin: 20px 0 0; font-size: 13px; color: #94a3b8;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" style="vertical-align: -1px; margin-right: 4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        업로드된 파일은 서버에 저장되지 않으며, 어떠한 데이터도 수집하지 않습니다
+    </p>
 </div>
 """
 
