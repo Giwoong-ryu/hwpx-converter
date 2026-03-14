@@ -260,14 +260,15 @@ def create_app():
             # 문서 스타일 (항상 표시)
             template = gr.Radio(
                 choices=[
+                    ("입력 형식 유지", "auto"),
                     ("보고서", "report"),
                     ("공문", "gonmun"),
                     ("회의록", "minutes"),
                     ("제안서", "proposal"),
                 ],
-                value="report",
+                value="auto",
                 label="문서 스타일",
-                info="보고서: 파란 회색 | 공문: 굵은 테두리 회색 | 회의록: 초록 계열 | 제안서: 네이비 계열",
+                info="입력 형식 유지: 원본 색상 그대로 | 보고서: 파란 회색 | 공문: 굵은 테두리 | 회의록: 초록 | 제안서: 네이비",
             )
 
             # 추가 설정 (접힘)

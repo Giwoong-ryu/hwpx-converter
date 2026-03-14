@@ -16,7 +16,7 @@ PROJECT_DIR = SCRIPT_DIR.parent
 TEMPLATES_DIR = PROJECT_DIR / "templates"
 BASE_DIR = TEMPLATES_DIR / "base"
 
-AVAILABLE_TEMPLATES = ["gonmun", "report", "minutes", "proposal"]
+AVAILABLE_TEMPLATES = ["auto", "gonmun", "report", "minutes", "proposal"]
 
 
 def validate_xml(filepath: Path) -> None:
@@ -147,12 +147,11 @@ def build(
 
         if template:
             overlay_dir = TEMPLATES_DIR / template
-            if not overlay_dir.is_dir():
-                return [f"Template '{template}' not found. Available: {', '.join(AVAILABLE_TEMPLATES)}"]
-            for overlay_file in overlay_dir.iterdir():
-                if overlay_file.is_file() and overlay_file.suffix == ".xml":
-                    dest = work / "Contents" / overlay_file.name
-                    shutil.copy2(overlay_file, dest)
+            if overlay_dir.is_dir():
+                for overlay_file in overlay_dir.iterdir():
+                    if overlay_file.is_file() and overlay_file.suffix == ".xml":
+                        dest = work / "Contents" / overlay_file.name
+                        shutil.copy2(overlay_file, dest)
 
         if header_override:
             if not header_override.is_file():

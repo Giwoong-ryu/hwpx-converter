@@ -17,6 +17,12 @@ from core.section_renderers import (
 # bf6: 중간 배경(일반 회색 셀), bf7: 헤더 배경(연한 색), bf8: 강조 배경(진한 색)
 # bf7_border: 헤더 행 테두리 굵기
 _TEMPLATE_STYLES = {
+    "auto": {
+        "bf6_color": "none",      # 배경 없음
+        "bf7_face":  "none",      # 헤더도 배경 없음 (입력 색상만 반영)
+        "bf7_border": "0.12 mm",  # 얇은 테두리
+        "bf8_face":  "none",      # 강조도 배경 없음
+    },
     "gonmun": {
         "bf6_color": "#C8C8C8",   # 일반 배경: 중회색 (관공서 스타일)
         "bf7_face":  "#D0D0D0",   # 헤더 배경: 연회색
