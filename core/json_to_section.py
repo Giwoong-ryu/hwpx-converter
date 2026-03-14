@@ -13,6 +13,36 @@ from core.section_renderers import (
     render_paragraph, render_table, render_section_header
 )
 
+# 템플릿별 시각 스타일 정의
+# bf6: 중간 배경(일반 회색 셀), bf7: 헤더 배경(연한 색), bf8: 강조 배경(진한 색)
+# bf7_border: 헤더 행 테두리 굵기
+_TEMPLATE_STYLES = {
+    "gonmun": {
+        "bf6_color": "#C8C8C8",   # 일반 배경: 중회색 (관공서 스타일)
+        "bf7_face":  "#D0D0D0",   # 헤더 배경: 연회색
+        "bf7_border": "0.5 mm",   # 테두리: 굵게 (공문 스타일)
+        "bf8_face":  "#404040",   # 강조 배경: 진회색 (컬러 없음)
+    },
+    "report": {
+        "bf6_color": "#E0E0E0",
+        "bf7_face":  "#D6DCE4",   # 헤더 배경: 파란 회색
+        "bf7_border": "0.4 mm",
+        "bf8_face":  "#2B4C7E",   # 강조 배경: 진한 파랑
+    },
+    "minutes": {
+        "bf6_color": "#DAECD3",
+        "bf7_face":  "#E2EFDA",   # 헤더 배경: 연한 초록
+        "bf7_border": "0.3 mm",
+        "bf8_face":  "#375623",   # 강조 배경: 진한 초록
+    },
+    "proposal": {
+        "bf6_color": "#C5D9F1",
+        "bf7_face":  "#BDD7EE",   # 헤더 배경: 연한 파랑
+        "bf7_border": "0.4 mm",
+        "bf8_face":  "#1F3864",   # 강조 배경: 진한 네이비
+    },
+}
+
 
 def generate_section_xml(doc_structure, output_dir):
     """분석 결과 JSON -> section0.xml 생성"""
@@ -104,7 +134,10 @@ def generate_section_xml(doc_structure, output_dir):
 
 
 def create_header(output_dir, template="report"):
-    """템플릿 header.xml 복사 + 커스텀 스타일 추가"""
+    """템플릿 header.xml 복사 + 템플릿별 스타일 주입.
+
+    어떤 템플릿이든 기존 borderFill 7/8/9를 제거한 뒤 템플릿 스타일로 교체한다.
+    """
     src = os.path.join(SKILL_DIR, f"templates/{template}/header.xml")
     if not os.path.isfile(src):
         src = os.path.join(SKILL_DIR, "templates/report/header.xml")
@@ -114,40 +147,56 @@ def create_header(output_dir, template="report"):
     with open(dst, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    content = content.replace('itemCnt="6"', 'itemCnt="10"', 1)
-    content = content.replace('itemCnt="7"', 'itemCnt="10"', 1)
+    s = _TEMPLATE_STYLES.get(template, _TEMPLATE_STYLES["report"])
 
-    charpr_16 = '''      <hh:charPr id="16" height="1200" textColor="#FFFFFF" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="2">
-        <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
-        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
-        <hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
-        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
-        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
-        <hh:bold/>
-        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
-        <hh:strikeout shape="NONE" color="#000000"/>
-        <hh:outline type="NONE"/>
-        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
-      </hh:charPr>
-    </hh:charProperties>'''
-    content = content.replace('</hh:charProperties>', charpr_16, 1)
+    # --- borderFill 7/8/9 기존 정의 제거 (템플릿마다 이미 정의되어 있을 수 있음) ---
+    bf_removed = 0
+    for bf_id in (7, 8, 9):
+        content, n = re_mod.subn(
+            rf'\s*<!--[^<]*-->\s*<hh:borderFill id="{bf_id}"[\s>].*?</hh:borderFill>',
+            '',
+            content,
+            count=1,
+            flags=re_mod.DOTALL,
+        )
+        if n == 0:
+            content, n = re_mod.subn(
+                rf'\s*<hh:borderFill id="{bf_id}"[\s>].*?</hh:borderFill>',
+                '',
+                content,
+                count=1,
+                flags=re_mod.DOTALL,
+            )
+        bf_removed += n
 
+    # borderFills itemCnt 정확히 업데이트 (제거분 빼고 3개 추가)
+    def _update_bf_cnt(m):
+        new_cnt = int(m.group(1)) - bf_removed + 3
+        return f'<hh:borderFills itemCnt="{new_cnt}"'
+    content = re_mod.sub(r'<hh:borderFills itemCnt="(\d+)"', _update_bf_cnt, content, count=1)
+
+    # --- borderFill 6 배경색 교체 ---
     content = re_mod.sub(
         r'(<hh:borderFill id="6".*?faceColor=")[^"]*(")',
-        r'\g<1>#E0E0E0\2',
-        content, count=1, flags=re_mod.DOTALL
+        r'\g<1>' + s["bf6_color"] + r'\2',
+        content, count=1, flags=re_mod.DOTALL,
     )
 
-    bf_789 = '''      <hh:borderFill id="7" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">
+    # --- 템플릿별 borderFill 7/8/9 주입 ---
+    bw = s["bf7_border"]
+    bf7 = s["bf7_face"]
+    bf8 = s["bf8_face"]
+
+    bf_789 = f'''      <hh:borderFill id="7" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">
         <hh:slash type="NONE" Crooked="0" isCounter="0"/>
         <hh:backSlash type="NONE" Crooked="0" isCounter="0"/>
-        <hh:leftBorder type="SOLID" width="0.4 mm" color="#000000"/>
-        <hh:rightBorder type="SOLID" width="0.4 mm" color="#000000"/>
-        <hh:topBorder type="SOLID" width="0.4 mm" color="#000000"/>
-        <hh:bottomBorder type="SOLID" width="0.4 mm" color="#000000"/>
+        <hh:leftBorder type="SOLID" width="{bw}" color="#000000"/>
+        <hh:rightBorder type="SOLID" width="{bw}" color="#000000"/>
+        <hh:topBorder type="SOLID" width="{bw}" color="#000000"/>
+        <hh:bottomBorder type="SOLID" width="{bw}" color="#000000"/>
         <hh:diagonal type="SOLID" width="0.12 mm" color="#000000"/>
         <hc:fillBrush>
-          <hc:winBrush faceColor="#E0E0E0" hatchColor="#999999" alpha="0"/>
+          <hc:winBrush faceColor="{bf7}" hatchColor="#999999" alpha="0"/>
         </hc:fillBrush>
       </hh:borderFill>
       <hh:borderFill id="8" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">
@@ -159,7 +208,7 @@ def create_header(output_dir, template="report"):
         <hh:bottomBorder type="NONE" width="0.12 mm" color="#000000"/>
         <hh:diagonal type="SOLID" width="0.12 mm" color="#000000"/>
         <hc:fillBrush>
-          <hc:winBrush faceColor="#2B4C7E" hatchColor="#999999" alpha="0"/>
+          <hc:winBrush faceColor="{bf8}" hatchColor="#999999" alpha="0"/>
         </hc:fillBrush>
       </hh:borderFill>
       <hh:borderFill id="9" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">
@@ -173,6 +222,28 @@ def create_header(output_dir, template="report"):
       </hh:borderFill>
     </hh:borderFills>'''
     content = content.replace('</hh:borderFills>', bf_789, 1)
+
+    # --- charPr 16 (흰색 텍스트) 추가 - 중복 방지 ---
+    if 'id="16"' not in content:
+        def _update_char_cnt(m):
+            return f'<hh:charProperties itemCnt="{int(m.group(1)) + 1}"'
+        content = re_mod.sub(
+            r'<hh:charProperties itemCnt="(\d+)"', _update_char_cnt, content, count=1,
+        )
+        charpr_16 = '''      <hh:charPr id="16" height="1200" textColor="#FFFFFF" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="2">
+        <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:bold/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
+      </hh:charPr>
+    </hh:charProperties>'''
+        content = content.replace('</hh:charProperties>', charpr_16, 1)
 
     with open(dst, 'w', encoding='utf-8') as f:
         f.write(content)

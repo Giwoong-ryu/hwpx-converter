@@ -257,15 +257,22 @@ def create_app():
         # 메인 컨테이너
         with gr.Column(elem_classes="glass-card"):
 
-            # 고급 설정 (접힘)
-            with gr.Accordion("설정", open=False):
+            # 문서 스타일 (항상 표시)
+            template = gr.Radio(
+                choices=[
+                    ("보고서", "report"),
+                    ("공문", "gonmun"),
+                    ("회의록", "minutes"),
+                    ("제안서", "proposal"),
+                ],
+                value="report",
+                label="문서 스타일",
+                info="보고서: 파란 회색 | 공문: 굵은 테두리 회색 | 회의록: 초록 계열 | 제안서: 네이비 계열",
+            )
+
+            # 추가 설정 (접힘)
+            with gr.Accordion("추가 설정", open=False):
                 with gr.Row():
-                    template = gr.Dropdown(
-                        choices=AVAILABLE_TEMPLATES,
-                        value="report",
-                        label="문서 템플릿",
-                        info="report(보고서), gonmun(공문), minutes(회의록), proposal(제안서)",
-                    )
                     title_input = gr.Textbox(
                         label="문서 제목",
                         placeholder="비워두면 자동 추출",
