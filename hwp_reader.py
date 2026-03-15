@@ -35,46 +35,61 @@ def _from_structure(result) -> dict:
     title = ""
 
     for section in sections_data:
-        # 문단 처리
-        paragraphs = section.get("paragraphs", [])
-        for para in paragraphs:
-            text = para.get("text", "").strip()
-            level = para.get("level", 0)
-
-            if not text:
-                output_sections.append({"type": "paragraph", "content": ""})
-                continue
-
-            style = {}
-            align = "LEFT"
-
-            # 레벨 기반 스타일 추정
-            if level == 0 and not title:
-                title = text
-                style["bold"] = True
-                style["font_size_pt"] = 16
-                align = "CENTER"
-            elif level <= 1:
-                style["bold"] = True
-                style["font_size_pt"] = 14
-
-            output_sections.append({
-                "type": "paragraph",
-                "content": text,
-                "align": align,
-                "style": style,
-            })
-
-        # 테이블 처리 (문단과 섞인 순서 그대로)
-        tables = section.get("tables", [])
-        for tbl in tables:
-            table_section = _convert_table(tbl)
-            if table_section:
-                output_sections.append(table_section)
-
-    # 구조에서 순서가 sections 내 paragraphs → tables 순이면
-    # interleaving이 안 될 수 있다. 이 경우 text 폴백과 동일.
-    # 하지만 structure API가 순서를 보존한다면 이 코드가 정확하다.
+        # "elements" 키가 있으면 순서 보존된 혼합 리스트
+        elements = section.get("elements", [])
+        if elements:
+            for elem in elements:
+                elem_type = elem.get("type", "paragraph")
+                if elem_type == "table":
+                    table_section = _convert_table(elem)
+                    if table_section:
+                        output_sections.append(table_section)
+                else:
+                    text = elem.get("text", "").strip()
+                    level = elem.get("level", 0)
+                    if not text:
+                        output_sections.append({"type": "paragraph", "content": ""})
+                        continue
+                    style = {}
+                    align = "LEFT"
+                    if level == 0 and not title:
+                        title = text
+                        style["bold"] = True
+                        style["font_size_pt"] = 16
+                        align = "CENTER"
+                    elif level <= 1:
+                        style["bold"] = True
+                        style["font_size_pt"] = 14
+                    output_sections.append({
+                        "type": "paragraph", "content": text,
+                        "align": align, "style": style,
+                    })
+        else:
+            # 폴백: paragraphs/tables 분리 구조 (순서 보존 안 됨 - 문단 먼저)
+            for para in section.get("paragraphs", []):
+                text = para.get("text", "").strip()
+                level = para.get("level", 0)
+                if not text:
+                    output_sections.append({"type": "paragraph", "content": ""})
+                    continue
+                style = {}
+                align = "LEFT"
+                if level == 0 and not title:
+                    title = text
+                    style["bold"] = True
+                    style["font_size_pt"] = 16
+                    align = "CENTER"
+                elif level <= 1:
+                    style["bold"] = True
+                    style["font_size_pt"] = 14
+                output_sections.append({
+                    "type": "paragraph", "content": text,
+                    "align": align, "style": style,
+                })
+            for tbl in section.get("tables", []):
+                table_section = _convert_table(tbl)
+                if table_section:
+                    output_sections.append(table_section)
 
     if not output_sections:
         raise RuntimeError("HWP 파일에서 내용을 추출하지 못했습니다.")

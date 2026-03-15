@@ -14,6 +14,9 @@ from page_guard import collect_metrics, compare_metrics
 
 PLACEHOLDER_RE = re.compile(r'\{\{([^}]+)\}\}')
 
+# batch_fill_template 내에서 page_guard를 매번 안 돌리기 위한 플래그
+_batch_mode = False
+
 
 def analyze_template(hwpx_path: str) -> tuple[list[str], str]:
     """HWPX 파일에서 {{placeholder}} 목록 추출.
@@ -97,11 +100,13 @@ def fill_template(hwpx_path: str, values: dict) -> tuple[str, str]:
 
         _pack_hwpx(Path(work_dir), Path(output_path))
 
-        # 5. page_guard 검증 (원본 대비 구조 비교)
+        # 5. page_guard 검증 (원본 대비 구조 비교, batch 모드에서는 스킵)
         from pathlib import Path as _Path
-        ref_metrics = collect_metrics(_Path(hwpx_path))
-        out_metrics = collect_metrics(_Path(output_path))
-        guard_errors = compare_metrics(ref_metrics, out_metrics, 0.15, 0.25)
+        guard_errors = []
+        if not _batch_mode:
+            ref_metrics = collect_metrics(_Path(hwpx_path))
+            out_metrics = collect_metrics(_Path(output_path))
+            guard_errors = compare_metrics(ref_metrics, out_metrics, 0.15, 0.25)
 
         # 6. 로그
         log = f"치환 완료\n"
@@ -304,6 +309,9 @@ def batch_fill_template(hwpx_path: str, rows: list[dict]) -> str:
     import shutil
     import zipfile as zf_mod
 
+    global _batch_mode
+    _batch_mode = True
+
     output_dir = tempfile.mkdtemp()
     try:
         generated = []
@@ -322,6 +330,7 @@ def batch_fill_template(hwpx_path: str, rows: list[dict]) -> str:
                 zf.write(fpath, os.path.basename(fpath))
         return zip_path
     finally:
+        _batch_mode = False
         shutil.rmtree(output_dir, ignore_errors=True)
 
 

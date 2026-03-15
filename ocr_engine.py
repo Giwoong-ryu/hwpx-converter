@@ -107,7 +107,7 @@ def ocr_with_gemini(image_path: str, api_key: str) -> dict:
         }
     }).encode("utf-8")
 
-    req = urllib.request.Request(f"{url}?key={api_key}", data=payload, method="POST")
+    req = urllib.request.Request(url, data=payload, method="POST")
     req.add_header("Content-Type", "application/json")
     req.add_header("x-goog-api-key", api_key)
 

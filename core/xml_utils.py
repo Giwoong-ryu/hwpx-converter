@@ -87,7 +87,8 @@ def gen_cell(cell_data, total_width, col_widths):
     char_pr = color_to_charpr(text_color, bold, size)
     bf = style_to_bf(bg_color, is_hdr)
 
-    width = sum(col_widths[col:col+colspan])
+    end_col = min(col + colspan, len(col_widths))
+    width = sum(col_widths[col:end_col]) or col_widths[-1]
     _text = cell_data.get("text", "")
     text_lines = max(1, _text.count('\n') + 1) if _text else 1
     height_per_line = max(1800, text_lines * 400)
