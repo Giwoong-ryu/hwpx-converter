@@ -29,6 +29,7 @@ from form_filler import (
 )
 from template_analyzer import analyze_hwpx
 from docx_converter import parse_docx
+from hwp_reader import parse_hwp
 from premade_templates import TEMPLATES, get_template_choices, get_template_fields, get_template_structure
 
 
@@ -42,10 +43,14 @@ HERO_HTML = """
 <div class="hero-section">
     <h1 class="hero-title">HWPX Converter</h1>
     <p class="hero-sub">
-        Excel, CSV, JSON, 이미지 파일을 한글 문서(HWPX)로 변환합니다<br>
+        HWP, Excel, DOCX, 이미지 파일을 한글 문서(HWPX)로 변환합니다<br>
         API 키 없이 브라우저에서 바로 사용하세요
     </p>
     <div class="hero-badges">
+        <span class="badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            .hwp
+        </span>
         <span class="badge">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             .xlsx
@@ -145,7 +150,9 @@ def process_excel(file, template, title, creator, progress=gr.Progress()):
     try:
         progress(0.05, desc="파일 분석 중...")
         ext = os.path.splitext(file.name)[1].lower()
-        if ext in ('.docx',):
+        if ext == '.hwp':
+            doc_structure = parse_hwp(file.name)
+        elif ext == '.docx':
             doc_structure = parse_docx(file.name)
         else:
             doc_structure = parse_file(file.name)
@@ -531,17 +538,17 @@ def create_app():
             with gr.Tabs():
 
                 # Excel/CSV
-                with gr.TabItem("Excel / CSV / DOCX"):
+                with gr.TabItem("문서 변환"):
                     gr.HTML("""<div class="mode-desc">
                         <span class="mode-icon">&#x1F4CA;</span>
                         <div class="mode-text">
-                            <h4>문서/스프레드시트 변환</h4>
-                            <p>.xlsx, .csv, .docx 파일을 업로드하면 테이블과 텍스트 구조를 자동 파싱하여 HWPX로 변환합니다.</p>
+                            <h4>문서/스프레드시트 → HWPX 변환</h4>
+                            <p>.hwp, .docx, .xlsx, .csv 파일을 업로드하면 테이블과 텍스트 구조를 자동 파싱하여 HWPX로 변환합니다.</p>
                         </div>
                     </div>""")
                     excel_file = gr.File(
                         label="파일 업로드",
-                        file_types=[".xlsx", ".xls", ".csv", ".docx"],
+                        file_types=[".hwp", ".xlsx", ".xls", ".csv", ".docx"],
                         elem_classes="file-upload",
                     )
                     excel_btn = gr.Button(

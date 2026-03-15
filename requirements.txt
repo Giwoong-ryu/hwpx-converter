@@ -3,3 +3,4 @@ lxml>=4.9.0
 openpyxl>=3.1.0
 easyocr>=1.7.0
 python-docx>=1.0.0
+hwp2yaml>=0.6.0
