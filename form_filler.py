@@ -301,29 +301,28 @@ def batch_fill_template(hwpx_path: str, rows: list[dict]) -> str:
     Returns:
         ZIP 파일 경로
     """
+    import shutil
     import zipfile as zf_mod
 
     output_dir = tempfile.mkdtemp()
-    generated = []
+    try:
+        generated = []
+        for i, values in enumerate(rows):
+            out_path, _ = fill_template(hwpx_path, values)
+            first_val = list(values.values())[0] if values else str(i + 1)
+            safe_name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', str(first_val)[:20])
+            final_name = f"{i + 1:03d}_{safe_name}.hwpx"
+            final_path = os.path.join(output_dir, final_name)
+            shutil.move(out_path, final_path)
+            generated.append(final_path)
 
-    for i, values in enumerate(rows):
-        out_path, _ = fill_template(hwpx_path, values)
-        # 파일명에 인덱스 + 첫 번째 값 사용
-        first_val = list(values.values())[0] if values else str(i + 1)
-        safe_name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', str(first_val)[:20])
-        final_name = f"{i + 1:03d}_{safe_name}.hwpx"
-        final_path = os.path.join(output_dir, final_name)
-        import shutil
-        shutil.move(out_path, final_path)
-        generated.append(final_path)
-
-    # ZIP으로 묶기
-    zip_path = os.path.join(tempfile.gettempdir(), f"batch_{uuid.uuid4().hex[:8]}.zip")
-    with zf_mod.ZipFile(zip_path, 'w', zf_mod.ZIP_DEFLATED) as zf:
-        for fpath in generated:
-            zf.write(fpath, os.path.basename(fpath))
-
-    return zip_path
+        zip_path = os.path.join(tempfile.gettempdir(), f"batch_{uuid.uuid4().hex[:8]}.zip")
+        with zf_mod.ZipFile(zip_path, 'w', zf_mod.ZIP_DEFLATED) as zf:
+            for fpath in generated:
+                zf.write(fpath, os.path.basename(fpath))
+        return zip_path
+    finally:
+        shutil.rmtree(output_dir, ignore_errors=True)
 
 
 def detect_empty_fields(hwpx_path: str) -> list[dict]:

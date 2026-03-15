@@ -77,8 +77,15 @@ def parse_docx(file_path: str) -> dict:
         col_ratios[-1] = round(col_ratios[-1] + remainder, 1)
 
         cells = []
+        seen_cells = set()  # 병합 셀 중복 방지
         for ri, row in enumerate(table.rows):
             for ci, cell in enumerate(row.cells):
+                # python-docx는 병합 셀에서 같은 Cell 객체를 반복 반환
+                cell_id = id(cell)
+                if cell_id in seen_cells:
+                    continue
+                seen_cells.add(cell_id)
+
                 cell_text = cell.text.strip()
                 cell_style = {"align": "LEFT"}
 

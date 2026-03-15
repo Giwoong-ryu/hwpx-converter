@@ -261,6 +261,24 @@ def on_premade_select(template_key):
     return info, example
 
 
+def _replace_placeholders_in_structure(obj, values: dict):
+    """구조 내 모든 문자열에서 {{key}} → value 치환 (재귀)"""
+    if isinstance(obj, dict):
+        for k in obj:
+            if isinstance(obj[k], str):
+                for field, val in values.items():
+                    obj[k] = obj[k].replace(f"{{{{{field}}}}}", str(val))
+            else:
+                _replace_placeholders_in_structure(obj[k], values)
+    elif isinstance(obj, list):
+        for i, item in enumerate(obj):
+            if isinstance(item, str):
+                for field, val in values.items():
+                    obj[i] = obj[i].replace(f"{{{{{field}}}}}", str(val))
+            else:
+                _replace_placeholders_in_structure(item, values)
+
+
 def generate_premade(template_key, values_json, progress=gr.Progress()):
     """프리메이드 템플릿으로 HWPX 생성"""
     if not template_key:
@@ -271,12 +289,10 @@ def generate_premade(template_key, values_json, progress=gr.Progress()):
     if not structure:
         raise gr.Error("템플릿을 찾을 수 없습니다")
 
-    # 구조 JSON을 문자열로 변환 후 플레이스홀더 치환
-    struct_str = json.dumps(structure, ensure_ascii=False)
-    for key, val in values.items():
-        safe_val = val.replace('"', '\\"')
-        struct_str = struct_str.replace(f"{{{{{key}}}}}", safe_val)
-    filled_structure = json.loads(struct_str)
+    # 구조를 deepcopy 후 플레이스홀더 치환 (JSON 인젝션 방지)
+    import copy
+    filled_structure = copy.deepcopy(structure)
+    _replace_placeholders_in_structure(filled_structure, values)
 
     progress(0.3, desc="HWPX 생성 중...")
     return build_hwpx_from_structure(filled_structure, "auto", "", "", progress)
