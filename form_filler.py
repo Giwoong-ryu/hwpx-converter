@@ -106,6 +106,54 @@ def fill_template(hwpx_path: str, values: dict) -> tuple[str, str]:
         return output_path, log
 
 
+def parse_values_file(file_path: str) -> dict:
+    """Excel/CSV/JSON 파일에서 key-value 쌍 추출.
+
+    지원 형식:
+    - Excel/CSV: A열=필드명, B열=값 (2열 구조)
+    - JSON: {"필드명": "값", ...} 객체
+    """
+    import json as _json
+    ext = os.path.splitext(file_path)[1].lower()
+
+    if ext == '.json':
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = _json.load(f)
+        if isinstance(data, dict):
+            return {str(k): str(v) for k, v in data.items()}
+        raise ValueError("JSON 파일은 {필드: 값} 객체 형식이어야 합니다")
+
+    if ext == '.csv':
+        import csv
+        values = {}
+        with open(file_path, 'r', encoding='utf-8-sig') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if len(row) >= 2 and row[0].strip():
+                    values[row[0].strip()] = row[1].strip()
+        if not values:
+            raise ValueError("CSV 파일에서 값을 찾지 못했습니다. A열=필드명, B열=값 형식으로 작성하세요.")
+        return values
+
+    if ext in ('.xlsx', '.xls'):
+        import openpyxl
+        wb = openpyxl.load_workbook(file_path, data_only=True)
+        ws = wb.active
+        values = {}
+        for row in ws.iter_rows(min_col=1, max_col=2):
+            if len(row) >= 2:
+                key = str(row[0].value or '').strip()
+                val = str(row[1].value or '').strip()
+                if key and key != 'None':
+                    values[key] = val if val != 'None' else ''
+        wb.close()
+        if not values:
+            raise ValueError("Excel 파일에서 값을 찾지 못했습니다. A열=필드명, B열=값 형식으로 작성하세요.")
+        return values
+
+    raise ValueError(f"지원하지 않는 파일 형식: {ext} (Excel, CSV, JSON만 지원)")
+
+
 def _xml_escape(text: str) -> str:
     """XML 특수문자 이스케이프"""
     return (text.replace("&", "&amp;")
