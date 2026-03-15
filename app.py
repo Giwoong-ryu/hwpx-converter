@@ -23,8 +23,13 @@ from core.xml_utils import reset_id_counter
 from core.json_to_section import generate_section_xml, create_header
 from core.build_hwpx import build, AVAILABLE_TEMPLATES
 from excel_parser import parse_file
-from form_filler import analyze_template, fill_template, parse_values_file
+from form_filler import (
+    analyze_template, fill_template, parse_values_file,
+    batch_fill_template, detect_empty_fields, insert_markers,
+)
 from template_analyzer import analyze_hwpx
+from docx_converter import parse_docx
+from premade_templates import TEMPLATES, get_template_choices, get_template_fields, get_template_structure
 
 
 # CSS는 style.css 파일 참조
@@ -139,12 +144,16 @@ def process_excel(file, template, title, creator, progress=gr.Progress()):
         raise gr.Error("파일을 업로드해주세요")
     try:
         progress(0.05, desc="파일 분석 중...")
-        doc_structure = parse_file(file.name)
+        ext = os.path.splitext(file.name)[1].lower()
+        if ext in ('.docx',):
+            doc_structure = parse_docx(file.name)
+        else:
+            doc_structure = parse_file(file.name)
         return build_hwpx_from_structure(doc_structure, template, title, creator, progress)
     except gr.Error:
         raise
     except Exception as e:
-        raise gr.Error(f"Excel 파싱 오류: {e}")
+        raise gr.Error(f"파일 변환 오류: {e}")
 
 
 def process_json(json_text, template, title, creator, progress=gr.Progress()):
@@ -237,6 +246,122 @@ def fill_form(file, values_json, progress=gr.Progress()):
         return output_path, log
     except Exception as e:
         raise gr.Error(f"양식 채우기 오류: {e}")
+
+
+# === 프리메이드 템플릿 ===
+
+def on_premade_select(template_key):
+    """프리메이드 템플릿 선택 시 필드 JSON 생성"""
+    if not template_key:
+        return "", ""
+    t = TEMPLATES.get(template_key, {})
+    fields = t.get("fields", [])
+    info = f"{t.get('name', '')} - {t.get('description', '')}\n필드: {', '.join(fields)}"
+    example = json.dumps({f: "" for f in fields}, ensure_ascii=False, indent=2)
+    return info, example
+
+
+def generate_premade(template_key, values_json, progress=gr.Progress()):
+    """프리메이드 템플릿으로 HWPX 생성"""
+    if not template_key:
+        raise gr.Error("템플릿을 선택해주세요")
+    values = _parse_text_input(values_json) if values_json else {}
+
+    structure = get_template_structure(template_key)
+    if not structure:
+        raise gr.Error("템플릿을 찾을 수 없습니다")
+
+    # 구조 JSON을 문자열로 변환 후 플레이스홀더 치환
+    struct_str = json.dumps(structure, ensure_ascii=False)
+    for key, val in values.items():
+        safe_val = val.replace('"', '\\"')
+        struct_str = struct_str.replace(f"{{{{{key}}}}}", safe_val)
+    filled_structure = json.loads(struct_str)
+
+    progress(0.3, desc="HWPX 생성 중...")
+    return build_hwpx_from_structure(filled_structure, "auto", "", "", progress)
+
+
+# === mail merge (대량 생성) ===
+
+def batch_fill(file, values_file, progress=gr.Progress()):
+    """HWPX 양식 + Excel 데이터 → 일괄 생성 ZIP"""
+    if file is None:
+        raise gr.Error("HWPX 양식 파일을 업로드해주세요")
+    if values_file is None:
+        raise gr.Error("데이터 파일(Excel)을 업로드해주세요")
+
+    import openpyxl
+    ext = os.path.splitext(values_file.name)[1].lower()
+
+    if ext in ('.xlsx', '.xls'):
+        wb = openpyxl.load_workbook(values_file.name, data_only=True)
+        ws = wb.active
+        rows_data = list(ws.iter_rows(values_only=True))
+        wb.close()
+        if len(rows_data) < 2:
+            raise gr.Error("첫 행=필드명, 둘째 행부터=데이터. 최소 2행 필요합니다.")
+        headers = [str(h or '').strip() for h in rows_data[0]]
+        data_rows = []
+        for row in rows_data[1:]:
+            vals = {headers[i]: str(row[i] or '').strip() for i in range(min(len(headers), len(row))) if headers[i]}
+            if any(vals.values()):
+                data_rows.append(vals)
+    elif ext == '.csv':
+        import csv
+        with open(values_file.name, 'r', encoding='utf-8-sig') as f:
+            reader = list(csv.reader(f))
+        if len(reader) < 2:
+            raise gr.Error("첫 행=필드명, 둘째 행부터=데이터. 최소 2행 필요합니다.")
+        headers = [h.strip() for h in reader[0]]
+        data_rows = []
+        for row in reader[1:]:
+            vals = {headers[i]: row[i].strip() for i in range(min(len(headers), len(row))) if headers[i]}
+            if any(vals.values()):
+                data_rows.append(vals)
+    else:
+        raise gr.Error("Excel(.xlsx) 또는 CSV 파일만 지원합니다.")
+
+    if not data_rows:
+        raise gr.Error("데이터가 없습니다.")
+
+    progress(0.1, desc=f"{len(data_rows)}건 일괄 생성 중...")
+    try:
+        zip_path = batch_fill_template(file.name, data_rows)
+        progress(1.0, desc="완료!")
+        log = f"일괄 생성 완료: {len(data_rows)}건\n"
+        log += f"필드: {', '.join(headers)}"
+        gr.Info(f"{len(data_rows)}건 일괄 생성 완료")
+        return zip_path, log
+    except Exception as e:
+        raise gr.Error(f"일괄 생성 오류: {e}")
+
+
+# === 자동 마커 감지/삽입 ===
+
+def auto_detect_markers(file):
+    """빈 셀 자동 감지"""
+    if file is None:
+        raise gr.Error("HWPX 파일을 업로드해주세요")
+    fields = detect_empty_fields(file.name)
+    if not fields:
+        return "빈 셀을 찾지 못했습니다. 테이블에 라벨+빈칸 구조가 필요합니다."
+    result = f"빈 셀 {len(fields)}개 감지:\n"
+    for f in fields:
+        result += f"  [{f['row']},{f['col']}] {f['label']} → {f['marker']}\n"
+    return result
+
+
+def auto_insert_markers(file):
+    """감지된 빈 셀에 {{마커}} 자동 삽입"""
+    if file is None:
+        raise gr.Error("HWPX 파일을 업로드해주세요")
+    fields = detect_empty_fields(file.name)
+    if not fields:
+        raise gr.Error("삽입할 빈 셀이 없습니다.")
+    out_path, log = insert_markers(file.name, fields)
+    gr.Info(f"{len(fields)}개 마커 삽입 완료")
+    return out_path, log
 
 
 _GEMINI_FREE_LIMIT = 3  # 세션당 Gemini 무료 횟수
@@ -390,17 +515,17 @@ def create_app():
             with gr.Tabs():
 
                 # Excel/CSV
-                with gr.TabItem("Excel / CSV"):
+                with gr.TabItem("Excel / CSV / DOCX"):
                     gr.HTML("""<div class="mode-desc">
                         <span class="mode-icon">&#x1F4CA;</span>
                         <div class="mode-text">
-                            <h4>스프레드시트 변환</h4>
-                            <p>.xlsx, .xls, .csv 파일을 업로드하면 테이블 구조를 자동 파싱합니다. 병합 셀, 굵기, 색상, 정렬이 그대로 반영됩니다.</p>
+                            <h4>문서/스프레드시트 변환</h4>
+                            <p>.xlsx, .csv, .docx 파일을 업로드하면 테이블과 텍스트 구조를 자동 파싱하여 HWPX로 변환합니다.</p>
                         </div>
                     </div>""")
                     excel_file = gr.File(
                         label="파일 업로드",
-                        file_types=[".xlsx", ".xls", ".csv"],
+                        file_types=[".xlsx", ".xls", ".csv", ".docx"],
                         elem_classes="file-upload",
                     )
                     excel_btn = gr.Button(
@@ -491,54 +616,95 @@ def create_app():
                         outputs=[image_output, image_log, ocr_count],
                     )
 
+                # 프리메이드 템플릿
+                with gr.TabItem("업무 양식"):
+                    gr.HTML("""<div class="mode-desc">
+                        <span class="mode-icon">&#x1F4CB;</span>
+                        <div class="mode-text">
+                            <h4>업무 양식 바로 생성</h4>
+                            <p>공문, 회의록, 보고서 등 자주 쓰는 양식을 선택하고 값만 입력하면 HWPX가 완성됩니다.</p>
+                        </div>
+                    </div>""")
+                    premade_select = gr.Dropdown(
+                        choices=get_template_choices(),
+                        label="양식 선택",
+                    )
+                    premade_info = gr.Textbox(label="양식 정보", lines=2, interactive=False)
+                    premade_values = gr.Textbox(
+                        label="채울 값",
+                        lines=10,
+                        placeholder="양식을 선택하면 필드가 표시됩니다",
+                    )
+                    premade_btn = gr.Button("HWPX 생성", variant="primary", elem_classes="primary-btn")
+                    premade_output = gr.File(label="완성된 파일")
+                    premade_log = gr.Textbox(label="결과", lines=4, interactive=False)
+
+                    premade_select.change(
+                        fn=on_premade_select,
+                        inputs=[premade_select],
+                        outputs=[premade_info, premade_values],
+                    )
+                    premade_btn.click(
+                        fn=generate_premade,
+                        inputs=[premade_select, premade_values],
+                        outputs=[premade_output, premade_log],
+                    )
+
                 # 양식 채우기
                 with gr.TabItem("양식 채우기"):
                     gr.HTML("""<div class="mode-desc">
                         <span class="mode-icon">&#x1F4DD;</span>
                         <div class="mode-text">
                             <h4>기존 양식에 데이터 채우기</h4>
-                            <p>{{이름}}, {{부서}} 같은 플레이스홀더가 포함된 .hwpx 양식을 업로드하면 자동으로 필드를 감지하고 값을 채워줍니다.</p>
+                            <p>{{마커}} 포함 HWPX 업로드 → 값 입력 → 완성. 마커 없는 양식은 "자동 마커 삽입"으로 준비할 수 있습니다.</p>
                         </div>
                     </div>""")
-                    form_file = gr.File(
-                        label="HWPX 양식 업로드",
-                        file_types=[".hwpx"],
-                    )
-                    form_analyze_btn = gr.Button("양식 분석", variant="secondary")
-                    form_info = gr.Textbox(label="분석 결과", lines=6, interactive=False)
-                    gr.Markdown("**채울 값** - 파일 업로드 또는 직접 입력")
-                    form_values_file = gr.File(
-                        label="값 파일 업로드 (Excel, CSV, JSON, DOCX, HWPX, TXT)",
-                        file_types=[".xlsx", ".xls", ".csv", ".json", ".docx", ".hwpx", ".txt"],
-                    )
-                    form_values = gr.Textbox(
-                        label="채울 값 (JSON 또는 복사 붙여넣기)",
-                        lines=8,
-                        placeholder='{"이름": "홍길동", "부서": "개발팀"}\n\n또는 key: value 형식으로 입력:\n이름: 홍길동\n부서: 개발팀',
-                    )
-                    form_fill_btn = gr.Button(
-                        "양식 채우기",
-                        variant="primary",
-                        elem_classes="primary-btn",
-                    )
-                    form_output = gr.File(label="완성된 파일")
-                    form_log = gr.Textbox(label="결과", lines=4, interactive=False)
 
-                    form_analyze_btn.click(
-                        fn=analyze_form,
-                        inputs=[form_file],
-                        outputs=[form_info, form_values],
-                    )
-                    form_values_file.change(
-                        fn=load_values_file,
-                        inputs=[form_values_file],
-                        outputs=[form_values],
-                    )
-                    form_fill_btn.click(
-                        fn=fill_form,
-                        inputs=[form_file, form_values],
-                        outputs=[form_output, form_log],
-                    )
+                    with gr.Tabs():
+                        with gr.TabItem("단건 채우기"):
+                            form_file = gr.File(label="HWPX 양식 업로드", file_types=[".hwpx"])
+                            with gr.Row():
+                                form_analyze_btn = gr.Button("양식 분석", variant="secondary")
+                                form_automark_btn = gr.Button("자동 마커 삽입", variant="secondary")
+                            form_info = gr.Textbox(label="분석 결과", lines=6, interactive=False)
+                            gr.Markdown("**채울 값** - 파일 업로드 또는 직접 입력")
+                            form_values_file = gr.File(
+                                label="값 파일 (Excel, CSV, JSON, DOCX, TXT)",
+                                file_types=[".xlsx", ".xls", ".csv", ".json", ".docx", ".hwpx", ".txt"],
+                            )
+                            form_values = gr.Textbox(
+                                label="채울 값",
+                                lines=8,
+                                placeholder='{"이름": "홍길동", "부서": "개발팀"}\n또는\n이름: 홍길동\n부서: 개발팀',
+                            )
+                            form_fill_btn = gr.Button("양식 채우기", variant="primary", elem_classes="primary-btn")
+                            form_output = gr.File(label="완성된 파일")
+                            form_log = gr.Textbox(label="결과", lines=6, interactive=False)
+
+                            form_analyze_btn.click(fn=analyze_form, inputs=[form_file], outputs=[form_info, form_values])
+                            form_automark_btn.click(fn=auto_insert_markers, inputs=[form_file], outputs=[form_output, form_info])
+                            form_values_file.change(fn=load_values_file, inputs=[form_values_file], outputs=[form_values])
+                            form_fill_btn.click(fn=fill_form, inputs=[form_file, form_values], outputs=[form_output, form_log])
+
+                        with gr.TabItem("대량 생성 (Mail Merge)"):
+                            gr.Markdown(
+                                "같은 양식으로 **여러 건**을 한 번에 생성합니다.\n"
+                                "Excel 첫 행 = 필드명, 둘째 행부터 = 데이터. 각 행마다 HWPX 파일이 생성됩니다."
+                            )
+                            batch_form_file = gr.File(label="HWPX 양식 업로드", file_types=[".hwpx"])
+                            batch_data_file = gr.File(
+                                label="데이터 파일 (Excel/CSV - 첫행=필드명)",
+                                file_types=[".xlsx", ".xls", ".csv"],
+                            )
+                            batch_btn = gr.Button("일괄 생성", variant="primary", elem_classes="primary-btn")
+                            batch_output = gr.File(label="결과 (ZIP)")
+                            batch_log = gr.Textbox(label="결과", lines=4, interactive=False)
+
+                            batch_btn.click(
+                                fn=batch_fill,
+                                inputs=[batch_form_file, batch_data_file],
+                                outputs=[batch_output, batch_log],
+                            )
 
         # 푸터
         gr.HTML(FOOTER_HTML)

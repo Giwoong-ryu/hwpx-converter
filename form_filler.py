@@ -291,6 +291,150 @@ def _parse_txt_keyvalue(txt_path: str) -> dict:
     return values
 
 
+def batch_fill_template(hwpx_path: str, rows: list[dict]) -> str:
+    """HWPX 양식을 여러 데이터로 일괄 생성 → ZIP 파일 반환.
+
+    Args:
+        hwpx_path: 템플릿 HWPX 경로
+        rows: [{"필드1": "값1", ...}, ...] 리스트
+
+    Returns:
+        ZIP 파일 경로
+    """
+    import zipfile as zf_mod
+
+    output_dir = tempfile.mkdtemp()
+    generated = []
+
+    for i, values in enumerate(rows):
+        out_path, _ = fill_template(hwpx_path, values)
+        # 파일명에 인덱스 + 첫 번째 값 사용
+        first_val = list(values.values())[0] if values else str(i + 1)
+        safe_name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', str(first_val)[:20])
+        final_name = f"{i + 1:03d}_{safe_name}.hwpx"
+        final_path = os.path.join(output_dir, final_name)
+        import shutil
+        shutil.move(out_path, final_path)
+        generated.append(final_path)
+
+    # ZIP으로 묶기
+    zip_path = os.path.join(tempfile.gettempdir(), f"batch_{uuid.uuid4().hex[:8]}.zip")
+    with zf_mod.ZipFile(zip_path, 'w', zf_mod.ZIP_DEFLATED) as zf:
+        for fpath in generated:
+            zf.write(fpath, os.path.basename(fpath))
+
+    return zip_path
+
+
+def detect_empty_fields(hwpx_path: str) -> list[dict]:
+    """HWPX 양식에서 빈 셀을 자동 감지하여 필드 후보 반환.
+
+    테이블에서 (라벨 셀 옆의 빈 셀) 패턴을 찾는다.
+    Returns: [{"label": "이름", "row": 0, "col": 1}, ...]
+    """
+    try:
+        with ZipFile(hwpx_path, 'r') as zf:
+            section_xml = zf.read('Contents/section0.xml').decode('utf-8')
+    except Exception:
+        return []
+
+    root = etree.fromstring(section_xml.encode('utf-8'))
+    hp = 'http://www.hancom.co.kr/hwpml/2011/paragraph'
+
+    candidates = []
+
+    for tbl in root.iter(f'{{{hp}}}tbl'):
+        # 셀 데이터 수집
+        cell_map = {}
+        for tc in tbl.iter(f'{{{hp}}}tc'):
+            addr = tc.find(f'{{{hp}}}cellAddr')
+            if addr is None:
+                continue
+            col = int(addr.get('colAddr', 0))
+            row = int(addr.get('rowAddr', 0))
+            texts = []
+            for t in tc.iter(f'{{{hp}}}t'):
+                if t.text:
+                    texts.append(t.text)
+            cell_map[(row, col)] = ' '.join(texts).strip()
+
+        # 패턴: col 0에 텍스트 있고, col 1이 비어있으면 → 필드 후보
+        rows_seen = set(r for r, c in cell_map.keys())
+        max_col = max((c for r, c in cell_map.keys()), default=0)
+
+        for r in sorted(rows_seen):
+            for c in range(max_col):
+                label = cell_map.get((r, c), '')
+                value = cell_map.get((r, c + 1), '')
+                if label and not value:
+                    candidates.append({
+                        "label": label,
+                        "row": r,
+                        "col": c + 1,
+                        "marker": f"{{{{{label}}}}}"
+                    })
+
+    return candidates
+
+
+def insert_markers(hwpx_path: str, fields: list[dict]) -> tuple[str, str]:
+    """빈 셀에 {{마커}}를 자동 삽입한 새 HWPX 생성.
+
+    Args:
+        fields: detect_empty_fields()의 반환값
+
+    Returns:
+        (새 HWPX 경로, 로그)
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        work_dir = os.path.join(tmpdir, 'work')
+        with ZipFile(hwpx_path, 'r') as zf:
+            zf.extractall(work_dir)
+
+        section_path = os.path.join(work_dir, 'Contents', 'section0.xml')
+        tree = etree.parse(section_path)
+        root = tree.getroot()
+        hp = 'http://www.hancom.co.kr/hwpml/2011/paragraph'
+
+        inserted = 0
+        for tbl in root.iter(f'{{{hp}}}tbl'):
+            for tc in tbl.iter(f'{{{hp}}}tc'):
+                addr = tc.find(f'{{{hp}}}cellAddr')
+                if addr is None:
+                    continue
+                col = int(addr.get('colAddr', 0))
+                row = int(addr.get('rowAddr', 0))
+
+                for field in fields:
+                    if field['row'] == row and field['col'] == col:
+                        # 빈 셀의 <hp:t> 에 마커 삽입
+                        for t_node in tc.iter(f'{{{hp}}}t'):
+                            if not t_node.text or not t_node.text.strip():
+                                t_node.text = field['marker']
+                                inserted += 1
+                                break
+                        else:
+                            # <hp:t>가 없으면 첫 번째 run에 추가
+                            for run in tc.iter(f'{{{hp}}}run'):
+                                t_new = etree.SubElement(run, f'{{{hp}}}t')
+                                t_new.text = field['marker']
+                                inserted += 1
+                                break
+                        break
+
+        tree.write(section_path, pretty_print=True, xml_declaration=True, encoding='UTF-8')
+
+        unique = uuid.uuid4().hex[:8]
+        output_name = f"marked_{unique}.hwpx"
+        output_path = os.path.join(tempfile.gettempdir(), output_name)
+        _pack_hwpx(Path(work_dir), Path(output_path))
+
+        log = f"마커 삽입 완료: {inserted}개 필드\n"
+        for f in fields:
+            log += f"  {f['label']} → {f['marker']}\n"
+        return output_path, log
+
+
 def _xml_escape(text: str) -> str:
     """XML 특수문자 이스케이프"""
     return (text.replace("&", "&amp;")
