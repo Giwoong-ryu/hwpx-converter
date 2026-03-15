@@ -151,7 +151,131 @@ def parse_values_file(file_path: str) -> dict:
             raise ValueError("Excel 파일에서 값을 찾지 못했습니다. A열=필드명, B열=값 형식으로 작성하세요.")
         return values
 
-    raise ValueError(f"지원하지 않는 파일 형식: {ext} (Excel, CSV, JSON만 지원)")
+    if ext in ('.docx',):
+        return _extract_docx_text_as_values(file_path)
+
+    if ext == '.hwpx':
+        return _extract_hwpx_text_as_values(file_path)
+
+    if ext == '.txt':
+        return _parse_txt_keyvalue(file_path)
+
+    raise ValueError(f"지원하지 않는 파일 형식: {ext} (Excel, CSV, JSON, DOCX, HWPX, TXT 지원)")
+
+
+def _extract_docx_text_as_values(docx_path: str) -> dict:
+    """DOCX 파일에서 텍스트 추출 → 필드명:값 매핑.
+
+    테이블 구조: 왼쪽 셀=필드명, 오른쪽 셀=값.
+    테이블 없으면: 각 문단을 "문단1", "문단2" 키로 매핑.
+    """
+    from docx import Document
+
+    doc = Document(docx_path)
+    values = {}
+
+    # 테이블에서 key-value 추출 시도
+    for table in doc.tables:
+        for row in table.rows:
+            cells = [c.text.strip() for c in row.cells]
+            if len(cells) >= 2 and cells[0]:
+                values[cells[0]] = cells[1]
+
+    if values:
+        return values
+
+    # 테이블 없으면 문단 텍스트 추출
+    paragraphs = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
+    if not paragraphs:
+        raise ValueError("DOCX 파일에서 텍스트를 찾지 못했습니다.")
+
+    # "key: value" 또는 "key = value" 패턴 탐지
+    for p in paragraphs:
+        for sep in [':', '=', '\t']:
+            if sep in p:
+                parts = p.split(sep, 1)
+                if len(parts) == 2 and parts[0].strip():
+                    values[parts[0].strip()] = parts[1].strip()
+                break
+
+    if values:
+        return values
+
+    # 패턴 없으면 전체 텍스트를 하나의 값으로
+    return {"내용": '\n'.join(paragraphs)}
+
+
+def _extract_hwpx_text_as_values(hwpx_path: str) -> dict:
+    """HWPX 파일에서 텍스트 추출 → 필드명:값 매핑 시도.
+
+    테이블 구조: 왼쪽 셀=필드명, 오른쪽 셀=값으로 추정.
+    """
+    try:
+        with ZipFile(hwpx_path, 'r') as zf:
+            section_xml = zf.read('Contents/section0.xml').decode('utf-8')
+    except Exception as e:
+        raise ValueError(f"HWPX 읽기 실패: {e}")
+
+    root = etree.fromstring(section_xml.encode('utf-8'))
+    ns = {'hp': 'http://www.hancom.co.kr/hwpml/2011/paragraph'}
+
+    # 테이블 셀에서 텍스트 추출
+    values = {}
+    for tc in root.iter('{http://www.hancom.co.kr/hwpml/2011/paragraph}tc'):
+        cell_addr = tc.find('{http://www.hancom.co.kr/hwpml/2011/paragraph}cellAddr')
+        if cell_addr is None:
+            continue
+        col = int(cell_addr.get('colAddr', 0))
+        row = int(cell_addr.get('rowAddr', 0))
+
+        texts = []
+        for t in tc.iter('{http://www.hancom.co.kr/hwpml/2011/paragraph}t'):
+            if t.text:
+                texts.append(t.text)
+        cell_text = ' '.join(texts).strip()
+
+        values[(row, col)] = cell_text
+
+    # 2열 테이블 → key-value 매핑 (col 0 = 필드명, col 1 = 값)
+    result = {}
+    rows_seen = set(r for r, c in values.keys())
+    for r in sorted(rows_seen):
+        key = values.get((r, 0), '').strip()
+        val = values.get((r, 1), '').strip()
+        if key:
+            result[key] = val
+
+    if not result:
+        # 2열 구조가 아니면 전체 텍스트를 "내용" 키로
+        all_text = []
+        for t in root.iter('{http://www.hancom.co.kr/hwpml/2011/paragraph}t'):
+            if t.text:
+                all_text.append(t.text)
+        if all_text:
+            result["내용"] = ' '.join(all_text)
+
+    if not result:
+        raise ValueError("HWPX 파일에서 텍스트를 추출하지 못했습니다.")
+    return result
+
+
+def _parse_txt_keyvalue(txt_path: str) -> dict:
+    """TXT 파일에서 key=value 또는 key: value 쌍 추출"""
+    values = {}
+    with open(txt_path, 'r', encoding='utf-8-sig') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            for sep in ['=', ':', '\t']:
+                if sep in line:
+                    parts = line.split(sep, 1)
+                    if len(parts) == 2 and parts[0].strip():
+                        values[parts[0].strip()] = parts[1].strip()
+                    break
+    if not values:
+        raise ValueError("TXT 파일에서 key=value 또는 key: value 쌍을 찾지 못했습니다.")
+    return values
 
 
 def _xml_escape(text: str) -> str:

@@ -181,17 +181,42 @@ def load_values_file(values_file):
         raise gr.Error(f"값 파일 파싱 오류: {e}")
 
 
+def _parse_text_input(text: str) -> dict:
+    """JSON 또는 key: value / key= value 텍스트를 dict로 변환"""
+    text = text.strip()
+    # JSON 시도
+    if text.startswith('{'):
+        try:
+            values = json.loads(text)
+            if isinstance(values, dict):
+                return values
+        except json.JSONDecodeError:
+            pass
+
+    # key: value 또는 key= value 형식
+    values = {}
+    for line in text.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+        for sep in [':', '=', '\t']:
+            if sep in line:
+                parts = line.split(sep, 1)
+                if len(parts) == 2 and parts[0].strip():
+                    values[parts[0].strip()] = parts[1].strip()
+                break
+    return values
+
+
 def fill_form(file, values_json, progress=gr.Progress()):
     if file is None:
         raise gr.Error("HWPX 파일을 업로드해주세요")
     if not values_json or not values_json.strip():
-        raise gr.Error("치환할 값을 입력해주세요 (JSON 직접 입력 또는 파일 업로드)")
-    try:
-        values = json.loads(values_json)
-    except json.JSONDecodeError as e:
-        raise gr.Error(f"JSON 파싱 오류: {e}")
-    if not isinstance(values, dict):
-        raise gr.Error("JSON은 객체(dict) 형식이어야 합니다")
+        raise gr.Error("치환할 값을 입력해주세요 (직접 입력 또는 파일 업로드)")
+
+    values = _parse_text_input(values_json)
+    if not values:
+        raise gr.Error("값을 파싱하지 못했습니다. JSON 또는 '필드: 값' 형식으로 입력해주세요.")
 
     progress(0.3, desc="플레이스홀더 치환 중...")
     try:
@@ -470,15 +495,15 @@ def create_app():
                     )
                     form_analyze_btn = gr.Button("양식 분석", variant="secondary")
                     form_info = gr.Textbox(label="분석 결과", lines=6, interactive=False)
-                    gr.Markdown("**채울 값** - 파일 업로드 또는 JSON 직접 입력")
+                    gr.Markdown("**채울 값** - 파일 업로드 또는 직접 입력")
                     form_values_file = gr.File(
-                        label="값 파일 업로드 (Excel/CSV/JSON)",
-                        file_types=[".xlsx", ".xls", ".csv", ".json"],
+                        label="값 파일 업로드 (Excel, CSV, JSON, DOCX, HWPX, TXT)",
+                        file_types=[".xlsx", ".xls", ".csv", ".json", ".docx", ".hwpx", ".txt"],
                     )
                     form_values = gr.Textbox(
-                        label="채울 값 (JSON 직접 입력)",
+                        label="채울 값 (JSON 또는 복사 붙여넣기)",
                         lines=8,
-                        placeholder='{"이름": "홍길동", "부서": "개발팀", "날짜": "2026-03-15"}',
+                        placeholder='{"이름": "홍길동", "부서": "개발팀"}\n\n또는 key: value 형식으로 입력:\n이름: 홍길동\n부서: 개발팀',
                     )
                     form_fill_btn = gr.Button(
                         "양식 채우기",
