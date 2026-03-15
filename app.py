@@ -543,8 +543,7 @@ def create_app():
                         <span class="mode-icon">&#x1F4CA;</span>
                         <div class="mode-text">
                             <h4>문서/스프레드시트 → HWPX 변환</h4>
-                            <p>.hwp, .docx, .xlsx, .csv 파일의 텍스트와 테이블 구조를 추출하여 HWPX로 변환합니다.
-                            <br><strong>참고:</strong> HWP/DOCX 변환 시 텍스트·표 구조가 보존됩니다. 글꼴·색상·이미지 등 서식은 포함되지 않습니다.</p>
+                            <p>.hwp, .docx, .xlsx, .csv 파일을 업로드하면 텍스트와 테이블 구조를 분석하여 원본에 가장 가까운 HWPX 문서를 생성합니다.</p>
                         </div>
                     </div>""")
                     excel_file = gr.File(
