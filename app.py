@@ -23,6 +23,7 @@ from core.xml_utils import reset_id_counter
 from core.json_to_section import generate_section_xml, create_header
 from core.build_hwpx import build, AVAILABLE_TEMPLATES
 from excel_parser import parse_file
+from form_filler import analyze_template, fill_template
 
 
 # CSS는 style.css 파일 참조
@@ -155,6 +156,40 @@ def process_json(json_text, template, title, creator, progress=gr.Progress()):
     if "sections" not in doc_structure:
         raise gr.Error("JSON에 'sections' 키가 필요합니다")
     return build_hwpx_from_structure(doc_structure, template, title, creator, progress)
+
+
+# === 양식 채우기 함수 ===
+
+def analyze_form(file):
+    if file is None:
+        raise gr.Error("HWPX 파일을 업로드해주세요")
+    fields, summary = analyze_template(file.name)
+    if fields:
+        example = json.dumps({f: "" for f in fields}, ensure_ascii=False, indent=2)
+        return summary, example
+    return summary, ""
+
+
+def fill_form(file, values_json, progress=gr.Progress()):
+    if file is None:
+        raise gr.Error("HWPX 파일을 업로드해주세요")
+    if not values_json or not values_json.strip():
+        raise gr.Error("치환할 값을 JSON으로 입력해주세요")
+    try:
+        values = json.loads(values_json)
+    except json.JSONDecodeError as e:
+        raise gr.Error(f"JSON 파싱 오류: {e}")
+    if not isinstance(values, dict):
+        raise gr.Error("JSON은 객체(dict) 형식이어야 합니다")
+
+    progress(0.3, desc="플레이스홀더 치환 중...")
+    try:
+        output_path, log = fill_template(file.name, values)
+        progress(1.0, desc="완료!")
+        gr.Info("양식 채우기가 완료되었습니다")
+        return output_path, log
+    except Exception as e:
+        raise gr.Error(f"양식 채우기 오류: {e}")
 
 
 _GEMINI_FREE_LIMIT = 3  # 세션당 Gemini 무료 횟수
@@ -407,6 +442,45 @@ def create_app():
                         fn=process_image,
                         inputs=[image_input, template, title_input, creator_input, ocr_engine_choice, gemini_key, ocr_count],
                         outputs=[image_output, image_log, ocr_count],
+                    )
+
+                # 양식 채우기
+                with gr.TabItem("양식 채우기"):
+                    gr.HTML("""<div class="mode-desc">
+                        <span class="mode-icon">&#x1F4DD;</span>
+                        <div class="mode-text">
+                            <h4>기존 양식에 데이터 채우기</h4>
+                            <p>{{이름}}, {{부서}} 같은 플레이스홀더가 포함된 .hwpx 양식을 업로드하면 자동으로 필드를 감지하고 값을 채워줍니다.</p>
+                        </div>
+                    </div>""")
+                    form_file = gr.File(
+                        label="HWPX 양식 업로드",
+                        file_types=[".hwpx"],
+                    )
+                    form_analyze_btn = gr.Button("양식 분석", variant="secondary")
+                    form_info = gr.Textbox(label="분석 결과", lines=6, interactive=False)
+                    form_values = gr.Textbox(
+                        label="채울 값 (JSON)",
+                        lines=8,
+                        placeholder='{"이름": "홍길동", "부서": "개발팀", "날짜": "2026-03-15"}',
+                    )
+                    form_fill_btn = gr.Button(
+                        "양식 채우기",
+                        variant="primary",
+                        elem_classes="primary-btn",
+                    )
+                    form_output = gr.File(label="완성된 파일")
+                    form_log = gr.Textbox(label="결과", lines=4, interactive=False)
+
+                    form_analyze_btn.click(
+                        fn=analyze_form,
+                        inputs=[form_file],
+                        outputs=[form_info, form_values],
+                    )
+                    form_fill_btn.click(
+                        fn=fill_form,
+                        inputs=[form_file, form_values],
+                        outputs=[form_output, form_log],
                     )
 
         # 푸터
