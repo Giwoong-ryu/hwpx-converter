@@ -10,6 +10,7 @@ from pathlib import Path
 from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
 
 from lxml import etree
+from page_guard import collect_metrics, compare_metrics
 
 PLACEHOLDER_RE = re.compile(r'\{\{([^}]+)\}\}')
 
@@ -96,12 +97,24 @@ def fill_template(hwpx_path: str, values: dict) -> tuple[str, str]:
 
         _pack_hwpx(Path(work_dir), Path(output_path))
 
-        # 5. 로그
+        # 5. page_guard 검증 (원본 대비 구조 비교)
+        from pathlib import Path as _Path
+        ref_metrics = collect_metrics(_Path(hwpx_path))
+        out_metrics = collect_metrics(_Path(output_path))
+        guard_errors = compare_metrics(ref_metrics, out_metrics, 0.15, 0.25)
+
+        # 6. 로그
         log = f"치환 완료\n"
         log += f"  치환된 필드: {replaced_count}개\n"
         if remaining:
             log += f"  미치환 필드: {', '.join(f'{{{{{r}}}}}' for r in remaining)}\n"
-        log += f"  파일: {output_name}"
+        log += f"  파일: {output_name}\n"
+        if guard_errors:
+            log += f"\n[page_guard 경고] {len(guard_errors)}건\n"
+            for ge in guard_errors:
+                log += f"  - {ge}\n"
+        else:
+            log += "\n[page_guard] 통과 - 원본 구조와 일치"
 
         return output_path, log
 

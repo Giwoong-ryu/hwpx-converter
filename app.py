@@ -24,6 +24,7 @@ from core.json_to_section import generate_section_xml, create_header
 from core.build_hwpx import build, AVAILABLE_TEMPLATES
 from excel_parser import parse_file
 from form_filler import analyze_template, fill_template, parse_values_file
+from template_analyzer import analyze_hwpx
 
 
 # CSS는 style.css 파일 참조
@@ -163,7 +164,17 @@ def process_json(json_text, template, title, creator, progress=gr.Progress()):
 def analyze_form(file):
     if file is None:
         raise gr.Error("HWPX 파일을 업로드해주세요")
+
+    # 1. 플레이스홀더 검출
     fields, summary = analyze_template(file.name)
+
+    # 2. 문서 구조 심층 분석
+    try:
+        analysis = analyze_hwpx(file.name)
+        summary = summary + "\n\n" + analysis
+    except Exception:
+        pass
+
     if fields:
         example = json.dumps({f: "" for f in fields}, ensure_ascii=False, indent=2)
         return summary, example
