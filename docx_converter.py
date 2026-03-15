@@ -1,121 +1,129 @@
 """
 DOCX → HWPX 변환 모듈
-python-docx로 Word 문서를 읽어 HWPX 구조 JSON으로 변환
+python-docx로 Word 문서를 읽어 HWPX 구조 JSON으로 변환.
+doc.element.body를 순회하여 문단↔테이블 원래 순서를 보존한다.
 """
 from docx import Document
-from docx.shared import Pt, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.table import Table
+from docx.text.paragraph import Paragraph
 
 
 def parse_docx(file_path: str) -> dict:
-    """DOCX 파일 → HWPX 구조 JSON 변환"""
+    """DOCX 파일 → HWPX 구조 JSON 변환 (원본 순서 보존)"""
     doc = Document(file_path)
 
     sections = []
     title = ""
 
-    # 문단 처리
-    for para in doc.paragraphs:
-        text = para.text.strip()
-        if not text:
-            sections.append({"type": "paragraph", "content": ""})
-            continue
+    # doc.element.body의 자식을 순서대로 순회 (문단↔테이블 interleaving 보존)
+    for child in doc.element.body:
+        tag = child.tag
 
-        style = {}
-        align = "LEFT"
+        if tag == qn('w:p'):
+            # 문단
+            para = Paragraph(child, doc)
+            text = para.text.strip()
 
-        # 정렬
-        if para.alignment == WD_ALIGN_PARAGRAPH.CENTER:
-            align = "CENTER"
-        elif para.alignment == WD_ALIGN_PARAGRAPH.RIGHT:
-            align = "RIGHT"
+            if not text:
+                sections.append({"type": "paragraph", "content": ""})
+                continue
 
-        # 문단 스타일에서 폰트 크기/볼드 추출
-        if para.runs:
-            run = para.runs[0]
-            if run.bold:
-                style["bold"] = True
-            if run.font.size:
-                style["font_size_pt"] = int(run.font.size.pt)
-            if run.font.color and run.font.color.rgb:
-                style["text_color"] = f"#{run.font.color.rgb}"
+            style = {}
+            align = "LEFT"
 
-        # 제목 감지 (첫 번째 볼드+큰 텍스트)
-        if not title and style.get("bold") and style.get("font_size_pt", 10) >= 14:
-            title = text
+            # 정렬
+            if para.alignment is not None:
+                from docx.enum.text import WD_ALIGN_PARAGRAPH
+                if para.alignment == WD_ALIGN_PARAGRAPH.CENTER:
+                    align = "CENTER"
+                elif para.alignment == WD_ALIGN_PARAGRAPH.RIGHT:
+                    align = "RIGHT"
 
-        # 헤딩 스타일 감지
-        if para.style and para.style.name.startswith("Heading"):
-            style["bold"] = True
-            level = para.style.name.replace("Heading ", "").replace("Heading", "")
-            try:
-                level_num = int(level) if level else 1
-            except ValueError:
-                level_num = 1
-            size_map = {1: 18, 2: 16, 3: 14}
-            style["font_size_pt"] = size_map.get(level_num, 12)
-            if not title and level_num == 1:
+            # 런 스타일
+            if para.runs:
+                run = para.runs[0]
+                if run.bold:
+                    style["bold"] = True
+                if run.font.size:
+                    style["font_size_pt"] = int(run.font.size.pt)
+                if run.font.color and run.font.color.rgb:
+                    style["text_color"] = f"#{run.font.color.rgb}"
+
+            # 제목 감지
+            if not title and style.get("bold") and style.get("font_size_pt", 10) >= 14:
                 title = text
 
-        sections.append({
-            "type": "paragraph",
-            "content": text,
-            "align": align,
-            "style": style,
-        })
+            # 헤딩 스타일
+            if para.style and para.style.name.startswith("Heading"):
+                style["bold"] = True
+                level = para.style.name.replace("Heading ", "").replace("Heading", "")
+                try:
+                    level_num = int(level) if level else 1
+                except ValueError:
+                    level_num = 1
+                size_map = {1: 18, 2: 16, 3: 14}
+                style["font_size_pt"] = size_map.get(level_num, 12)
+                if not title and level_num == 1:
+                    title = text
 
-    # 테이블 처리
-    for table in doc.tables:
-        n_rows = len(table.rows)
-        n_cols = len(table.columns)
+            sections.append({
+                "type": "paragraph",
+                "content": text,
+                "align": align,
+                "style": style,
+            })
 
-        if n_rows == 0 or n_cols == 0:
-            continue
+        elif tag == qn('w:tbl'):
+            # 테이블
+            table = Table(child, doc)
+            n_rows = len(table.rows)
+            n_cols = len(table.columns)
 
-        col_ratios = [round(100 / n_cols, 1)] * n_cols
-        remainder = 100 - sum(col_ratios)
-        col_ratios[-1] = round(col_ratios[-1] + remainder, 1)
+            if n_rows == 0 or n_cols == 0:
+                continue
 
-        cells = []
-        seen_cells = set()  # 병합 셀 중복 방지
-        for ri, row in enumerate(table.rows):
-            for ci, cell in enumerate(row.cells):
-                # python-docx는 병합 셀에서 같은 Cell 객체를 반복 반환
-                cell_id = id(cell)
-                if cell_id in seen_cells:
-                    continue
-                seen_cells.add(cell_id)
+            col_ratios = [round(100 / n_cols, 1)] * n_cols
+            remainder = 100 - sum(col_ratios)
+            col_ratios[-1] = round(col_ratios[-1] + remainder, 1)
 
-                cell_text = cell.text.strip()
-                cell_style = {"align": "LEFT"}
+            cells = []
+            seen_cells = set()
+            for ri, row in enumerate(table.rows):
+                for ci, cell in enumerate(row.cells):
+                    cell_id = id(cell)
+                    if cell_id in seen_cells:
+                        continue
+                    seen_cells.add(cell_id)
 
-                # 첫 행 = 헤더
-                if ri == 0:
-                    cell_style["bold"] = True
-                    cell_style["align"] = "CENTER"
-                    cell_style["is_header"] = True
+                    cell_text = cell.text.strip()
+                    cell_style = {"align": "LEFT"}
 
-                # 셀 내 볼드 감지
-                for para in cell.paragraphs:
-                    if para.runs and para.runs[0].bold:
+                    if ri == 0:
                         cell_style["bold"] = True
+                        cell_style["align"] = "CENTER"
+                        cell_style["is_header"] = True
 
-                cells.append({
-                    "row": ri,
-                    "col": ci,
-                    "text": cell_text,
-                    "style": cell_style,
-                })
+                    for p in cell.paragraphs:
+                        if p.runs and p.runs[0].bold:
+                            cell_style["bold"] = True
 
-        sections.append({
-            "type": "table",
-            "table": {
-                "rows": n_rows,
-                "cols": n_cols,
-                "col_widths_ratio": col_ratios,
-                "cells": cells,
-            }
-        })
+                    cells.append({
+                        "row": ri,
+                        "col": ci,
+                        "text": cell_text,
+                        "style": cell_style,
+                    })
+
+            sections.append({
+                "type": "table",
+                "table": {
+                    "rows": n_rows,
+                    "cols": n_cols,
+                    "col_widths_ratio": col_ratios,
+                    "cells": cells,
+                }
+            })
 
     if not title:
         title = "변환된 문서"
