@@ -14,9 +14,6 @@ from page_guard import collect_metrics, compare_metrics
 
 PLACEHOLDER_RE = re.compile(r'\{\{([^}]+)\}\}')
 
-# batch_fill_template 내에서 page_guard를 매번 안 돌리기 위한 플래그
-_batch_mode = False
-
 
 def analyze_template(hwpx_path: str) -> tuple[list[str], str]:
     """HWPX 파일에서 {{placeholder}} 목록 추출.
@@ -54,8 +51,11 @@ def analyze_template(hwpx_path: str) -> tuple[list[str], str]:
     return placeholders, summary
 
 
-def fill_template(hwpx_path: str, values: dict) -> tuple[str, str]:
+def fill_template(hwpx_path: str, values: dict, skip_page_guard: bool = False) -> tuple[str, str]:
     """HWPX 파일의 {{placeholder}}를 values로 치환한 새 파일 생성.
+
+    Args:
+        skip_page_guard: True이면 page_guard 검증 스킵 (batch 모드용)
 
     Returns:
         (출력 파일 경로, 로그 텍스트)
@@ -100,10 +100,10 @@ def fill_template(hwpx_path: str, values: dict) -> tuple[str, str]:
 
         _pack_hwpx(Path(work_dir), Path(output_path))
 
-        # 5. page_guard 검증 (원본 대비 구조 비교, batch 모드에서는 스킵)
+        # 5. page_guard 검증 (원본 대비 구조 비교)
         from pathlib import Path as _Path
         guard_errors = []
-        if not _batch_mode:
+        if not skip_page_guard:
             ref_metrics = collect_metrics(_Path(hwpx_path))
             out_metrics = collect_metrics(_Path(output_path))
             guard_errors = compare_metrics(ref_metrics, out_metrics, 0.15, 0.25)
@@ -309,14 +309,11 @@ def batch_fill_template(hwpx_path: str, rows: list[dict]) -> str:
     import shutil
     import zipfile as zf_mod
 
-    global _batch_mode
-    _batch_mode = True
-
     output_dir = tempfile.mkdtemp()
     try:
         generated = []
         for i, values in enumerate(rows):
-            out_path, _ = fill_template(hwpx_path, values)
+            out_path, _ = fill_template(hwpx_path, values, skip_page_guard=True)
             first_val = list(values.values())[0] if values else str(i + 1)
             safe_name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', str(first_val)[:20])
             final_name = f"{i + 1:03d}_{safe_name}.hwpx"
@@ -330,7 +327,6 @@ def batch_fill_template(hwpx_path: str, rows: list[dict]) -> str:
                 zf.write(fpath, os.path.basename(fpath))
         return zip_path
     finally:
-        _batch_mode = False
         shutil.rmtree(output_dir, ignore_errors=True)
 
 
