@@ -1,6 +1,27 @@
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
+# Python
 __pycache__/
 *.pyc
+*.pyo
+
+# Test outputs
+test/result_*
+test/final_*
+test/verify_*
+test/periodic_*
+test/lineseg_*
+test/lxml_*
+
+# Env
 .env
-*.hwpx
-.gradio/
-flagged/
+
+# Logs
+*.log
+ai_error.log
+
+# Temp
+server.log

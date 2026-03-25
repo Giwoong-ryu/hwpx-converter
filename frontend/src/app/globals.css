@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+
+body {
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system, 'Segoe UI', sans-serif;
+  color: #111;
+}

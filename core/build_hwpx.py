@@ -11,6 +11,21 @@ from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 from lxml import etree
 
+# fix_namespaces 자동 호출용
+try:
+    import importlib.util
+    _fn_path = Path(__file__).resolve().parent.parent / "fix_namespaces.py"
+    if _fn_path.exists():
+        _fn_spec = importlib.util.spec_from_file_location("fix_namespaces", str(_fn_path))
+        _fn_mod = importlib.util.module_from_spec(_fn_spec)
+        _fn_spec.loader.exec_module(_fn_mod)
+        fix_hwpx_namespaces = _fn_mod.fix_hwpx_namespaces
+        _HAS_FIX_NS = True
+    else:
+        _HAS_FIX_NS = False
+except Exception:
+    _HAS_FIX_NS = False
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = SCRIPT_DIR.parent
 TEMPLATES_DIR = PROJECT_DIR / "templates"
@@ -171,6 +186,13 @@ def build(
             validate_xml(hpf_file)
 
         pack_hwpx(work, output)
+
+    # Namespace fix (한컴 뷰어 호환)
+    if _HAS_FIX_NS:
+        try:
+            fix_hwpx_namespaces(str(output))
+        except Exception:
+            pass
 
     errors = validate_hwpx(output)
     return errors

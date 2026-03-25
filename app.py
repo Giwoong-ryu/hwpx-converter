@@ -31,6 +31,7 @@ from template_analyzer import analyze_hwpx
 from docx_converter import parse_docx
 from hwp_reader import parse_hwp
 from premade_templates import TEMPLATES, get_template_choices, get_template_fields, get_template_structure
+from clone_form import extract_texts, clone as clone_hwpx
 
 
 # CSS는 style.css 파일 참조
@@ -436,6 +437,71 @@ def process_image(image, template, title, creator, ocr_engine_choice, gemini_key
             raise gr.Error(f"이미지 처리 오류: {e}")
 
 
+# === 양식 복제 함수 ===
+
+def clone_analyze(file):
+    """양식 분석: 텍스트 추출 → 치환 테이블 JSON 생성"""
+    if file is None:
+        raise gr.Error("파일을 업로드해주세요.")
+
+    path = file.name if hasattr(file, "name") else str(file)
+
+    # HWP면 HWPX로 변환
+    if path.lower().endswith(".hwp"):
+        try:
+            import win32com.client
+            hwp = win32com.client.gencache.EnsureDispatch("HWPFrame.HwpObject")
+            hwp.RegisterModule("FilePathCheckDLL", "SecurityModule")
+            hwp.Open(path, "HWP", "forceopen:true")
+            hwpx_path = path + "x"
+            hwp.SaveAs(hwpx_path, "HWPX")
+            hwp.Clear(1)
+            hwp.Quit()
+            path = hwpx_path
+        except Exception as e:
+            raise gr.Error(f"HWP 변환 실패: {e}. HWPX 파일을 직접 업로드해주세요.")
+
+    texts = extract_texts(path)
+    if not texts:
+        raise gr.Error("텍스트를 추출할 수 없습니다.")
+
+    # 치환 테이블 생성: {"원본": "새 값"} 형태
+    replace_map = {t: "" for t in texts}
+
+    info = f"추출된 텍스트: {len(texts)}개\n"
+    info += "아래 JSON에서 바꾸고 싶은 항목의 값을 입력하세요.\n"
+    info += "비워둔 항목은 원본 그대로 유지됩니다."
+
+    return info, json.dumps(replace_map, ensure_ascii=False, indent=2), path
+
+
+def clone_execute(original_path, replace_json):
+    """치환 실행"""
+    if not original_path:
+        raise gr.Error("먼저 양식을 분석해주세요.")
+
+    try:
+        raw = json.loads(replace_json)
+    except json.JSONDecodeError:
+        raise gr.Error("JSON 형식이 올바르지 않습니다.")
+
+    # 빈 값 제거 (원본 유지 항목)
+    replacements = {k: v for k, v in raw.items() if v and v != k}
+
+    if not replacements:
+        raise gr.Error("변경할 항목이 없습니다. 최소 1개 이상 값을 입력하세요.")
+
+    out_dir = tempfile.mkdtemp()
+    out_path = os.path.join(out_dir, "result.hwpx")
+
+    clone_hwpx(original_path, out_path, replacements=replacements)
+
+    size = os.path.getsize(out_path)
+    log = f"[OK] 완료: {size:,} bytes\n치환 항목: {len(replacements)}개"
+
+    return out_path, log
+
+
 # === JSON 예제 ===
 
 EXAMPLE_JSON = json.dumps({
@@ -671,6 +737,42 @@ def create_app():
                         fn=generate_premade,
                         inputs=[premade_select, premade_values],
                         outputs=[premade_output, premade_log],
+                    )
+
+                # 양식 복제 (clone_form)
+                with gr.TabItem("양식 복제"):
+                    gr.HTML("""<div class="mode-desc">
+                        <span class="mode-icon">&#x1F4C4;</span>
+                        <div class="mode-text">
+                            <h4>기존 양식 복제 + 내용 교체</h4>
+                            <p>HWP/HWPX 양식을 업로드하면 텍스트 목록이 표시됩니다. 바꿀 항목만 새 값을 입력하면 원본 양식 그대로 내용만 교체됩니다.</p>
+                        </div>
+                    </div>""")
+                    clone_file = gr.File(
+                        label="양식 업로드 (.hwp / .hwpx)",
+                        file_types=[".hwp", ".hwpx"],
+                    )
+                    clone_analyze_btn = gr.Button("양식 분석", variant="secondary", elem_classes="secondary-btn")
+                    clone_info = gr.Textbox(label="분석 결과", lines=3, interactive=False)
+                    clone_original_path = gr.State(value=None)
+                    clone_values = gr.Textbox(
+                        label="치환 테이블 (바꿀 항목만 값 입력, 나머지는 비워두면 원본 유지)",
+                        lines=20,
+                        placeholder='양식을 분석하면 텍스트 목록이 표시됩니다',
+                    )
+                    clone_btn = gr.Button("양식 복제 + 치환", variant="primary", elem_classes="primary-btn")
+                    clone_output = gr.File(label="완성된 파일", elem_classes="result-box")
+                    clone_log = gr.Textbox(label="결과", lines=4, interactive=False)
+
+                    clone_analyze_btn.click(
+                        fn=clone_analyze,
+                        inputs=[clone_file],
+                        outputs=[clone_info, clone_values, clone_original_path],
+                    )
+                    clone_btn.click(
+                        fn=clone_execute,
+                        inputs=[clone_original_path, clone_values],
+                        outputs=[clone_output, clone_log],
                     )
 
                 # 양식 채우기
