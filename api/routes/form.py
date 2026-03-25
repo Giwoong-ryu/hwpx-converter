@@ -13,7 +13,7 @@ from clone_form import extract_texts, clone as clone_hwpx
 router = APIRouter()
 
 
-_MAX_UPLOAD = 50 * 1024 * 1024  # 50MB
+_MAX_UPLOAD = 100 * 1024 * 1024  # 100MB
 
 
 @router.post("/analyze")
@@ -21,7 +21,7 @@ async def analyze_form(file: UploadFile = File(...)):
     # 파일 크기 검사
     content = await file.read()
     if len(content) > _MAX_UPLOAD:
-        raise HTTPException(status_code=413, detail="파일이 너무 큽니다. 50MB 이하만 가능합니다.")
+        raise HTTPException(status_code=413, detail="파일이 너무 큽니다. 100MB 이하만 가능합니다.")
     await file.seek(0)
 
     file_id = await file_manager.save_upload(file)
@@ -39,11 +39,16 @@ async def analyze_form(file: UploadFile = File(...)):
     if not texts:
         raise HTTPException(status_code=400, detail="텍스트를 추출할 수 없습니다.")
 
+    warning = None
+    if len(texts) > 3000:
+        warning = f"문서가 매우 큽니다 ({len(texts)}개 필드). AI 매핑 시 최대 3000개까지만 처리되며, 시간이 오래 걸릴 수 있습니다."
+
     return {
         "file_id": file_id,
         "filename": file.filename,
         "field_count": len(texts),
         "fields": texts,
+        "warning": warning,
     }
 
 

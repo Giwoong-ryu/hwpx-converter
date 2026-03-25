@@ -224,6 +224,12 @@ def map_content(form_texts, user_content, content_file=None):
     else:
         filtered_fields = [t for t in form_texts if 1 < len(t) <= 120 and t.strip() not in _SKIP]
 
+    # 필드 상한: 3000개 (약 100장 분량)
+    MAX_FIELDS = 3000
+    if len(filtered_fields) > MAX_FIELDS:
+        print(f"[ai/map] 필드 {len(filtered_fields)}개 → {MAX_FIELDS}개로 제한")
+        filtered_fields = filtered_fields[:MAX_FIELDS]
+
     # 배치 분할 호출 (150개씩 나눠서 전체 커버)
     BATCH_SIZE = 150
     if is_gen:
