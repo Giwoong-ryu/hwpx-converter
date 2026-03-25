@@ -256,7 +256,23 @@ def map_content(form_texts, user_content, content_file=None):
 
             print(f"[ai/map] batch {batch_idx+1}/{total_batches}: {len(batch)} fields")
 
-            response = model.generate_content(prompt, generation_config=gen_config)
+            # 배치 간 간격 + 429 재시도
+            if batch_idx > 0:
+                import time
+                time.sleep(0.5)
+
+            for attempt in range(2):
+                try:
+                    response = model.generate_content(prompt, generation_config=gen_config)
+                    break
+                except Exception as retry_err:
+                    if "429" in str(retry_err) and attempt == 0:
+                        import time
+                        print(f"[ai/map] 429 rate limit, 3초 대기 후 재시도")
+                        time.sleep(3)
+                    else:
+                        raise
+
             parsed = _parse_json_response(response.text)
 
             if parsed:
@@ -283,7 +299,9 @@ def map_content(form_texts, user_content, content_file=None):
     except Exception as e:
         error_msg = str(e)
         if "API_KEY" in error_msg or "401" in error_msg:
-            return None, "API 키가 유효하지 않습니다. GEMINI_API_KEY를 확인해주세요."
+            return None, "AI 서비스 연결에 문제가 있습니다. 관리자에게 문의해주세요."
         if "429" in error_msg:
-            return None, "API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요."
-        return None, f"AI 호출 실패: {error_msg}"
+            return None, "요청이 많아 잠시 처리가 지연됩니다. 1분 후 다시 시도해주세요."
+        if "timeout" in error_msg.lower() or "deadline" in error_msg.lower():
+            return None, "AI 처리 시간이 초과되었습니다. 다시 시도해주세요."
+        return None, "AI 처리 중 문제가 발생했습니다. 다시 시도해주세요."

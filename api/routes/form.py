@@ -13,8 +13,17 @@ from clone_form import extract_texts, clone as clone_hwpx
 router = APIRouter()
 
 
+_MAX_UPLOAD = 50 * 1024 * 1024  # 50MB
+
+
 @router.post("/analyze")
 async def analyze_form(file: UploadFile = File(...)):
+    # 파일 크기 검사
+    content = await file.read()
+    if len(content) > _MAX_UPLOAD:
+        raise HTTPException(status_code=413, detail="파일이 너무 큽니다. 50MB 이하만 가능합니다.")
+    await file.seek(0)
+
     file_id = await file_manager.save_upload(file)
 
     # HWP이면 HWPX로 변환

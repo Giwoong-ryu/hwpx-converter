@@ -15,7 +15,21 @@ if _ROOT not in sys.path:
 
 from api.routes import form, ai, batch, extract, periodic, stamp, merge, excel
 
-app = FastAPI(title="DocFlow API")
+app = FastAPI(title="Eazy HWPX API")
+
+
+# 임시 파일 자동 정리 (30분마다)
+@app.on_event("startup")
+async def start_cleanup_scheduler():
+    import asyncio
+    from api.services.file_manager import file_manager
+
+    async def _cleanup_loop():
+        while True:
+            await asyncio.sleep(1800)  # 30분
+            file_manager.cleanup_expired()
+
+    asyncio.create_task(_cleanup_loop())
 
 app.add_middleware(
     CORSMiddleware,

@@ -7,9 +7,13 @@ import threading
 import time
 import uuid
 
+# HWP COM 변환은 한글 프로그램 단일 인스턴스 → 동시 호출 시 크래시 방지
+_hwp_lock = threading.Lock()
+_HWP_TIMEOUT = 30  # 초
+
 
 class FileManager:
-    def __init__(self, ttl_seconds=3600):
+    def __init__(self, ttl_seconds=10800):  # 3시간
         self._files: dict[str, dict] = {}
         self._lock = threading.Lock()
         self._ttl = ttl_seconds
@@ -42,6 +46,8 @@ class FileManager:
             entry = self._files.get(file_id)
         if not entry:
             return None
+        # touch: 접근 시 TTL 갱신
+        entry["created"] = time.time()
         return entry["path"]
 
     def get_name(self, file_id: str) -> str:
@@ -49,50 +55,50 @@ class FileManager:
             entry = self._files.get(file_id)
         return entry["name"] if entry else ""
 
-    def convert_hwp(self, file_id: str) -> str:
-        """HWP → HWPX 변환 (pyhwpx 사용, 보안 팝업 자동 처리)"""
-        path = self.get_path(file_id)
-        if not path or not path.lower().endswith(".hwp"):
-            return file_id
+    def _com_convert(self, src_path, dst_path, dst_format):
+        """COM 변환 공통 (Lock으로 직렬화)"""
+        acquired = _hwp_lock.acquire(timeout=_HWP_TIMEOUT)
+        if not acquired:
+            raise RuntimeError("다른 사용자가 변환 중입니다. 잠시 후 다시 시도해주세요.")
         try:
             import pythoncom
             pythoncom.CoInitialize()
             try:
                 from pyhwpx import Hwp
                 hwp = Hwp(visible=False, register_module=True)
-                hwp.open(path)
-                hwpx_path = os.path.join(tempfile.mkdtemp(), "converted.hwpx")
-                hwp.save_as(hwpx_path, "HWPX")
+                hwp.open(src_path)
+                hwp.save_as(dst_path, dst_format)
                 hwp.clear()
                 hwp.quit()
             finally:
                 pythoncom.CoUninitialize()
+        finally:
+            _hwp_lock.release()
+
+    def convert_hwp(self, file_id: str) -> str:
+        """HWP → HWPX 변환 (보안 팝업 자동 처리, 동시 요청 직렬화)"""
+        path = self.get_path(file_id)
+        if not path or not path.lower().endswith(".hwp"):
+            return file_id
+        try:
+            hwpx_path = os.path.join(tempfile.mkdtemp(), "converted.hwpx")
+            self._com_convert(path, hwpx_path, "HWPX")
             new_id = self.save(hwpx_path, self.get_name(file_id).replace(".hwp", ".hwpx"))
             return new_id
         except Exception as e:
             raise RuntimeError(f"HWP 변환 실패: {e}")
 
     def convert_to_hwp(self, file_id: str) -> str:
-        """HWPX → HWP 변환 (구버전 한글 호환용)"""
+        """HWPX → HWP 변환 (구버전 한글 호환용, 동시 요청 직렬화)"""
         path = self.get_path(file_id)
         if not path or not path.lower().endswith(".hwpx"):
             return file_id
         try:
-            import pythoncom
-            pythoncom.CoInitialize()
-            try:
-                from pyhwpx import Hwp
-                hwp = Hwp(visible=False, register_module=True)
-                hwp.open(path)
-                hwp_path = os.path.join(tempfile.mkdtemp(), "converted.hwp")
-                hwp.save_as(hwp_path, "HWP")
-                hwp.clear()
-                hwp.quit()
-            finally:
-                pythoncom.CoUninitialize()
+            hwp_path = os.path.join(tempfile.mkdtemp(), "converted.hwp")
+            self._com_convert(path, hwp_path, "HWP")
             name = self.get_name(file_id)
             if name.endswith(".hwpx"):
-                name = name[:-1]  # .hwpx → .hwp
+                name = name[:-1]
             new_id = self.save(hwp_path, name)
             return new_id
         except Exception as e:
