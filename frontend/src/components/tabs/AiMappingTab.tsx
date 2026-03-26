@@ -16,7 +16,7 @@ export default function AiMappingTab() {
   const [error, setError] = useState("");
   const [showDetail, setShowDetail] = useState(false);
   const [stripImages, setStripImages] = useState(true);
-  const [outputFormat, setOutputFormat] = useState<"hwpx" | "hwp">("hwpx");
+  const [outputFormat, setOutputFormat] = useState<"hwpx" | "hwp" | "docx">("hwpx");
 
   const doMap = async () => {
     if (!fileId) return;
@@ -51,7 +51,7 @@ export default function AiMappingTab() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-800">
-        채울 내용을 텍스트로 붙여넣거나 파일로 올리면, AI가 양식에 맞게 자동 매핑합니다.
+        채울 내용을 텍스트로 붙여넣거나, &quot;써줘&quot;라고 입력하면 AI가 대신 작성합니다.
         <span className="text-xs text-gray-400 ml-1">Google AI 사용 · 학습에 미사용</span>
       </p>
       {!isAnalyzed && (
@@ -80,7 +80,7 @@ export default function AiMappingTab() {
         className="w-full bg-black text-white py-3 rounded-lg font-semibold text-sm hover:bg-gray-800 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-        {loading ? "AI 매핑 중..." : "AI 자동 매핑"}
+        {loading ? "AI 작성 중..." : "AI 자동 채우기"}
       </button>
 
       {error && <div className="text-sm text-red-500 bg-red-50 p-3 rounded-lg">{error}</div>}
@@ -106,14 +106,13 @@ export default function AiMappingTab() {
               </label>
               <div className="flex items-center gap-1 text-xs text-gray-700">
                 <span>저장 형식:</span>
-                <button
-                  onClick={() => setOutputFormat("hwpx")}
-                  className={`px-2 py-0.5 rounded ${outputFormat === "hwpx" ? "bg-black text-white" : "bg-gray-100"}`}
-                >HWPX</button>
-                <button
-                  onClick={() => setOutputFormat("hwp")}
-                  className={`px-2 py-0.5 rounded ${outputFormat === "hwp" ? "bg-black text-white" : "bg-gray-100"}`}
-                >HWP</button>
+                {(["hwpx", "hwp", "docx"] as const).map((fmt) => (
+                  <button
+                    key={fmt}
+                    onClick={() => setOutputFormat(fmt)}
+                    className={`px-2 py-0.5 rounded ${outputFormat === fmt ? "bg-black text-white" : "bg-gray-100"}`}
+                  >{fmt.toUpperCase()}</button>
+                ))}
               </div>
             </div>
 

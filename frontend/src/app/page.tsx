@@ -13,18 +13,78 @@ import MergeTab from "@/components/tabs/MergeTab";
 import ExcelTab from "@/components/tabs/ExcelTab";
 import {
   FileText, Loader2, Shield, Wand2, Layers, TableProperties,
-  Calendar, Stamp, Merge, CheckCircle2, FileSpreadsheet
+  Calendar, Stamp, Merge, CheckCircle2, FileSpreadsheet,
+  Upload, Sparkles, Download, ArrowRight
 } from "lucide-react";
 
 const TABS = [
-  { id: "ai", label: "AI 매핑", icon: Wand2, desc: "AI가 양식에 맞게 자동 배치" },
-  { id: "batch", label: "엑셀->문서", icon: Layers, desc: "엑셀로 N개 문서 한번에" },
-  { id: "extract", label: "문서->엑셀", icon: TableProperties, desc: "문서 텍스트를 엑셀로" },
-  { id: "periodic", label: "정기문서", icon: Calendar, desc: "날짜만 바꿔서 반복 생성" },
-  { id: "stamp", label: "도장", icon: Stamp, desc: "(인) -> 도장 이미지" },
-  { id: "merge", label: "합치기", icon: Merge, desc: "여러 파일 -> 하나" },
-  { id: "excel", label: "엑셀 채우기", icon: FileSpreadsheet, desc: "엑셀 양식에 데이터 채우기" },
+  { id: "ai", label: "AI 자동 작성", icon: Wand2, benefit: "주제만 알려주면 문서를 대신 써줍니다", badge: "추천" },
+  { id: "batch", label: "엑셀->문서", icon: Layers, benefit: "엑셀 100행이면 문서 100개가 한번에" },
+  { id: "extract", label: "문서->엑셀", icon: TableProperties, benefit: "문서 안의 모든 글자를 엑셀로 정리" },
+  { id: "periodic", label: "정기문서", icon: Calendar, benefit: "매달 보고서를 12개월치 한번에" },
+  { id: "stamp", label: "도장", icon: Stamp, benefit: "(인) 자리에 도장을 자동으로 찍어줍니다" },
+  { id: "merge", label: "합치기", icon: Merge, benefit: "여러 파일을 하나로 합쳐줍니다" },
+  { id: "excel", label: "엑셀 채우기", icon: FileSpreadsheet, benefit: "엑셀 양식의 빈칸을 자동으로 채웁니다" },
 ];
+
+const TAB_GUIDE: Record<string, { what: string; examples: string[] }> = {
+  ai: {
+    what: "내용을 직접 붙여넣거나, AI에게 \"써줘\"라고 하면 문서를 대신 작성합니다.",
+    examples: [
+      "\"온라인 교육 플랫폼 사업계획서 써줘\" → AI가 빈 양식에 17페이지 내용을 채워줌",
+      "내가 가진 텍스트를 복사 붙여넣기 → 양식의 빈칸에 알아서 넣어줌",
+      "엑셀이나 워드 파일을 올리면 → 그 안의 내용을 양식에 자동으로 넣어줌",
+    ],
+  },
+  batch: {
+    what: "엑셀에 여러 사람 정보가 있으면, 같은 양식으로 사람 수만큼 문서를 만들어 줍니다.",
+    examples: [
+      "급여명세서 — 엑셀에 직원 100명 이름/급여 넣고, 양식 하나 올리면 → 100개 문서가 한번에 나옴",
+      "수료증 — 엑셀에 수료자 이름/날짜 넣고, 수료증 양식 올리면 → 50장이 한번에 나옴",
+      "계약서 — 엑셀에 업체명/금액 넣고, 계약서 양식 올리면 → 업체별 계약서 30개가 나옴",
+    ],
+  },
+  extract: {
+    what: "문서 안에 있는 글자를 전부 뽑아서 엑셀 파일로 만들어 줍니다.",
+    examples: [
+      "사업계획서 안의 모든 텍스트 → 엑셀로 정리해서 한눈에 보기",
+      "양식 안에 어떤 빈칸들이 있는지 목록으로 확인하고 싶을 때",
+      "여러 문서의 내용을 엑셀로 뽑아서 서로 비교할 때",
+    ],
+  },
+  periodic: {
+    what: "매달/매주 날짜만 바뀌는 같은 문서를, 한번에 여러 달치 만들어 줍니다.",
+    examples: [
+      "월간 보고서 — 1월~12월까지 날짜만 다른 보고서 12개를 한번에",
+      "주간 업무일지 — 52주치 날짜가 자동으로 바뀐 일지를 한번에",
+      "분기 보고서 — 1분기~4분기 보고서 4개를 한번에",
+    ],
+  },
+  stamp: {
+    what: "문서에 (인)이라고 써있는 곳에 실제 도장/서명 이미지를 넣어줍니다.",
+    examples: [
+      "공문서의 (인) 자리에 회사 직인 이미지를 자동으로 넣기",
+      "계약서 하단 서명란에 내 서명 이미지 넣기",
+      "문서 여러 개에 같은 도장을 한번에 찍기",
+    ],
+  },
+  merge: {
+    what: "여러 개의 문서 파일을 하나의 파일로 합쳐줍니다.",
+    examples: [
+      "각 부서에서 따로 받은 보고서 5개 → 하나의 파일로 합치기",
+      "제안서를 파트별로 나눠 작성한 뒤 → 최종 하나로 합치기",
+      "여러 장의 공문을 하나의 문서로 묶기",
+    ],
+  },
+  excel: {
+    what: "엑셀 파일의 특정 칸에 데이터를 자동으로 넣어줍니다.",
+    examples: [
+      "견적서 엑셀의 품목명, 수량, 금액 칸에 데이터 자동 입력",
+      "출석부 엑셀의 이름/날짜 칸을 한번에 채우기",
+      "정산서 엑셀의 매달 금액 칸을 자동으로 채우기",
+    ],
+  },
+};
 
 function Main() {
   const { isAnalyzed, filename, fieldCount, setForm } = useForm();
@@ -56,58 +116,116 @@ function Main() {
     }
   };
 
+  const guide = TAB_GUIDE[activeTab] || TAB_GUIDE.ai;
+  const activeTabData = TABS.find(t => t.id === activeTab);
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       {/* 헤더 */}
-      <header className="border-b border-black py-6 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Eazy HWPX</h1>
-        <p className="text-sm text-gray-600 mt-1">한글 양식에 내용을 채워 새 문서를 만듭니다</p>
+      <header className="bg-white border-b border-gray-200 py-4 px-6">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-xl font-bold text-gray-900">Eazy HWPX</h1>
+        </div>
       </header>
 
-      {/* 메인 */}
-      <div className="max-w-6xl mx-auto px-6 py-6 flex gap-6 items-stretch">
+      {/* 히어로: PAS 기반 */}
+      <section className="bg-white border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-6 py-8 flex gap-8 items-start">
+
+          {/* 좌측: Problem → Solution */}
+          <div className="flex-1">
+            <p className="text-xs text-gray-500 mb-2">아직도 이렇게 하고 계신가요?</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-3 leading-snug">
+              양식 열고, 칸마다 하나하나 입력하고,<br />
+              다음 사람 것도 처음부터 다시.
+            </h2>
+            <p className="text-sm text-gray-600 mb-5 leading-relaxed">
+              양식 파일(HWP, HWPX, DOCX)을 올리기만 하면,<br />
+              AI가 내용을 자동으로 채워서 완성된 문서를 만들어 줍니다.
+            </p>
+            <div className="flex gap-3">
+              <a href="#tool" className="bg-gray-900 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-800 inline-flex items-center gap-2">
+                <Upload size={15} />
+                내 파일로 시작하기
+              </a>
+            </div>
+          </div>
+
+          {/* 우측: 3단계 흐름 (세로) */}
+          <div className="w-[280px] shrink-0 space-y-3">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-xs font-bold">1</div>
+                <span className="text-sm font-bold text-gray-900">양식 업로드</span>
+              </div>
+              <p className="text-xs text-gray-500 ml-8">내용을 넣을 빈 문서를 올립니다</p>
+              <p className="text-xs text-gray-400 ml-8">HWP / HWPX / DOCX</p>
+            </div>
+            <div className="flex justify-center text-gray-300"><ArrowRight size={16} className="rotate-90" /></div>
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-xs font-bold">2</div>
+                <span className="text-sm font-bold text-gray-900">내용 채우기</span>
+              </div>
+              <p className="text-xs text-gray-500 ml-8">텍스트 붙여넣기, 엑셀 연결, 또는 AI 작성</p>
+            </div>
+            <div className="flex justify-center text-gray-300"><ArrowRight size={16} className="rotate-90" /></div>
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-xs font-bold">3</div>
+                <span className="text-sm font-bold text-gray-900">완성 문서 다운로드</span>
+              </div>
+              <p className="text-xs text-gray-500 ml-8">원본 서식 그대로 유지</p>
+              <p className="text-xs text-gray-400 ml-8">HWP / HWPX / DOCX 선택</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 도구 영역 */}
+      <div id="tool" className="max-w-6xl mx-auto px-6 py-6 flex gap-5">
 
         {/* 왼쪽: 양식 넣기 */}
-        <div className="w-[300px] shrink-0">
-          <div className="border border-black rounded-2xl p-5 sticky top-6">
+        <div className="w-[280px] shrink-0">
+          <div className="bg-white border border-gray-200 rounded-xl p-5 sticky top-6">
             <div className="flex items-center gap-2 mb-3">
-              <FileText size={18} className="text-gray-600" />
-              <h2 className="font-semibold text-gray-800">양식 넣기</h2>
+              <FileText size={16} className="text-gray-500" />
+              <h2 className="font-bold text-sm text-gray-900">양식 넣기</h2>
             </div>
-            <p className="text-xs text-gray-600 mb-4">
-              양식을 올리고 분석하면 오른쪽 기능들에서 사용됩니다.
+            <p className="text-xs text-gray-500 mb-4">
+              내용을 넣을 빈 문서를 올리고 분석하세요.
             </p>
 
-            <FileUpload accept=".hwp,.hwpx" label="HWP / HWPX 파일" onFiles={(f) => setFile(f[0])} />
+            <FileUpload accept=".hwp,.hwpx,.docx" label="HWP / HWPX / DOCX 파일" onFiles={(f) => setFile(f[0])} />
 
             <button
               onClick={doAnalyze}
               disabled={loading || !file}
-              className="w-full mt-3 bg-black text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-gray-800 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full mt-3 bg-gray-900 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-gray-800 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? <Loader2 size={14} className="animate-spin" /> : null}
               {loading ? "분석 중..." : "양식 분석"}
             </button>
 
-            {error && <div className="text-xs text-red-500 mt-2 bg-red-50 rounded-lg p-2">{error}</div>}
+            {error && <div className="text-xs text-red-600 mt-2 bg-red-50 rounded-lg p-2">{error}</div>}
             {warning && <div className="text-xs text-amber-700 mt-2 bg-amber-50 rounded-lg p-2">{warning}</div>}
 
             {isAnalyzed && (
-              <div className="mt-3 bg-green-50 border border-green-100 rounded-lg px-3 py-2 flex items-start gap-2">
-                <CheckCircle2 size={16} className="text-green-600 mt-0.5 shrink-0" />
+              <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 flex items-start gap-2">
+                <CheckCircle2 size={15} className="text-emerald-600 mt-0.5 shrink-0" />
                 <div>
-                  <div className="text-xs font-bold">{filename}</div>
-                  <div className="text-xs opacity-80">{fieldCount}개 필드 발견</div>
+                  <div className="text-xs font-bold text-gray-900">{filename}</div>
+                  <div className="text-xs text-gray-500">{fieldCount}개 항목 발견</div>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* 오른쪽: 기능 탭 */}
-        <div className="flex-1 min-w-0">
+        {/* 오른쪽 */}
+        <div className="flex-1 min-w-0 space-y-4">
           {/* 탭 헤더 */}
-          <div className="flex border-b border-black mb-4 overflow-x-auto">
+          <div className="flex bg-white border border-gray-200 rounded-xl overflow-hidden">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
@@ -115,21 +233,32 @@ function Main() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-4 py-2.5 text-sm whitespace-nowrap border-b-2 transition-colors ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-medium transition-colors relative ${
                     active
-                      ? "border-black text-black font-bold"
-                      : "border-transparent text-gray-900 hover:bg-gray-50"
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-600 hover:bg-gray-50"
                   }`}
                 >
-                  <Icon size={15} />
+                  <Icon size={14} />
                   {tab.label}
+                  {tab.badge && !active && (
+                    <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">{tab.badge}</span>
+                  )}
                 </button>
               );
             })}
           </div>
 
+          {/* 현재 탭 Benefit 인라인 */}
+          {activeTabData && (
+            <div className="bg-white border border-gray-200 rounded-lg px-4 py-2.5 flex items-center gap-2">
+              <Sparkles size={14} className="text-gray-400 shrink-0" />
+              <span className="text-sm text-gray-700">{activeTabData.benefit}</span>
+            </div>
+          )}
+
           {/* 탭 콘텐츠 */}
-          <div className="border border-black rounded-2xl p-5">
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
             {activeTab === "ai" && <AiMappingTab />}
             {activeTab === "batch" && <BatchTab />}
             {activeTab === "extract" && <ExtractTab />}
@@ -138,23 +267,38 @@ function Main() {
             {activeTab === "merge" && <MergeTab />}
             {activeTab === "excel" && <ExcelTab />}
           </div>
+
+          {/* 탭별 예시 */}
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <p className="text-xs text-gray-500 mb-3">이런 식으로 사용합니다</p>
+            <div className="space-y-2.5">
+              {guide.examples.map((ex, i) => (
+                <div key={`${activeTab}-${i}`} className="flex gap-3 items-start">
+                  <span className="bg-gray-900 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                  <span className="text-sm text-gray-700 leading-relaxed">{ex}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* 푸터 */}
-      <footer className="py-6 text-center">
+      <footer className="max-w-6xl mx-auto px-6 py-6 text-center">
         <button
           onClick={() => setShowInfo(!showInfo)}
-          className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 inline-flex items-center gap-2 transition-colors"
+          className="bg-white hover:bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 inline-flex items-center gap-2 transition-colors"
         >
-          <Shield size={13} className="text-gray-700" />
-          <span className="text-xs text-gray-900">내 데이터는 어떻게 처리되나요?</span>
+          <Shield size={13} className="text-gray-500" />
+          <span className="text-xs text-gray-700">내 데이터는 어떻게 처리되나요?</span>
         </button>
         {showInfo && (
-          <div className="max-w-md mx-auto mt-3 text-left text-xs text-gray-600 leading-relaxed bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-2">
-            <p><strong className="text-gray-700">AI 자동 매핑</strong> — 이 기능만 Google AI를 사용합니다. 양식 필드와 입력 내용을 AI에 보내 자동 배치하기 위해서입니다. 데이터는 학습에 사용되지 않으며, 55일 후 삭제됩니다.</p>
-            <p><strong className="text-gray-700">그 외 모든 기능</strong> — 외부 전송 없이 이 PC에서만 처리됩니다.</p>
-            <p><strong className="text-gray-700">파일</strong> — 분석과 생성 단계 사이에 사용하기 위해 임시 저장됩니다. 서버 종료 시 자동 삭제됩니다.</p>
+          <div className="max-w-lg mx-auto mt-3 text-left text-xs text-gray-600 leading-relaxed bg-white rounded-xl p-4 border border-gray-200 space-y-2">
+            <p><strong className="text-gray-800">양식 분석 / 문서 생성</strong> — 외부 서비스 없이 이 서버에서만 처리됩니다.</p>
+            <p><strong className="text-gray-800">대량 생성 / 추출 / 병합</strong> — 외부 서비스 없이 이 서버에서만 처리됩니다.</p>
+            <p><strong className="text-gray-800">AI 자동 작성</strong> — 이 기능만 Google AI를 사용합니다. 데이터는 학습에 사용되지 않으며, 55일 후 삭제됩니다.</p>
+            <p><strong className="text-gray-800">파일 보관</strong> — 3시간 후 자동 삭제되며, 서버 종료 시에도 삭제됩니다.</p>
+            <p><strong className="text-gray-800">네트워크</strong> — HTTPS(TLS) 암호화 통신을 사용합니다.</p>
           </div>
         )}
       </footer>
