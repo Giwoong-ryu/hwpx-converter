@@ -51,7 +51,7 @@ export default function AiMappingTab() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-800">
-        채울 내용을 텍스트로 붙여넣거나, &quot;써줘&quot;라고 입력하면 AI가 대신 작성합니다.
+        주제와 함께 &quot;써줘&quot;라고 입력하면 AI가 대신 작성합니다. 또는 채울 내용을 직접 붙여넣을 수도 있습니다.
         <span className="text-xs text-gray-400 ml-1">Google AI 사용 · 학습에 미사용</span>
       </p>
       {!isAnalyzed && (
@@ -63,7 +63,7 @@ export default function AiMappingTab() {
       <textarea
         className="w-full border border-gray-200 rounded-lg p-3 text-sm resize-y focus:outline-none focus:border-gray-400"
         rows={2}
-        placeholder={"회사명: 주식회사 OO\n대표자: 홍길동\n설립일: 2025.01.01\n주소: 서울시 강남구 ..."}
+        placeholder={"예: 온라인 교육 플랫폼 사업계획서 써줘\n예: 회사명: 주식회사 OO, 대표자: 홍길동, 설립일: 2025.01.01"}
         value={text}
         onChange={(e) => setText(e.target.value)}
       />

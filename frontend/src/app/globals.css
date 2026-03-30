@@ -1,7 +1,74 @@
 @import "tailwindcss";
 
-
 body {
   font-family: 'Pretendard Variable', 'Pretendard', -apple-system, 'Segoe UI', sans-serif;
   color: #111;
+}
+
+/* 스크롤 애니메이션 */
+.scroll-fade {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scroll-fade.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 히어로 페이드인 */
+@keyframes heroFadeUp {
+  from { opacity: 0; transform: translateY(32px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero-animate {
+  animation: heroFadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.hero-delay-1 { animation-delay: 0.1s; opacity: 0; }
+.hero-delay-2 { animation-delay: 0.25s; opacity: 0; }
+.hero-delay-3 { animation-delay: 0.4s; opacity: 0; }
+.hero-delay-4 { animation-delay: 0.55s; opacity: 0; }
+
+/* 글라스 카드 */
+.glass-card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 8px 40px rgba(99, 102, 241, 0.1), 0 2px 8px rgba(0,0,0,0.04);
+  transform: translateY(-2px);
+}
+
+/* CTA 버튼 글로우 */
+.cta-glow {
+  position: relative;
+  overflow: hidden;
+}
+.cta-glow::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #6366f1);
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s;
+  filter: blur(12px);
+}
+.cta-glow:hover::after {
+  opacity: 0.5;
+}
+
+/* 히어로 메시 배경 */
+.hero-mesh {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 40%, rgba(199, 210, 254, 0.5) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 80% at 80% 20%, rgba(191, 219, 254, 0.4) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 50% at 50% 80%, rgba(167, 243, 208, 0.2) 0%, transparent 70%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 40%, #f0f9ff 70%, #f8fafc 100%);
 }

@@ -60,12 +60,16 @@ if os.path.isdir(_FRONTEND_DIR):
     # /_next 등 정적 자산
     app.mount("/_next", StaticFiles(directory=os.path.join(_FRONTEND_DIR, "_next")), name="next-static")
 
-    # SPA 폴백: /api가 아닌 모든 요청 → index.html
+    # 정적 파일 서빙: Next.js static export 라우팅 지원
     @app.get("/{full_path:path}")
     async def serve_spa(request: Request, full_path: str):
         # 정적 파일이 있으면 그것을 서빙
         file_path = os.path.join(_FRONTEND_DIR, full_path)
         if full_path and os.path.isfile(file_path):
             return FileResponse(file_path)
-        # 없으면 index.html (SPA)
+        # Next.js static export: /tool → tool.html
+        html_path = os.path.join(_FRONTEND_DIR, f"{full_path}.html")
+        if full_path and os.path.isfile(html_path):
+            return FileResponse(html_path)
+        # 폴백 → index.html
         return FileResponse(os.path.join(_FRONTEND_DIR, "index.html"))

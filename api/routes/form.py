@@ -26,15 +26,24 @@ async def analyze_form(file: UploadFile = File(...)):
 
     file_id = await file_manager.save_upload(file)
 
-    # HWP이면 HWPX로 변환
     path = file_manager.get_path(file_id)
+
+    # HWP → HWPX 변환
     if path and path.lower().endswith(".hwp"):
         try:
             file_id = file_manager.convert_hwp(file_id)
         except RuntimeError as e:
             raise HTTPException(status_code=400, detail=str(e))
+        path = file_manager.get_path(file_id)
 
-    path = file_manager.get_path(file_id)
+    # DOCX → HWPX 변환
+    if path and path.lower().endswith(".docx"):
+        try:
+            file_id = file_manager.convert_docx(file_id)
+        except RuntimeError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        path = file_manager.get_path(file_id)
+
     texts = extract_texts(path)
     if not texts:
         raise HTTPException(status_code=400, detail="텍스트를 추출할 수 없습니다.")
@@ -56,7 +65,7 @@ class GenerateRequest(BaseModel):
     file_id: str
     replacements: dict[str, str]
     strip_images: bool = False
-    output_format: str = "hwpx"  # "hwpx" 또는 "hwp"
+    output_format: str = "hwpx"  # "hwpx", "hwp", "docx"
 
 
 @router.post("/generate")
@@ -68,22 +77,21 @@ def generate_form(req: GenerateRequest):
     out_path = os.path.join(tempfile.mkdtemp(), "EazyHWPX_result.hwpx")
     clone_hwpx(path, out_path, replacements=req.replacements, strip_images=req.strip_images)
 
-    # HWP 형식 요청 시 변환
-    if req.output_format.lower() == "hwp":
+    # 출력 형식 변환
+    fmt = req.output_format.lower()
+    if fmt == "hwp":
         try:
             hwpx_id = file_manager.save(out_path, "result.hwpx")
             hwp_id = file_manager.convert_to_hwp(hwpx_id)
-            hwp_path = file_manager.get_path(hwp_id)
-            return FileResponse(
-                hwp_path,
-                filename="EazyHWPX_result.hwp",
-                media_type="application/octet-stream",
-            )
+            return FileResponse(file_manager.get_path(hwp_id), filename="EazyHWPX_result.hwp", media_type="application/octet-stream")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"HWP 변환 실패: {e}")
+    elif fmt == "docx":
+        try:
+            hwpx_id = file_manager.save(out_path, "result.hwpx")
+            docx_id = file_manager.convert_to_docx(hwpx_id)
+            return FileResponse(file_manager.get_path(docx_id), filename="EazyHWPX_result.docx", media_type="application/octet-stream")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"DOCX 변환 실패: {e}")
 
-    return FileResponse(
-        out_path,
-        filename="EazyHWPX_result.hwpx",
-        media_type="application/octet-stream",
-    )
+    return FileResponse(out_path, filename="EazyHWPX_result.hwpx", media_type="application/octet-stream")

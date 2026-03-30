@@ -104,6 +104,39 @@ class FileManager:
         except Exception as e:
             raise RuntimeError(f"HWP 변환 실패: {e}")
 
+    def convert_to_docx(self, file_id: str) -> str:
+        """HWPX → DOCX 변환 (python-docx, COM 불필요)"""
+        path = self.get_path(file_id)
+        if not path or not path.lower().endswith(".hwpx"):
+            return file_id
+        try:
+            from hwpx_to_docx import convert_hwpx_to_docx
+            docx_path = os.path.join(tempfile.mkdtemp(), "converted.docx")
+            convert_hwpx_to_docx(path, docx_path)
+            name = self.get_name(file_id).replace(".hwpx", ".docx")
+            new_id = self.save(docx_path, name)
+            return new_id
+        except Exception as e:
+            raise RuntimeError(f"DOCX 변환 실패: {e}")
+
+    def convert_docx(self, file_id: str) -> str:
+        """DOCX → HWPX 변환 (python-docx + build_hwpx, COM 불필요)"""
+        path = self.get_path(file_id)
+        if not path or not path.lower().endswith(".docx"):
+            return file_id
+        try:
+            from docx_converter import parse_docx
+            from core.build_hwpx import build_hwpx
+
+            doc_json = parse_docx(path)
+            hwpx_path = os.path.join(tempfile.mkdtemp(), "converted.hwpx")
+            build_hwpx(doc_json, hwpx_path)
+            name = self.get_name(file_id).replace(".docx", ".hwpx")
+            new_id = self.save(hwpx_path, name)
+            return new_id
+        except Exception as e:
+            raise RuntimeError(f"DOCX 변환 실패: {e}")
+
     def cleanup_expired(self):
         now = time.time()
         expired = []
