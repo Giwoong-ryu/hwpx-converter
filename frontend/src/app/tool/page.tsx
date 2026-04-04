@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FormProvider, useForm } from "@/context/FormContext";
+import { useAuth } from "@/context/AuthContext";
 import { analyzeForm } from "@/lib/api";
 import FileUpload from "@/components/ui/FileUpload";
 import AiMappingTab from "@/components/tabs/AiMappingTab";
@@ -12,28 +14,39 @@ import PeriodicTab from "@/components/tabs/PeriodicTab";
 import StampTab from "@/components/tabs/StampTab";
 import MergeTab from "@/components/tabs/MergeTab";
 import ExcelTab from "@/components/tabs/ExcelTab";
+import LoginModal from "@/components/ui/LoginModal";
 import {
   FileText, Loader2, Shield, Wand2, Layers, TableProperties,
   Calendar, Stamp, Merge, CheckCircle2, FileSpreadsheet,
-  Sparkles, ChevronLeft
+  Sparkles, ChevronLeft, Upload, ChevronDown, ChevronUp, Settings2,
+  User, Zap, LogOut, Flame
 } from "lucide-react";
 
-const TABS = [
-  { id: "ai", label: "AI 자동 작성", icon: Wand2, benefit: "주제만 알려주면 문서를 대신 써줍니다" },
-  { id: "batch", label: "엑셀->문서", icon: Layers, benefit: "엑셀 100행이면 문서 100개가 한번에" },
-  { id: "extract", label: "문서->엑셀", icon: TableProperties, benefit: "문서 안의 모든 글자를 엑셀로 정리" },
-  { id: "periodic", label: "정기문서", icon: Calendar, benefit: "매달 보고서를 12개월치 한번에" },
-  { id: "stamp", label: "도장", icon: Stamp, benefit: "(인) 자리에 도장을 자동으로 찍어줍니다" },
-  { id: "merge", label: "합치기", icon: Merge, benefit: "여러 파일을 하나로 합쳐줍니다" },
-  { id: "excel", label: "엑셀 채우기", icon: FileSpreadsheet, benefit: "엑셀 양식의 빈칸을 자동으로 채웁니다" },
+const MAIN_TABS = [
+  { id: "ai", group: ["ai"], label: "AI 자동 작성", icon: Wand2 },
+  { id: "excel_doc", group: ["batch", "extract"], label: "문서 ⇄ 엑셀 쌍방향", icon: Layers },
+  { id: "excel", group: ["excel"], label: "엑셀 빈칸 채우기", icon: FileSpreadsheet },
+  { id: "special", group: ["periodic", "stamp", "merge"], label: "특수 기능 더보기", icon: Settings2 },
 ];
+
+const SUB_TABS: Record<string, { id: string; label: string; icon: any }[]> = {
+  excel_doc: [
+    { id: "batch", label: "엑셀 → 문서 만들기", icon: Layers },
+    { id: "extract", label: "문서 → 엑셀표 추출", icon: TableProperties },
+  ],
+  special: [
+    { id: "periodic", label: "매월 반복 문서", icon: Calendar },
+    { id: "stamp", label: "자동 도장 날인", icon: Stamp },
+    { id: "merge", label: "다량 문서 합치기", icon: Merge },
+  ]
+};
 
 const TAB_GUIDE: Record<string, { what: string; examples: string[] }> = {
   ai: {
     what: "내용을 직접 붙여넣거나, AI에게 \"써줘\"라고 하면 문서를 대신 작성합니다.",
     examples: [
-      "\"온라인 교육 플랫폼 사업계획서 써줘\" → AI가 빈 양식에 17페이지 내용을 채워줌",
-      "내가 가진 텍스트를 복사 붙여넣기 → 양식의 빈칸에 알아서 넣어줌",
+      "\"온라인 교육 플랫폼 사업계획서 써줘\" → AI가 양식에 맞춰 17페이지 내용을 채워줌",
+      "내가 가진 텍스트를 복사 붙여넣기 → 양식의 항목에 알아서 넣어줌",
       "엑셀이나 워드 파일을 올리면 → 그 안의 내용을 양식에 자동으로 넣어줌",
     ],
   },
@@ -87,14 +100,127 @@ const TAB_GUIDE: Record<string, { what: string; examples: string[] }> = {
   },
 };
 
+function GaugeBadge() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return (
+    <Link href="/pricing" className="flex items-center gap-1.5 text-[11px] text-[#57423c]/50 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors">
+      <Zap size={10} /> 무료 사용 중 · <span className="text-[#2563EB] font-bold">업그레이드</span>
+    </Link>
+  );
+
+  const plan = user.plan || "free";
+  const gauge = user.gauge_pct || 0;
+  const streak = user.streak_days || 0;
+  const level = user.level || 1;
+  const levelTitle = user.level_title || "새내기";
+
+  // 게이지 바 색상: 100%+ 초록, 30%+ 파랑, 10%+ 노랑, 그 아래 빨강
+  const barColor = gauge > 100 ? "bg-emerald-500" : gauge > 30 ? "bg-[#2563EB]" : gauge > 10 ? "bg-amber-500" : "bg-red-500";
+  const barWidth = Math.min(gauge, 100);
+
+  if (plan === "free") return (
+    <Link href="/pricing" className="flex items-center gap-1.5 text-[11px] text-[#57423c]/50 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors">
+      <Zap size={10} /> 무료 · <span className="text-[#2563EB] font-bold">업그레이드</span>
+      {streak > 0 && <span className="text-[#57423c]/30">· {streak}일</span>}
+    </Link>
+  );
+
+  return (
+    <Link href="/pricing" className="flex items-center gap-2 text-[11px] bg-white border border-gray-200/80 px-3 py-1.5 rounded-lg hover:border-[#93C5FD] transition-colors">
+      {/* 플랜 뱃지 */}
+      {plan === "pro" ? (
+        <span className="font-bold text-white bg-[#1E40AF] px-1.5 py-0.5 rounded text-[10px]">PRO</span>
+      ) : (
+        <span className="font-bold text-[#2563EB] bg-[#DBEAFE] px-1.5 py-0.5 rounded text-[10px]">PLUS</span>
+      )}
+
+      {/* 게이지 바 */}
+      <div className="flex items-center gap-1.5">
+        <span className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <span className={`block h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${barWidth}%` }} />
+        </span>
+        <span className="font-bold text-[#1a1c1b] tabular-nums">{Math.round(gauge)}%</span>
+      </div>
+
+      {/* 스트릭 (3일 이상만 표시) */}
+      {streak >= 3 && (
+        <span className="text-orange-500 font-bold flex items-center gap-0.5">
+          {streak}일
+        </span>
+      )}
+
+      {/* 레벨 (2 이상만 표시) */}
+      {level >= 2 && (
+        <span className="text-[#57423c]/30">Lv.{level}</span>
+      )}
+    </Link>
+  );
+}
+
+function UserMenu({ onLoginClick }: { onLoginClick: () => void }) {
+  const { user, signOut, loading } = useAuth();
+  const [open, setOpen] = useState(false);
+  if (loading) return null;
+  if (!user) return (
+    <button onClick={onLoginClick} className="text-sm text-white bg-gradient-to-r from-[#2563EB] to-[#1E40AF] px-4 py-1.5 rounded-lg font-semibold hover:opacity-90 transition-all active:scale-95">
+      로그인 / 가입
+    </button>
+  );
+
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-1.5 text-sm text-[#57423c]/60 hover:text-[#1a1c1b] transition-colors">
+        <User size={14} /> {user.email?.split("@")[0]}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-lg p-2 min-w-[160px] z-50">
+            <div className="px-3 py-2 border-b border-gray-100 mb-1">
+              <p className="text-xs font-bold text-[#1a1c1b]">Lv.{user.level || 1} {user.level_title || "새내기"}</p>
+              <p className="text-[10px] text-[#57423c]/40">문서 {user.total_docs || 0}건 완성</p>
+            </div>
+            <Link href="/pricing" className="block px-3 py-2 text-sm text-[#57423c] hover:bg-[#f4f4f1] rounded-lg" onClick={() => setOpen(false)}>
+              요금제
+            </Link>
+            <button onClick={() => { signOut(); setOpen(false); }} className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg flex items-center gap-2">
+              <LogOut size={12} /> 로그아웃
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Main() {
   const { isAnalyzed, filename, fieldCount, setForm } = useForm();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("ai");
   const [showInfo, setShowInfo] = useState(false);
+  const [showExamples, setShowExamples] = useState(false);
+  const [showSteps, setShowSteps] = useState(true);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  useEffect(() => {
+    setShowExamples(false);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) {
+      const isMain = MAIN_TABS.some((t) => t.id === tab);
+      const isSub = Object.values(SUB_TABS).flat().some((t) => t.id === tab);
+      if (isMain || isSub) {
+        setActiveTab(tab);
+      }
+    }
+  }, [searchParams]);
 
   const doAnalyze = async () => {
     if (!file) return;
@@ -118,166 +244,280 @@ function Main() {
   };
 
   const guide = TAB_GUIDE[activeTab] || TAB_GUIDE.ai;
-  const activeTabData = TABS.find(t => t.id === activeTab);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
+    <div className="min-h-screen bg-[#f9f9f6]">
+      {/* 헤더 — 랜딩과 톤 통일 */}
+      <header className="sticky top-0 z-50 bg-[#f9f9f6]/80 backdrop-blur-xl border-b border-[#93C5FD]/50">
+        <div className="max-w-screen-xl mx-auto px-6 lg:px-10 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="flex items-center gap-1 text-[#57423c] hover:text-[#1E40AF] transition-colors">
               <ChevronLeft size={16} />
             </Link>
-            <h1 className="text-lg font-bold text-gray-900">Eazy HWPX</h1>
-            <span className="text-sm text-gray-500">양식 파일을 올리면 AI가 내용을 채워서 완성된 문서를 만들어 줍니다</span>
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-[#1a1c1b] flex items-center justify-center">
+                <FileText size={14} className="text-white" strokeWidth={2.2} />
+              </div>
+              <span className="text-lg font-extrabold tracking-tighter text-[#1a1c1b]">Eazy HWPX</span>
+            </Link>
+            <span className="hidden sm:block text-sm text-[#57423c]">양식 파일을 올리면 AI가 내용을 채워줍니다</span>
           </div>
-          <span className="text-xs text-gray-400">HWP · HWPX · DOCX</span>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-[11px] font-bold text-[#1E40AF] bg-[#DBEAFE]/40 px-2.5 py-1 rounded-md">HWP</span>
+              <span className="text-[11px] font-bold text-[#1E40AF] bg-[#DBEAFE]/40 px-2.5 py-1 rounded-md">HWPX</span>
+              <span className="text-[11px] font-bold text-[#57423c]/70 bg-[#e2e3e0]/50 px-2.5 py-1 rounded-md">DOCX</span>
+            </div>
+            <div className="w-px h-5 bg-gray-200 hidden sm:block" />
+            <GaugeBadge />
+            <UserMenu onLoginClick={() => setShowLoginModal(true)} />
+          </div>
         </div>
       </header>
 
       {/* 도구 영역 */}
-      <div className="max-w-6xl mx-auto px-6 py-6 flex gap-5">
+      <div className="max-w-screen-xl mx-auto px-6 lg:px-10 py-6 flex flex-col lg:flex-row gap-10">
+
         {/* 왼쪽: 양식 넣기 */}
-        <div className="w-[280px] shrink-0">
-          <div className="bg-white border border-gray-200 rounded-xl p-5 sticky top-6">
-            <div className="flex items-center gap-2 mb-2">
-              <FileText size={16} className="text-gray-500" />
-              <h2 className="font-bold text-sm text-gray-900">양식 넣기</h2>
-            </div>
-            <p className="text-xs text-gray-500 mb-4">내용을 넣을 빈 문서를 올리고 분석하세요.</p>
-
-            <FileUpload accept=".hwp,.hwpx,.docx" label="HWP / HWPX / DOCX 파일" onFiles={(f) => setFile(f[0])} />
-
-            <button
-              onClick={doAnalyze}
-              disabled={loading || !file}
-              className="w-full mt-3 bg-gray-900 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-gray-800 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? <Loader2 size={14} className="animate-spin" /> : null}
-              {loading ? "분석 중..." : "양식 분석"}
-            </button>
-
-            {error && <div className="text-xs text-red-600 mt-2 bg-red-50 rounded-lg p-2">{error}</div>}
-            {warning && <div className="text-xs text-amber-700 mt-2 bg-amber-50 rounded-lg p-2">{warning}</div>}
-
-            {isAnalyzed && (
-              <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 flex items-start gap-2">
-                <CheckCircle2 size={15} className="text-emerald-600 mt-0.5 shrink-0" />
-                <div>
-                  <div className="text-xs font-bold text-gray-900">{filename}</div>
-                  <div className="text-xs text-gray-500">{fieldCount}개 항목 발견</div>
+        <div className="w-full lg:w-[380px] shrink-0">
+          <div className="lg:sticky lg:top-20">
+            {/* 업로드 카드 */}
+            <div className="bg-white rounded-2xl border border-[#93C5FD]/40 p-5 shadow-[0_4px_20px_rgba(26,28,27,0.03)]">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-lg bg-[#DBEAFE] flex items-center justify-center">
+                  <Upload size={14} className="text-[#1E40AF]" />
                 </div>
+                <h2 className="font-bold text-sm text-[#1a1c1b]">양식 넣기</h2>
               </div>
-            )}
+              <p className="text-sm text-[#57423c] mb-5">양식 문서를 올리고 분석하세요.</p>
 
-            {/* 사용 흐름 */}
-            <div className="mt-5 pt-4 border-t border-gray-100 space-y-2">
-              <p className="text-xs text-gray-400 font-medium">사용 흐름</p>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <span className="w-4 h-4 bg-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600">1</span>
-                양식 업로드
+              <div className="min-h-[100px]">
+                <FileUpload accept=".hwp,.hwpx,.docx" label="HWP / HWPX / DOCX 파일" onFiles={(f) => setFile(f[0])} />
               </div>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <span className="w-4 h-4 bg-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600">2</span>
-                내용 채우기 (텍스트 · 엑셀 · AI)
-              </div>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <span className="w-4 h-4 bg-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600">3</span>
-                완성 문서 다운로드
-              </div>
+
+              <button
+                onClick={doAnalyze}
+                disabled={loading || !file}
+                className="w-full mt-3 bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white py-2.5 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+              >
+                {loading ? <Loader2 size={14} className="animate-spin" /> : null}
+                {loading ? "분석 중..." : "양식 분석"}
+              </button>
+
+              {error && <div className="text-sm text-red-600 mt-2 bg-red-50 rounded-lg p-2">{error}</div>}
+              {warning && <div className="text-sm text-amber-700 mt-2 bg-amber-50 rounded-lg p-2">{warning}</div>}
+
+              {isAnalyzed && (
+                <div className="mt-3 bg-[#f0fdf4] border border-emerald-200/50 rounded-xl px-3 py-2.5 flex items-start gap-2">
+                  <CheckCircle2 size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+                  <div>
+                    <div className="text-sm font-bold text-[#1a1c1b]">{filename}</div>
+                    <div className="text-sm text-[#57423c]">{fieldCount}개 항목 발견</div>
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* 사용 흐름 — 기본 열림, 토글 가능 */}
+            <div className="mt-6 pt-5 border-t border-[#93C5FD]/20">
+              <button
+                onClick={() => setShowSteps(!showSteps)}
+                className="w-full flex items-center justify-between mb-2 hover:opacity-70 transition-opacity"
+              >
+                <p className="text-[10px] text-[#57423c]/70 font-bold tracking-wider uppercase">사용 흐름</p>
+                {showSteps
+                  ? <ChevronUp size={12} className="text-[#57423c]" />
+                  : <ChevronDown size={12} className="text-[#57423c]" />
+                }
+              </button>
+              {showSteps && (
+                <div className="space-y-5">
+                  <div className="flex items-start gap-3">
+                    <span className="w-6 h-6 bg-gradient-to-br from-[#2563EB] to-[#1E40AF] text-white rounded-md flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
+                    <div>
+                      <p className="text-sm font-bold text-[#1a1c1b] mb-1">양식 업로드</p>
+                      <p className="text-sm text-[#57423c] leading-relaxed">
+                        완성하고 싶은 문서를 올리고<br />
+                        &quot;양식 분석&quot;을 누릅니다.<br />
+                        AI가 채울 항목을 자동으로 찾습니다.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="w-6 h-6 bg-gradient-to-br from-[#2563EB] to-[#1E40AF] text-white rounded-md flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
+                    <div>
+                      <p className="text-sm font-bold text-[#1a1c1b] mb-1">내용 채우기</p>
+                      <p className="text-sm text-[#57423c] leading-relaxed">
+                        &quot;사업계획서 써줘&quot;라고 입력하면<br />
+                        AI가 작성합니다.<br />
+                        다른 파일(엑셀, 워드)을 올려도 됩니다.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="w-6 h-6 bg-gradient-to-br from-[#2563EB] to-[#1E40AF] text-white rounded-md flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
+                    <div>
+                      <p className="text-sm font-bold text-[#1a1c1b] mb-1">완성 다운로드</p>
+                      <p className="text-sm text-[#57423c] leading-relaxed">
+                        결과를 확인하고 수정할 수 있습니다.<br />
+                        &quot;문서 만들기&quot;를 누르면<br />
+                        HWPX, HWP, DOCX로 받습니다.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
 
         {/* 오른쪽 */}
         <div className="flex-1 min-w-0 space-y-4">
+
           {/* 탭 헤더 */}
-          <div className="relative">
-            <span className="absolute -top-2.5 left-[calc(100%/14+8px)] z-10 bg-emerald-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm">추천</span>
-            <div className="flex bg-white border border-gray-200 rounded-xl overflow-hidden">
-              {TABS.map((tab) => {
-                const Icon = tab.icon;
-                const active = activeTab === tab.id;
+          <div>
+            {/* 메인 탭 */}
+            <div className="flex bg-white border border-[#93C5FD]/50 rounded-2xl shadow-[0_4px_20px_rgba(26,28,27,0.03)] overflow-hidden p-1.5 gap-1">
+              {MAIN_TABS.map((mainTab) => {
+                const isActive = mainTab.group.includes(activeTab);
+                const Icon = mainTab.icon;
                 return (
                   <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-medium transition-colors ${
-                      active
-                        ? "bg-gray-900 text-white"
-                        : "text-gray-600 hover:bg-gray-50"
+                    key={mainTab.id}
+                    onClick={() => {
+                      if (!isActive) setActiveTab(mainTab.group[0]);
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-3 rounded-xl text-[14px] font-bold transition-all ${
+                      isActive
+                        ? "bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white shadow-md"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     }`}
                   >
-                    <Icon size={14} />
-                    {tab.label}
+                    <Icon size={18} />
+                    <span>{mainTab.label}</span>
                   </button>
                 );
               })}
             </div>
+
+            {/* 서브 탭 (해당 메인 탭에 속할 때만 노출) */}
+            {(() => {
+              const activeMain = MAIN_TABS.find(m => m.group.includes(activeTab));
+              if (activeMain && SUB_TABS[activeMain.id]) {
+                return (
+                  <div className="flex gap-2 mt-3 bg-white p-2 rounded-xl border border-gray-200">
+                    {SUB_TABS[activeMain.id].map(sub => {
+                      const isSubActive = sub.id === activeTab;
+                      const SubIcon = sub.icon;
+                      return (
+                        <button
+                          key={sub.id}
+                          onClick={() => setActiveTab(sub.id)}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-bold transition-all ${
+                            isSubActive
+                              ? "bg-[#EFF6FF] text-[#1E40AF] shadow-sm border border-blue-200"
+                              : "text-gray-500 hover:bg-gray-50 border border-transparent"
+                          }`}
+                        >
+                          <SubIcon size={16} />
+                          {sub.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
 
-          {/* 현재 탭 Benefit */}
-          {activeTabData && (
-            <div className="bg-white border border-gray-200 rounded-lg px-4 py-2.5 flex items-center gap-2">
-              <Sparkles size={14} className="text-gray-400 shrink-0" />
-              <span className="text-sm text-gray-700">{activeTabData.benefit}</span>
+          {/* 탭 콘텐츠 + 예시 + 보안 */}
+          <div>
+
+            {/* 탭 콘텐츠 */}
+            <div className="bg-white border border-[#93C5FD]/40 rounded-2xl p-5 shadow-[0_4px_20px_rgba(26,28,27,0.03)]">
+              {activeTab === "ai" && <AiMappingTab />}
+              {activeTab === "batch" && <BatchTab />}
+              {activeTab === "extract" && <ExtractTab />}
+              {activeTab === "periodic" && <PeriodicTab />}
+              {activeTab === "stamp" && <StampTab />}
+              {activeTab === "merge" && <MergeTab />}
+              {activeTab === "excel" && <ExcelTab />}
             </div>
-          )}
 
-          {/* 탭 콘텐츠 */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            {activeTab === "ai" && <AiMappingTab />}
-            {activeTab === "batch" && <BatchTab />}
-            {activeTab === "extract" && <ExtractTab />}
-            {activeTab === "periodic" && <PeriodicTab />}
-            {activeTab === "stamp" && <StampTab />}
-            {activeTab === "merge" && <MergeTab />}
-            {activeTab === "excel" && <ExcelTab />}
-          </div>
+            {/* 예시 */}
+            <div className="pt-5 border-t border-[#93C5FD]/20">
+              <p className="text-sm text-[#57423c]/70 font-bold tracking-wider uppercase mb-3">이런 식으로 사용합니다</p>
+              <div className="space-y-2.5">
+                {guide.examples.map((ex, i) => (
+                  <div key={`${activeTab}-${i}`} className="flex gap-3 items-start">
+                    <span className="bg-gradient-to-br from-[#2563EB] to-[#1E40AF] text-white text-sm font-bold w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                    <span className="text-[15px] text-[#57423c] leading-relaxed">{ex}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-          {/* 탭별 예시 */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <p className="text-xs text-gray-500 mb-3">이런 식으로 사용합니다</p>
-            <div className="space-y-2.5">
-              {guide.examples.map((ex, i) => (
-                <div key={`${activeTab}-${i}`} className="flex gap-3 items-start">
-                  <span className="bg-gray-900 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                  <span className="text-sm text-gray-700 leading-relaxed">{ex}</span>
+            {/* 보안 — 하단 */}
+            <div className="mt-5 pt-4 border-t border-[#93C5FD]/20">
+              <button
+                onClick={() => setShowInfo(!showInfo)}
+                className="w-full py-2 flex items-center gap-2 hover:opacity-70 transition-opacity text-left"
+              >
+                <Shield size={15} className="text-[#1E40AF] shrink-0" />
+                <span className="text-sm font-semibold text-[#1a1c1b]">내 데이터는 어떻게 처리되나요?</span>
+                {showInfo
+                  ? <ChevronUp size={14} className="text-[#57423c] ml-auto" />
+                  : <ChevronDown size={14} className="text-[#57423c] ml-auto" />
+                }
+              </button>
+              {showInfo && (
+                <div className="pt-3 pb-2 text-sm text-[#57423c] leading-relaxed space-y-3">
+                  <div>
+                    <p className="font-semibold text-[#1a1c1b] mb-0.5">양식 분석 / 문서 생성 / 추출 / 병합</p>
+                    <p>외부 서비스를 거치지 않고, 이 서버 안에서만 처리됩니다. 문서 내용이 외부로 전송되지 않습니다.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#1a1c1b] mb-0.5">AI 자동 작성</p>
+                    <p>이 기능만 Google AI(Gemini)를 사용합니다. Google의 데이터 처리 정책에 따라 사용자 데이터는 AI 학습에 사용되지 않으며, 55일 후 완전 삭제됩니다.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#1a1c1b] mb-0.5">파일 보관</p>
+                    <p>업로드된 파일은 3시간 후 서버에서 자동 삭제됩니다. 서버가 종료되면 즉시 삭제됩니다. 별도의 백업이나 보관을 하지 않습니다.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#1a1c1b] mb-0.5">통신 보안</p>
+                    <p>모든 데이터는 HTTPS(TLS 1.3) 암호화 통신으로 전송됩니다.</p>
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* 푸터 */}
-      <footer className="max-w-6xl mx-auto px-6 py-6 text-center">
-        <button
-          onClick={() => setShowInfo(!showInfo)}
-          className="bg-white hover:bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 inline-flex items-center gap-2 transition-colors"
-        >
-          <Shield size={13} className="text-gray-500" />
-          <span className="text-xs text-gray-700">내 데이터는 어떻게 처리되나요?</span>
-        </button>
-        {showInfo && (
-          <div className="max-w-lg mx-auto mt-3 text-left text-xs text-gray-600 leading-relaxed bg-white rounded-xl p-4 border border-gray-200 space-y-2">
-            <p><strong className="text-gray-800">양식 분석 / 문서 생성</strong> — 외부 서비스 없이 이 서버에서만 처리됩니다.</p>
-            <p><strong className="text-gray-800">대량 생성 / 추출 / 병합</strong> — 외부 서비스 없이 이 서버에서만 처리됩니다.</p>
-            <p><strong className="text-gray-800">AI 자동 작성</strong> — 이 기능만 Google AI를 사용합니다. 데이터는 학습에 사용되지 않으며, 55일 후 삭제됩니다.</p>
-            <p><strong className="text-gray-800">파일 보관</strong> — 3시간 후 자동 삭제되며, 서버 종료 시에도 삭제됩니다.</p>
-            <p><strong className="text-gray-800">네트워크</strong> — HTTPS(TLS) 암호화 통신을 사용합니다.</p>
-          </div>
-        )}
+      <footer className="max-w-screen-xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-center gap-4 text-sm text-[#57423c]/50">
+        <span>Eazy HWPX</span>
+        <span>·</span>
+        <Link href="/pricing" className="hover:text-[#1E40AF] transition-colors">요금제</Link>
+        <span>·</span>
+        <span>HTTPS 암호화 통신</span>
       </footer>
+
+      {/* 로그인 모달 */}
+      {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
     </div>
   );
 }
 
 export default function ToolPage() {
   return (
-    <FormProvider>
-      <Main />
-    </FormProvider>
+    <Suspense>
+      <FormProvider>
+        <Main />
+      </FormProvider>
+    </Suspense>
   );
 }

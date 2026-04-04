@@ -7,9 +7,18 @@ import threading
 import time
 import uuid
 
+import httpx
+
 # HWP COM 변환은 한글 프로그램 단일 인스턴스 → 동시 호출 시 크래시 방지
 _hwp_lock = threading.Lock()
-_HWP_TIMEOUT = 30  # 초
+_HWP_TIMEOUT = 60  # 초 (인스턴스 재사용 시 대기 시간 여유)
+
+# 원격 HWP 변환 서버 URL (Railway 배포 시 설정)
+_HWP_CONVERT_URL = os.environ.get("HWP_CONVERT_URL", "")
+
+# 한글 인스턴스 재사용 (시작/종료 10-15초 절감)
+_hwp_instance = None
+_hwp_com_initialized = False
 
 
 class FileManager:
@@ -56,52 +65,117 @@ class FileManager:
         return entry["name"] if entry else ""
 
     def _com_convert(self, src_path, dst_path, dst_format):
-        """COM 변환 공통 (Lock으로 직렬화)"""
+        """COM 변환 공통 (Lock으로 직렬화, 인스턴스 재사용) - 로컬 Windows에서만 동작"""
+        global _hwp_instance, _hwp_com_initialized
+
         acquired = _hwp_lock.acquire(timeout=_HWP_TIMEOUT)
         if not acquired:
             raise RuntimeError("다른 사용자가 변환 중입니다. 잠시 후 다시 시도해주세요.")
         try:
             import pythoncom
-            pythoncom.CoInitialize()
-            try:
-                from pyhwpx import Hwp
-                hwp = Hwp(visible=False, register_module=True)
-                hwp.open(src_path)
-                hwp.save_as(dst_path, dst_format)
-                hwp.clear()
-                hwp.quit()
-            finally:
-                pythoncom.CoUninitialize()
+            if not _hwp_com_initialized:
+                pythoncom.CoInitialize()
+                _hwp_com_initialized = True
+
+            # 기존 인스턴스 재사용 시도
+            hwp = _hwp_instance
+            if hwp is not None:
+                try:
+                    hwp.open(src_path)
+                    hwp.save_as(dst_path, dst_format)
+                    hwp.clear()
+                    return
+                except Exception:
+                    # 인스턴스 죽었으면 새로 생성
+                    try:
+                        hwp.quit()
+                    except Exception:
+                        pass
+                    _hwp_instance = None
+
+            # 새 인스턴스 생성
+            from pyhwpx import Hwp
+            hwp = Hwp(visible=False, register_module=True)
+            hwp.open(src_path)
+            hwp.save_as(dst_path, dst_format)
+            hwp.clear()
+            _hwp_instance = hwp  # 재사용을 위해 종료하지 않고 유지
+        except Exception:
+            # 실패 시 인스턴스 정리
+            if _hwp_instance is not None:
+                try:
+                    _hwp_instance.quit()
+                except Exception:
+                    pass
+                _hwp_instance = None
+            raise
         finally:
             _hwp_lock.release()
 
+    def _remote_convert(self, src_path: str, dst_path: str, endpoint: str):
+        """원격 HWP 변환 서버로 파일 전송 후 결과 저장"""
+        url = f"{_HWP_CONVERT_URL.rstrip('/')}/{endpoint}"
+        with open(src_path, "rb") as f:
+            resp = httpx.post(
+                url,
+                files={"file": (os.path.basename(src_path), f)},
+                timeout=60.0,
+            )
+        if resp.status_code != 200:
+            detail = resp.text[:200] if resp.text else "변환 서버 오류"
+            raise RuntimeError(
+                f"HWP 변환 서버 오류 ({resp.status_code}): {detail}"
+            )
+        with open(dst_path, "wb") as f:
+            f.write(resp.content)
+
     def convert_hwp(self, file_id: str) -> str:
-        """HWP → HWPX 변환 (보안 팝업 자동 처리, 동시 요청 직렬화)"""
+        """HWP -> HWPX 변환. HWP_CONVERT_URL 설정 시 원격, 아니면 로컬 COM."""
         path = self.get_path(file_id)
         if not path or not path.lower().endswith(".hwp"):
             return file_id
         try:
             hwpx_path = os.path.join(tempfile.mkdtemp(), "converted.hwpx")
-            self._com_convert(path, hwpx_path, "HWPX")
+            if _HWP_CONVERT_URL:
+                self._remote_convert(path, hwpx_path, "convert")
+            else:
+                self._com_convert(path, hwpx_path, "HWPX")
             new_id = self.save(hwpx_path, self.get_name(file_id).replace(".hwp", ".hwpx"))
             return new_id
+        except RuntimeError:
+            raise
         except Exception as e:
+            if _HWP_CONVERT_URL:
+                raise RuntimeError(
+                    "HWP 변환 서버가 일시적으로 점검 중입니다. "
+                    "한글에서 '다른 이름으로 저장 > HWPX'로 저장 후 다시 업로드해주세요."
+                )
             raise RuntimeError(f"HWP 변환 실패: {e}")
 
     def convert_to_hwp(self, file_id: str) -> str:
-        """HWPX → HWP 변환 (구버전 한글 호환용, 동시 요청 직렬화)"""
+        """HWPX -> HWP 변환. HWP_CONVERT_URL 설정 시 원격, 아니면 로컬 COM."""
         path = self.get_path(file_id)
         if not path or not path.lower().endswith(".hwpx"):
             return file_id
         try:
             hwp_path = os.path.join(tempfile.mkdtemp(), "converted.hwp")
-            self._com_convert(path, hwp_path, "HWP")
+            if _HWP_CONVERT_URL:
+                self._remote_convert(path, hwp_path, "convert-to-hwp")
+            else:
+                self._com_convert(path, hwp_path, "HWP")
             name = self.get_name(file_id)
             if name.endswith(".hwpx"):
                 name = name[:-1]
             new_id = self.save(hwp_path, name)
             return new_id
+        except RuntimeError:
+            raise
         except Exception as e:
+            if _HWP_CONVERT_URL:
+                raise RuntimeError(
+                    "HWP 변환 서버가 일시적으로 점검 중입니다. "
+                    "한글에서 '다른 이름으로 저장 > HWPX'로 저장 후 다시 업로드해주세요."
+                )
             raise RuntimeError(f"HWP 변환 실패: {e}")
 
     def convert_to_docx(self, file_id: str) -> str:

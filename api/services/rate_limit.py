@@ -1,0 +1,52 @@
+"""Rate limit - AI API 분당 2회 제한 (메모리 기반)"""
+
+import time
+from collections import defaultdict, deque
+
+from fastapi import Request, HTTPException
+from starlette.middleware.base import BaseHTTPMiddleware
+
+# AI API 경로 (rate limit 적용 대상)
+_AI_PATHS = {"/api/ai/map", "/api/batch/map-headers"}
+
+# 분당 최대 요청 수
+_MAX_PER_MINUTE = 2
+
+# 키별 요청 타임스탬프
+_requests: dict[str, deque] = defaultdict(lambda: deque(maxlen=100))
+
+
+def _get_key(request: Request) -> str:
+    """사용자 식별 키: Authorization 토큰 또는 IP"""
+    auth = request.headers.get("authorization", "")
+    if auth.startswith("Bearer "):
+        return f"token:{auth[7:20]}"  # 토큰 앞 13자로 구분
+    fp = request.headers.get("x-fingerprint", "")
+    if fp:
+        return f"fp:{fp}"
+    ip = request.client.host if request.client else "unknown"
+    return f"ip:{ip}"
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.method != "POST" or request.url.path not in _AI_PATHS:
+            return await call_next(request)
+
+        key = _get_key(request)
+        now = time.time()
+        window = now - 60  # 1분 윈도우
+
+        # 오래된 기록 제거
+        timestamps = _requests[key]
+        while timestamps and timestamps[0] < window:
+            timestamps.popleft()
+
+        if len(timestamps) >= _MAX_PER_MINUTE:
+            raise HTTPException(
+                status_code=429,
+                detail="요청이 너무 빠릅니다. 30초 후 다시 시도해주세요.",
+            )
+
+        timestamps.append(now)
+        return await call_next(request)

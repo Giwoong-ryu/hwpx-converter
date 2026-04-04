@@ -1,0 +1,17 @@
+frontend/
+node_modules/
+.env
+*.hwp
+*.hwpx
+*.docx
+__pycache__/
+*.pyc
+.git/
+plans/
+migrations/
+tests/
+app.py
+app_v2.py
+hwp_convert_server.py
+test_all.py
+ocr_engine.py

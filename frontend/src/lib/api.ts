@@ -1,4 +1,4 @@
-const API = "/api";
+const API = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 async function handleError(res: Response, fallback: string): Promise<never> {
   let detail = "";

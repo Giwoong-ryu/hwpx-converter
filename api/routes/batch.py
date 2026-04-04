@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from api.services.file_manager import file_manager
+from api.services.metrics import log as mlog, Timer
 from clone_form import extract_texts, clone as clone_hwpx
 
 router = APIRouter()
@@ -140,6 +141,7 @@ def batch_generate_mapped(req: BatchGenerateRequest):
         generated.append(out_path)
 
     if not generated:
+        mlog("batch", success=False, error="생성할 데이터 없음")
         raise HTTPException(status_code=400, detail="생성할 데이터가 없습니다.")
 
     zip_path = os.path.join(tempfile.mkdtemp(), "DocFlow_batch.zip")
@@ -147,6 +149,7 @@ def batch_generate_mapped(req: BatchGenerateRequest):
         for fp in generated:
             zf.write(fp, os.path.basename(fp))
 
+    mlog("batch", success=True, field_count=len(generated), detail=f"docs={len(generated)}")
     return FileResponse(zip_path, filename="DocFlow_batch.zip", media_type="application/zip")
 
 
@@ -162,7 +165,10 @@ async def batch_gen(
         raise HTTPException(status_code=404, detail="양식 파일을 찾을 수 없습니다.")
     eid = await file_manager.save_upload(excel)
     excel_path = file_manager.get_path(eid)
-    zp, cnt, err = batch_generate(path, excel_path)
+    with Timer() as t:
+        zp, cnt, err = batch_generate(path, excel_path)
     if err:
+        mlog("batch_legacy", success=False, duration_ms=t.ms, error=err)
         raise HTTPException(status_code=400, detail=err)
+    mlog("batch_legacy", success=True, field_count=cnt, duration_ms=t.ms)
     return FileResponse(zp, filename="DocFlow_batch.zip", media_type="application/zip")

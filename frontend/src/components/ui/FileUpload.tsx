@@ -27,8 +27,8 @@ export default function FileUpload({ accept, multiple, label, onFiles }: Props) 
 
   return (
     <div
-      className={`border border-gray-300 bg-white rounded-xl p-2.5 text-center cursor-pointer transition-all hover:border-gray-500 hover:bg-gray-50 ${
-        dragging ? "border-gray-400 bg-gray-50" : ""
+      className={`border border-[#93C5FD]/400 bg-white rounded-xl p-2.5 text-center cursor-pointer transition-all hover:border-[#1E40AF]/30 hover:bg-[#f4f4f1] ${
+        dragging ? "border-[#1E40AF]/40 bg-[#DBEAFE]/10" : ""
       }`}
       onClick={() => ref.current?.click()}
       onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -45,8 +45,8 @@ export default function FileUpload({ accept, multiple, label, onFiles }: Props) 
       />
       {names.length > 0 ? (
         <div className="flex items-center gap-2 justify-center">
-          <FileCheck size={18} className="text-green-600" />
-          <div className="text-sm text-gray-700">
+          <FileCheck size={18} className="text-emerald-600" />
+          <div className="text-sm text-[#1a1c1b]">
             {names.map((n, i) => (
               <span key={i} className="font-medium">{n}{i < names.length - 1 ? ", " : ""}</span>
             ))}
@@ -54,8 +54,8 @@ export default function FileUpload({ accept, multiple, label, onFiles }: Props) 
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2 py-2">
-          <Upload size={20} className="text-gray-600" />
-          <span className="text-xs text-gray-600">{label || "파일을 여기에 드롭하거나 클릭"}</span>
+          <Upload size={20} className="text-[#57423c]/80" />
+          <span className="text-xs text-[#57423c]/80">{label || "파일을 여기에 드롭하거나 클릭"}</span>
         </div>
       )}
     </div>

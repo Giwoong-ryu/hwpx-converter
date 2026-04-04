@@ -56,57 +56,59 @@ export default function BatchTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-800">
+      <p className="text-base text-[#57423c]">
         엑셀 파일을 올리면 AI가 양식과 자동 매칭하여 문서를 한번에 만들어줍니다.
-        <span className="text-xs block mt-1 text-gray-600">
+        <span className="text-sm block mt-1 text-[#57423c]">
           예: 직원명단.xlsx + 위촉장 양식 = 위촉장 100개
         </span>
       </p>
       {!isAnalyzed && (
-        <div className="text-xs px-3 py-2 rounded-lg inline-flex items-center gap-1 bg-gray-100 text-gray-600">
+        <div className="text-sm px-3 py-2 rounded-xl inline-flex items-center gap-1 bg-[#DBEAFE] text-[#1E40AF] font-medium">
           왼쪽에서 양식을 먼저 분석해주세요
         </div>
       )}
 
-      <FileUpload accept=".xlsx,.xls" label="엑셀 파일 (.xlsx) — 직원명단, 데이터 등" onFiles={(f) => setExcel(f[0])} />
+      <div>
+        <FileUpload accept=".xlsx,.xls" label="엑셀 파일 (.xlsx) — 직원명단, 데이터 등" onFiles={(f) => setExcel(f[0])} />
+      </div>
 
       <button
         onClick={doMap}
         disabled={mapping || !excel || !isAnalyzed}
-        className="bg-black hover:bg-gray-800 w-full text-white py-2.5 rounded-xl font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white py-2.5 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
       >
         {mapping ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
         {mapping ? "AI 매칭 중..." : "AI 자동 매칭"}
       </button>
 
-      {error && <div className="text-xs text-red-500 bg-red-50 p-2 rounded-lg">{error}</div>}
+      {error && <div className="text-xs text-red-600 bg-red-50 p-2 rounded-xl">{error}</div>}
 
       {mappings.length > 0 && (
         <div className="space-y-3">
-          <div className="rounded-xl overflow-hidden border border-gray-200">
-            <div className="px-3 py-2 flex justify-between items-center bg-gray-50">
-              <span className="text-xs font-bold text-gray-700">
+          <div className="rounded-xl overflow-hidden border border-[#93C5FD]/50">
+            <div className="px-3 py-2 flex justify-between items-center bg-[#f4f4f1]">
+              <span className="text-xs font-bold text-[#1a1c1b]">
                 매칭 결과 — {rowCount}개 문서 생성 예정
               </span>
-              <span className="text-[10px] text-gray-600">틀린 부분은 직접 수정 가능</span>
+              <span className="text-[10px] text-[#57423c]/80">틀린 부분은 직접 수정 가능</span>
             </div>
             <table className="w-full text-xs">
               <thead>
-                <tr style={{ background: "#f8fafc" }}>
-                  <th className="text-left px-3 py-1.5 font-semibold text-gray-800">엑셀 헤더</th>
-                  <th className="px-2 py-1.5 text-gray-600"><ArrowRight size={12} /></th>
-                  <th className="text-left px-3 py-1.5 font-semibold text-gray-800">양식에서 바꿀 텍스트</th>
-                  <th className="text-left px-3 py-1.5 font-semibold text-gray-600">샘플</th>
+                <tr className="bg-[#f9f9f6]">
+                  <th className="text-left px-3 py-1.5 font-semibold text-[#1a1c1b]">엑셀 헤더</th>
+                  <th className="px-2 py-1.5 text-[#57423c]/70"><ArrowRight size={12} /></th>
+                  <th className="text-left px-3 py-1.5 font-semibold text-[#1a1c1b]">양식에서 바꿀 텍스트</th>
+                  <th className="text-left px-3 py-1.5 font-semibold text-[#57423c]/80">샘플</th>
                 </tr>
               </thead>
               <tbody>
                 {mappings.map((m, i) => (
-                  <tr key={i} className="border-t" style={{ borderColor: "#f1f5f9" }}>
-                    <td className="px-3 py-1.5 font-medium text-gray-900">{m.header}</td>
-                    <td className="px-2 text-center text-gray-600"><ArrowRight size={10} /></td>
+                  <tr key={i} className="border-t border-[#93C5FD]/50">
+                    <td className="px-3 py-1.5 font-medium text-[#1a1c1b]">{m.header}</td>
+                    <td className="px-2 text-center text-[#57423c]/70"><ArrowRight size={10} /></td>
                     <td className="px-3 py-1">
                       <input
-                        className="w-full border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none"
+                        className="w-full border border-[#93C5FD]/400 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-[#1E40AF]/40 bg-white"
                         value={m.form_text}
                         onChange={(e) => {
                           const copy = [...mappings];
@@ -115,7 +117,7 @@ export default function BatchTab() {
                         }}
                       />
                     </td>
-                    <td className="px-3 py-1.5 text-[11px] text-gray-600">
+                    <td className="px-3 py-1.5 text-[11px] text-[#57423c]/80">
                       {sampleRow[i] || ""}
                     </td>
                   </tr>
@@ -127,7 +129,7 @@ export default function BatchTab() {
           <button
             onClick={doGenerate}
             disabled={generating}
-            className="bg-black hover:bg-gray-800 w-full text-white py-2.5 rounded-xl font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
+            className="w-full bg-[#1a1c1b] text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-[#2f312f] disabled:opacity-60 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
           >
             {generating ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
             {generating ? "생성 중..." : `${rowCount}개 문서 생성`}

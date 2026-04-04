@@ -1,35 +1,131 @@
 @import "tailwindcss";
 
+/* ─── 기본 타이포그래피 ─── */
 body {
   font-family: 'Pretendard Variable', 'Pretendard', -apple-system, 'Segoe UI', sans-serif;
-  color: #111;
+  color: #1B2D45;
+  background: #FAFAF7;
+  font-size: 16px;
 }
 
-/* 스크롤 애니메이션 */
+/* ─── 스크롤 페이드인 ─── */
 .scroll-fade {
   opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(28px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .scroll-fade.visible {
   opacity: 1;
   transform: translateY(0);
 }
 
-/* 히어로 페이드인 */
-@keyframes heroFadeUp {
-  from { opacity: 0; transform: translateY(32px); }
+/* ─── 히어로 스태거 애니메이션 ─── */
+@keyframes heroEnter {
+  from { opacity: 0; transform: translateY(36px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.hero-animate {
-  animation: heroFadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.hero-stagger {
+  animation: heroEnter 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-.hero-delay-1 { animation-delay: 0.1s; opacity: 0; }
-.hero-delay-2 { animation-delay: 0.25s; opacity: 0; }
-.hero-delay-3 { animation-delay: 0.4s; opacity: 0; }
-.hero-delay-4 { animation-delay: 0.55s; opacity: 0; }
+.hero-s1 { animation-delay: 0.1s; opacity: 0; }
+.hero-s2 { animation-delay: 0.28s; opacity: 0; }
+.hero-s3 { animation-delay: 0.46s; opacity: 0; }
+.hero-s4 { animation-delay: 0.64s; opacity: 0; }
 
-/* 글라스 카드 */
+/* ─── 히어로 배경: 따뜻한 그라데이션 ─── */
+.warm-hero-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 25% 30%, rgba(37, 99, 235, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 70% at 75% 60%, rgba(27, 45, 69, 0.06) 0%, transparent 60%),
+    linear-gradient(180deg, #FAFAF7 0%, #F5F0EA 50%, #FAFAF7 100%);
+}
+
+/* ─── 카드 (플랫, 호버 시 떠오름) ─── */
+.warm-card {
+  background: #FFFFFF;
+  border: 1px solid rgba(27, 45, 69, 0.06);
+  border-radius: 16px;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.warm-card:hover {
+  border-color: rgba(37, 99, 235, 0.2);
+  box-shadow: 0 12px 40px rgba(27, 45, 69, 0.08), 0 2px 8px rgba(0,0,0,0.03);
+  transform: translateY(-3px);
+}
+
+/* ─── 강조 카드 (코랄 틴트) ─── */
+.warm-card-accent {
+  background: linear-gradient(135deg, #FFF5F0 0%, #FFF0EB 100%);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: 16px;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.warm-card-accent:hover {
+  border-color: rgba(37, 99, 235, 0.3);
+  box-shadow: 0 12px 40px rgba(37, 99, 235, 0.1), 0 2px 8px rgba(0,0,0,0.03);
+  transform: translateY(-3px);
+}
+
+/* ─── CTA 버튼 ─── */
+.cta-warm {
+  position: relative;
+  overflow: hidden;
+}
+.cta-warm::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, #2563EB, #1E40AF, #2563EB);
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s;
+  filter: blur(14px);
+}
+.cta-warm:hover::after {
+  opacity: 0.45;
+}
+
+/* ─── 섹션 배경 변화 (따뜻한 리듬) ─── */
+.bg-warm-surface {
+  background: #F0ECE6;
+}
+.bg-warm-sand {
+  background: #E8E2D8;
+}
+
+/* ─── 카운트업 애니메이션 ─── */
+@keyframes countPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+.count-animate {
+  animation: countPulse 2s ease-in-out infinite;
+}
+
+/* ─── Before/After 슬라이딩 디바이더 (상하 방향) ─── */
+
+/* After 레이어 reveal: 아래→위 */
+@keyframes revealAfter {
+  0%, 10%   { clip-path: inset(100% 0 0 0); }
+  45%, 55%  { clip-path: inset(0 0 0 0); }
+  90%, 100% { clip-path: inset(100% 0 0 0); }
+}
+
+/* 디바이더 라인 위치: 아래→위 */
+@keyframes dividerMove {
+  0%, 10%   { top: 100%; left: 0%; }
+  45%, 55%  { top: 0%; left: 0%; }
+  90%, 100% { top: 100%; left: 0%; }
+}
+
+/* AI 아이콘 펄스 */
+@keyframes aiIconPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.4); }
+  50%      { box-shadow: 0 0 0 10px rgba(37,99,235,0); }
+}
+
+/* ─── 기존 /tool 페이지용 스타일 (유지) ─── */
 .glass-card {
   background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(16px);
@@ -42,33 +138,4 @@ body {
   border-color: rgba(99, 102, 241, 0.25);
   box-shadow: 0 8px 40px rgba(99, 102, 241, 0.1), 0 2px 8px rgba(0,0,0,0.04);
   transform: translateY(-2px);
-}
-
-/* CTA 버튼 글로우 */
-.cta-glow {
-  position: relative;
-  overflow: hidden;
-}
-.cta-glow::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6, #6366f1);
-  border-radius: inherit;
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.3s;
-  filter: blur(12px);
-}
-.cta-glow:hover::after {
-  opacity: 0.5;
-}
-
-/* 히어로 메시 배경 */
-.hero-mesh {
-  background:
-    radial-gradient(ellipse 80% 60% at 20% 40%, rgba(199, 210, 254, 0.5) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 80% at 80% 20%, rgba(191, 219, 254, 0.4) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 50% at 50% 80%, rgba(167, 243, 208, 0.2) 0%, transparent 70%),
-    linear-gradient(180deg, #f8fafc 0%, #eef2ff 40%, #f0f9ff 70%, #f8fafc 100%);
 }

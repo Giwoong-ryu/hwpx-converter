@@ -3,17 +3,21 @@
 import os
 import sys
 
+# 프로젝트 루트
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# .env 로드
+from dotenv import load_dotenv
+load_dotenv(os.path.join(_ROOT, ".env"))
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-
-# 프로젝트 루트를 path에 추가 (기존 모듈 import용)
-_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-from api.routes import form, ai, batch, extract, periodic, stamp, merge, excel
+from api.routes import form, ai, batch, extract, periodic, stamp, merge, excel, auth, payment
 
 app = FastAPI(title="Eazy HWPX API")
 
@@ -31,12 +35,18 @@ async def start_cleanup_scheduler():
 
     asyncio.create_task(_cleanup_loop())
 
+_allowed_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
+
+# Rate limit (AI API 분당 2회)
+from api.services.rate_limit import RateLimitMiddleware
+app.add_middleware(RateLimitMiddleware)
 
 # API 라우터
 app.include_router(form.router, prefix="/api/form", tags=["form"])
@@ -47,11 +57,20 @@ app.include_router(periodic.router, prefix="/api/periodic", tags=["periodic"])
 app.include_router(stamp.router, prefix="/api/stamp", tags=["stamp"])
 app.include_router(merge.router, prefix="/api/merge", tags=["merge"])
 app.include_router(excel.router, prefix="/api/excel", tags=["excel"])
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(payment.router, prefix="/api/payment", tags=["payment"])
 
 
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/stats")
+def conversion_stats():
+    """변환 성공률 통계"""
+    from api.services.metrics import get_stats
+    return get_stats()
 
 
 # 프론트엔드 정적 파일 서빙 (Next.js export 결과)
@@ -60,16 +79,37 @@ if os.path.isdir(_FRONTEND_DIR):
     # /_next 등 정적 자산
     app.mount("/_next", StaticFiles(directory=os.path.join(_FRONTEND_DIR, "_next")), name="next-static")
 
-    # 정적 파일 서빙: Next.js static export 라우팅 지원
-    @app.get("/{full_path:path}")
-    async def serve_spa(request: Request, full_path: str):
-        # 정적 파일이 있으면 그것을 서빙
-        file_path = os.path.join(_FRONTEND_DIR, full_path)
-        if full_path and os.path.isfile(file_path):
+    # 프론트엔드 명시적 라우트
+    @app.get("/tool")
+    async def serve_tool():
+        html = os.path.join(_FRONTEND_DIR, "tool.html")
+        return FileResponse(html if os.path.isfile(html) else os.path.join(_FRONTEND_DIR, "index.html"))
+
+    @app.get("/pricing")
+    async def serve_pricing():
+        html = os.path.join(_FRONTEND_DIR, "pricing.html")
+        return FileResponse(html if os.path.isfile(html) else os.path.join(_FRONTEND_DIR, "index.html"))
+
+    @app.get("/auth/callback")
+    async def serve_auth_callback():
+        html = os.path.join(_FRONTEND_DIR, "auth", "callback.html")
+        return FileResponse(html if os.path.isfile(html) else os.path.join(_FRONTEND_DIR, "index.html"))
+
+    @app.get("/")
+    async def serve_index():
+        return FileResponse(os.path.join(_FRONTEND_DIR, "index.html"))
+
+    # 404 폴백: API 외 경로는 SPA로
+    @app.exception_handler(404)
+    async def spa_fallback(request: Request, exc):
+        path = request.url.path
+        if path.startswith("/api/"):
+            return JSONResponse({"detail": "Not found"}, status_code=404)
+        # 정적 파일 확인
+        file_path = os.path.join(_FRONTEND_DIR, path.lstrip("/"))
+        if os.path.isfile(file_path):
             return FileResponse(file_path)
-        # Next.js static export: /tool → tool.html
-        html_path = os.path.join(_FRONTEND_DIR, f"{full_path}.html")
-        if full_path and os.path.isfile(html_path):
+        html_path = os.path.join(_FRONTEND_DIR, f"{path.lstrip('/')}.html")
+        if os.path.isfile(html_path):
             return FileResponse(html_path)
-        # 폴백 → index.html
         return FileResponse(os.path.join(_FRONTEND_DIR, "index.html"))

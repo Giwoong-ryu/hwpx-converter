@@ -85,8 +85,49 @@ def batch_generate(form_path, excel_path):
 
 # ── 2. 양식 추출 (문서 → 엑셀) ─────────────────
 
+def _extract_docx_texts(docx_path):
+    """DOCX에서 네이티브로 텍스트 추출 (python-docx 직접 사용, HWPX 변환 없음)"""
+    try:
+        from docx import Document
+    except ImportError:
+        return []
+
+    doc = Document(docx_path)
+    texts = []
+
+    # 본문 문단
+    for para in doc.paragraphs:
+        t = para.text.strip()
+        if t:
+            texts.append(t)
+
+    # 테이블 셀 (병합 셀 중복 방지)
+    for table in doc.tables:
+        seen_cells = set()
+        for row in table.rows:
+            for cell in row.cells:
+                cell_id = id(cell._tc)
+                if cell_id in seen_cells:
+                    continue
+                seen_cells.add(cell_id)
+                t = cell.text.strip()
+                if t:
+                    texts.append(t)
+
+    # 머리글/바닥글
+    for section in doc.sections:
+        for header_footer in [section.header, section.footer]:
+            if header_footer and header_footer.paragraphs:
+                for para in header_footer.paragraphs:
+                    t = para.text.strip()
+                    if t:
+                        texts.append(t)
+
+    return texts
+
+
 def extract_to_excel(hwpx_paths):
-    """HWPX 문서들에서 텍스트를 추출하여 엑셀로.
+    """HWPX/DOCX 문서들에서 텍스트를 추출하여 엑셀로. DOCX는 네이티브 처리.
 
     Returns: (excel_path, count, error)
     """
@@ -101,9 +142,17 @@ def extract_to_excel(hwpx_paths):
     total = 0
     for path in hwpx_paths:
         fname = os.path.basename(path)
-        texts = extract_texts(path)
-        for idx, t in enumerate(texts, 1):
-            ws.append([fname, idx, t])
+        try:
+            # DOCX는 네이티브 처리 (HWPX 변환 없이 직접 추출)
+            if path.lower().endswith(".docx"):
+                texts = _extract_docx_texts(path)
+            else:
+                texts = extract_texts(path)
+            for idx, t in enumerate(texts, 1):
+                ws.append([fname, idx, t])
+                total += 1
+        except Exception as e:
+            ws.append([fname, 0, f"[추출 실패] {e}"])
             total += 1
 
     out_path = os.path.join(tempfile.mkdtemp(), "DocFlow_extracted.xlsx")
@@ -219,13 +268,96 @@ def insert_stamp(hwpx_path, image_path, target_text="(인)"):
 
 # ── 5. 문서 병합 ──────────────────────────────
 
-def merge_documents(hwpx_paths):
-    """여러 HWPX를 하나로 병합. 첫 문서 기반으로 나머지 섹션 추가.
+def _merge_docx_native(docx_paths):
+    """DOCX 파일들을 네이티브로 병합 (python-docx 직접 사용, HWPX 변환 없음)
 
     Returns: (out_path, count, error)
     """
-    if not hwpx_paths or len(hwpx_paths) < 2:
+    try:
+        from docx import Document
+    except ImportError:
+        return None, 0, "python-docx가 설치되지 않았습니다."
+
+    base_doc = Document(docx_paths[0])
+    merged = 1
+
+    for path in docx_paths[1:]:
+        try:
+            other_doc = Document(path)
+            # 페이지 나누기 삽입
+            base_doc.add_page_break()
+            # 문단 복사
+            for para in other_doc.paragraphs:
+                new_para = base_doc.add_paragraph()
+                try:
+                    new_para.style = para.style
+                except (KeyError, ValueError):
+                    pass  # 커스텀 스타일이 base에 없으면 기본 스타일 유지
+                new_para.paragraph_format.alignment = para.paragraph_format.alignment
+                for run in para.runs:
+                    new_run = new_para.add_run(run.text)
+                    new_run.bold = run.bold
+                    new_run.italic = run.italic
+                    new_run.underline = run.underline
+                    if run.font.size:
+                        new_run.font.size = run.font.size
+                    if run.font.color and run.font.color.rgb:
+                        new_run.font.color.rgb = run.font.color.rgb
+                    if run.font.name:
+                        new_run.font.name = run.font.name
+            # 테이블 복사
+            for table in other_doc.tables:
+                new_table = base_doc.add_table(rows=0, cols=len(table.columns))
+                try:
+                    new_table.style = table.style
+                except (KeyError, ValueError):
+                    pass
+                for row in table.rows:
+                    new_row = new_table.add_row()
+                    for idx, cell in enumerate(row.cells):
+                        if idx < len(new_row.cells):
+                            new_row.cells[idx].text = cell.text
+            merged += 1
+        except Exception as e:
+            import logging
+            logging.warning(f"DOCX 병합 중 파일 스킵: {path} - {e}")
+            continue
+
+    out_path = os.path.join(tempfile.mkdtemp(), "DocFlow_merged.docx")
+    base_doc.save(out_path)
+    return out_path, merged, None
+
+
+def merge_documents(paths):
+    """문서 병합. DOCX끼리는 네이티브, 그 외는 HWPX 기반.
+
+    Returns: (out_path, count, error)
+    """
+    if not paths or len(paths) < 2:
         return None, 0, "최소 2개 파일이 필요합니다."
+
+    # 전부 DOCX이면 네이티브 병합 (HWPX 변환 없이)
+    all_docx = all(p.lower().endswith(".docx") for p in paths)
+    if all_docx:
+        return _merge_docx_native(paths)
+
+    # 혼합(DOCX+HWPX): DOCX를 HWPX로 변환해서 통일
+    hwpx_paths = []
+    for p in paths:
+        if p.lower().endswith(".docx"):
+            try:
+                from docx_converter import parse_docx
+                from core.build_hwpx import build_hwpx
+                doc_json = parse_docx(p)
+                hwpx_path = os.path.join(tempfile.mkdtemp(), "converted.hwpx")
+                build_hwpx(doc_json, hwpx_path)
+                hwpx_paths.append(hwpx_path)
+            except Exception as e:
+                import logging
+                logging.warning(f"혼합 병합: DOCX→HWPX 변환 실패, 스킵: {p} - {e}")
+                continue  # 변환 실패한 파일은 병합에서 제외
+        else:
+            hwpx_paths.append(p)
     if not etree:
         return None, 0, "lxml이 설치되지 않았습니다."
 

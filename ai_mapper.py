@@ -300,7 +300,87 @@ def map_content(form_texts, user_content, content_file=None):
         if not all_results:
             return None, "매핑할 항목을 찾지 못했습니다. 내용을 더 구체적으로 입력해주세요."
 
-        return all_results, None
+        # [Fix 1+5] AI 환각 키 정규화
+        field_set = set(form_texts)
+        # 공백/이스케이프 정규화된 역방향 인덱스
+        _norm_index = {}
+        for t in form_texts:
+            _norm_index[t] = t
+            _norm_index[t.replace("&lt;", "<").replace("&gt;", ">")] = t
+            _norm_index[t.replace("<", "&lt;").replace(">", "&gt;")] = t
+            _norm_index[re.sub(r"\s+", "", t)] = t  # 공백 제거 버전
+
+        normalized = {}
+        for k, v in all_results.items():
+            if k in field_set:
+                normalized[k] = v
+                continue
+
+            # 1단계: 이스케이프 변환
+            matched = _norm_index.get(k) or _norm_index.get(
+                k.replace("<", "&lt;").replace(">", "&gt;")
+            ) or _norm_index.get(
+                k.replace("&lt;", "<").replace("&gt;", ">")
+            )
+
+            # 2단계: 공백 제거 매칭
+            if not matched:
+                k_no_space = re.sub(r"\s+", "", k)
+                matched = _norm_index.get(k_no_space)
+
+            # 3단계: 접두사 매칭 (AI가 "- " 같은 접두사를 빼먹은 경우)
+            if not matched:
+                for t in form_texts:
+                    if t.endswith(k) or k.endswith(t):
+                        if min(len(k), len(t)) / max(len(k), len(t)) > 0.8:
+                            matched = t
+                            break
+
+            normalized[matched or k] = v
+
+        # [Fix 3] 미매핑 필드 재시도: 1차에서 누락된 필드만 모아서 2차 호출
+        mapped_keys = set(normalized.keys())
+        unmapped = [f for f in filtered_fields if f not in mapped_keys]
+        if unmapped and len(unmapped) > 5:
+            retry_batches = (len(unmapped) + BATCH_SIZE - 1) // BATCH_SIZE
+            print(f"[ai/map] 미매핑 {len(unmapped)}개 재시도 ({retry_batches} batches)")
+            for rb in range(min(retry_batches, 3)):  # 최대 3배치만 재시도
+                start = rb * BATCH_SIZE
+                batch = unmapped[start:start + BATCH_SIZE]
+                fields_text = "\n".join(f"- {t}" for t in batch)
+                if is_gen:
+                    prompt = USER_PROMPT_GEN.format(fields=fields_text, content=combined_content)
+                else:
+                    prompt = USER_PROMPT_MAP.format(fields=fields_text, content=combined_content)
+
+                import time
+                time.sleep(1)
+                try:
+                    response = model.generate_content(prompt, generation_config=gen_config)
+                    retry_parsed = _parse_json_response(response.text)
+                    if retry_parsed:
+                        for k2, v2 in retry_parsed.items():
+                            if not isinstance(k2, str) or not k2.strip():
+                                continue
+                            k2 = k2.strip()
+                            if isinstance(v2, (int, float)):
+                                v2 = str(v2)
+                            if not isinstance(v2, str) or not v2.strip():
+                                continue
+                            # 환각 키 정규화 적용
+                            if k2 in field_set:
+                                normalized[k2] = v2.strip()
+                            else:
+                                k2_esc = k2.replace("<", "&lt;").replace(">", "&gt;")
+                                if k2_esc in field_set:
+                                    normalized[k2_esc] = v2.strip()
+                                else:
+                                    normalized[k2] = v2.strip()
+                    print(f"[ai/map] 재시도 batch {rb+1}: +{len(retry_parsed or {})}개")
+                except Exception as retry_e:
+                    print(f"[ai/map] 재시도 실패: {retry_e}")
+
+        return normalized, None
 
     except Exception as e:
         error_msg = str(e)

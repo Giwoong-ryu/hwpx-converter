@@ -18,6 +18,10 @@ test/lxml_*
 
 # Env
 .env
+frontend/.env.local
+
+# Plans (로컬 전용)
+plans/
 
 # Logs
 *.log

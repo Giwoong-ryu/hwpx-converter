@@ -26,20 +26,22 @@ export default function MergeTab() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl p-4 mb-2 bg-gray-50">
-        <p className="text-sm font-medium text-gray-700">여러 한글 파일을 하나의 문서로 합쳐줍니다.</p>
-        <p className="text-xs mt-1 text-gray-800">예: 팀원 5명의 보고서를 하나의 파일로 합본. 양식 분석 없이 바로 사용 가능합니다.</p>
+      <div className="rounded-xl p-4 mb-2 bg-[#f4f4f1]">
+        <p className="text-base font-semibold text-[#1a1c1b]">여러 한글 파일을 하나의 문서로 합쳐줍니다.</p>
+        <p className="text-sm mt-1 text-[#57423c]">예: 팀원 5명의 보고서를 하나의 파일로 합본. 양식 분석 없이 바로 사용 가능합니다.</p>
       </div>
-      <FileUpload accept=".hwpx" multiple label="HWPX 파일들 (2개 이상)" onFiles={setFiles} />
+      <div>
+        <div className="w-full"><FileUpload accept=".hwp,.hwpx,.docx" multiple label="문서 파일 (2개 이상)" onFiles={setFiles} /></div>
+      </div>
       <button
         onClick={doMerge}
         disabled={loading || files.length < 2}
-        className="w-full bg-black text-white py-3 rounded-lg font-semibold text-sm hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
       >
         {loading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
         {loading ? "합치는 중..." : "합치기"}
       </button>
-      {error && <div className="text-sm text-red-500 bg-red-50 p-3 rounded-lg">{error}</div>}
+      {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</div>}
     </div>
   );
 }

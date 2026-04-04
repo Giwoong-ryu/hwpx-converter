@@ -189,6 +189,63 @@ def _apply_keywords_in_xml(xml_text, sorted_keywords):
     return re.sub(r"<hp:t>(.*?)</hp:t>", replace_in_t, xml_text, flags=re.DOTALL)
 
 
+def _replace_across_runs(xml_text, replacements):
+    """Phase 0: 같은 <hp:p> 안의 여러 <hp:t> 텍스트를 합쳐서 치환 매칭.
+
+    한글에서 서식(볼드, 폰트크기 등)이 바뀔 때마다 새 <hp:run>이 생성되어
+    같은 문장이 여러 <hp:t>로 분할된다. AI는 합쳐진 텍스트를 키로 돌려주므로
+    개별 <hp:t>에서는 매칭 실패한다.
+
+    해결: 문단(<hp:p>) 단위로 모든 <hp:t> 텍스트를 이어 붙여 매칭 시도.
+    매칭 성공 시 첫 번째 <hp:t>에 치환 결과를 넣고 나머지 <hp:t>를 비운다.
+    """
+    def _replace_para(para_match):
+        para = para_match.group(0)
+        # 이 문단의 모든 hp:t 텍스트 추출
+        t_matches = list(re.finditer(r"<hp:t>(.*?)</hp:t>", para, re.DOTALL))
+        if len(t_matches) < 2:
+            return para  # 단일 run이면 Phase 1에서 처리
+
+        # 각 hp:t의 클린 텍스트를 합침
+        t_texts = []
+        for m in t_matches:
+            clean = re.sub(r"<[^>]+>", "", m.group(1)).strip()
+            t_texts.append(clean)
+        combined = "".join(t_texts)
+
+        if not combined:
+            return para
+
+        # 합쳐진 텍스트로 매칭 시도 (replacements는 이미 긴 키 우선 정렬됨)
+        matched_key = None
+        matched_val = None
+        for old_text, new_text in replacements.items():
+            if old_text in combined:
+                matched_key = old_text
+                matched_val = new_text
+                break
+
+        if not matched_key:
+            return para
+
+        # 매칭 성공: 합쳐진 텍스트에서 치환 수행
+        replaced_combined = combined.replace(matched_key, saxutils.escape(matched_val))
+
+        # 첫 번째 hp:t에 결과 전체를 넣고, 나머지 hp:t는 비움
+        result = para
+        for i, m in enumerate(t_matches):
+            old_tag = m.group(0)
+            if i == 0:
+                new_tag = "<hp:t>" + replaced_combined + "</hp:t>"
+            else:
+                new_tag = "<hp:t></hp:t>"
+            result = result.replace(old_tag, new_tag, 1)
+
+        return result
+
+    return re.sub(r"<hp:p\b[^>]*>.*?</hp:p>", _replace_para, xml_text, flags=re.DOTALL)
+
+
 def clone(src_path, dst_path, replacements=None, keywords=None,
           title=None, creator=None, strip_images=False):
     """HWPX 양식을 복제하고 텍스트를 치환한다.
@@ -201,7 +258,8 @@ def clone(src_path, dst_path, replacements=None, keywords=None,
         title: 문서 제목 (메타데이터)
         creator: 작성자 (메타데이터)
     """
-    replacements = replacements or {}
+    # 긴 키 우선 정렬: "중소벤처기업부 장관"이 "중소벤처기업부"보다 먼저 매칭되어야 함
+    replacements = dict(sorted((replacements or {}).items(), key=lambda x: len(x[0]), reverse=True))
     sorted_keywords = _prepare_keywords(keywords) if keywords else []
 
     tmp_path = dst_path + ".tmp"
@@ -239,19 +297,48 @@ def clone(src_path, dst_path, replacements=None, keywords=None,
                                 "", text, flags=re.DOTALL,
                             )
 
+                    # fieldBegin~fieldEnd 영역 보호 (하이퍼링크, 날짜 필드 등)
+                    # 치환 전에 마커로 치환하고, 치환 후 복원
+                    _field_regions = []
+                    def _protect_field(m):
+                        _field_regions.append(m.group(0))
+                        return f"__FIELD_PROTECTED_{len(_field_regions) - 1}__"
+                    text = re.sub(
+                        r"<hp:fieldBegin\b[^>]*>.*?<hp:fieldEnd\b[^>]*/>",
+                        _protect_field, text, flags=re.DOTALL,
+                    )
+
+                    # Phase 0: run 경계 병합 치환
+                    if replacements:
+                        text = _replace_across_runs(text, replacements)
+
                     # Phase 1: <hp:t> 태그 내부에서만 구문 치환 (XML 속성 보호)
                     if replacements:
                         def _replace_in_t(match):
                             inner = match.group(1)
+                            # [Fix 2] 인라인 태그 제거한 텍스트로 매칭 시도
+                            inner_clean = re.sub(r"<[^>]+>", "", inner)
                             for old_text, new_text in replacements.items():
                                 escaped = saxutils.escape(new_text)
-                                inner = inner.replace(old_text, escaped)
+                                if old_text in inner:
+                                    # 직접 매칭 (인라인 태그 없는 경우)
+                                    inner = inner.replace(old_text, escaped)
+                                elif old_text in inner_clean:
+                                    # 인라인 태그(lineBreak, fwSpace 등)가 텍스트를 분할한 경우
+                                    inline_tags = re.findall(r"<[^>]+>", inner)
+                                    stripped = re.sub(r"<[^>]+>", "", inner)
+                                    stripped = stripped.replace(old_text, escaped)
+                                    inner = stripped
                             return "<hp:t>" + inner + "</hp:t>"
                         text = re.sub(r"<hp:t>(.*?)</hp:t>", _replace_in_t, text, flags=re.DOTALL)
 
                     # Phase 2: 키워드 수준 치환 (<hp:t> 내부만)
                     if sorted_keywords:
                         text = _apply_keywords_in_xml(text, sorted_keywords)
+
+                    # fieldBegin~fieldEnd 영역 복원
+                    for idx, region in enumerate(_field_regions):
+                        text = text.replace(f"__FIELD_PROTECTED_{idx}__", region)
 
                     # 메타데이터 치환 (content.hpf의 제목/작성자)
                     if item.filename == "Contents/content.hpf":
@@ -276,54 +363,64 @@ def clone(src_path, dst_path, replacements=None, keywords=None,
 
 
 def validate_result(src_path, dst_path, replacements=None, keywords=None):
-    """치환 결과를 검증하고 남은 원본 키워드를 보고한다.
+    """치환 결과를 검증한다. 내용 기반으로 원본 텍스트가 결과에 남아있는지 확인.
 
     Returns:
         dict: {total_originals, replaced, remaining, remaining_texts, coverage_pct}
     """
-    # 원본 텍스트 추출
-    orig_texts = extract_texts(src_path)
-    # 결과 텍스트 추출
-    result_texts = extract_texts(dst_path)
+    replacements = replacements or {}
+    keywords = keywords or {}
+    all_old_terms = set(replacements.keys()) | set(keywords.keys())
 
-    all_old_terms = set()
-    if replacements:
-        all_old_terms.update(replacements.keys())
-    if keywords:
-        all_old_terms.update(keywords.keys())
+    if not all_old_terms:
+        total = len(extract_texts(src_path))
+        return {"total_originals": total, "replaced": 0, "remaining": total,
+                "remaining_texts": [], "coverage_pct": 0.0}
 
-    # 결과에서 원본 키워드가 남아있는지 확인
-    remaining = []
-    result_full = " ".join(result_texts)
-    for term in sorted(all_old_terms, key=len, reverse=True):
-        if term in result_full:
-            remaining.append(term)
+    # 결과 파일의 전체 텍스트를 하나로 합침 (위치 무관, 내용만 확인)
+    result_texts = set(_extract_all_hpt(dst_path))
 
-    total = len(orig_texts)
-    replaced = total - len(remaining)
-    coverage = (1 - len(remaining) / max(total, 1)) * 100
+    target_count = 0
+    changed_count = 0
+    remaining_samples = []
 
-    print(f"\n=== 치환 검증 ===")
-    print(f"원본 텍스트 조각: {total}개")
-    print(f"치환 완료: {replaced}개")
-    print(f"미치환 키워드: {len(remaining)}개")
-    print(f"커버리지: {coverage:.1f}%")
+    # 치환 대상 키 각각이 결과에 남아있는지 확인
+    for old_text in all_old_terms:
+        if not old_text or len(old_text) <= 1:
+            continue
+        target_count += 1
+        # 결과 텍스트 어디에도 원본이 남아있지 않으면 → 치환 성공
+        still_exists = any(old_text in rt for rt in result_texts)
+        if not still_exists:
+            changed_count += 1
+        else:
+            if len(remaining_samples) < 20:
+                remaining_samples.append(old_text[:60])
 
-    if remaining:
-        print(f"\n미치환 키워드:")
-        for r in remaining[:20]:
-            display = r[:60] + "..." if len(r) > 60 else r
-            print(f"  - {display}")
-        if len(remaining) > 20:
-            print(f"  ... 외 {len(remaining) - 20}개")
+    remaining = target_count - changed_count
+    coverage = (changed_count / max(target_count, 1)) * 100
 
     return {
-        "total_originals": total,
-        "replaced": replaced,
-        "remaining": len(remaining),
-        "remaining_texts": remaining,
+        "total_originals": target_count,
+        "replaced": changed_count,
+        "remaining": remaining,
+        "remaining_texts": remaining_samples,
         "coverage_pct": coverage,
     }
+
+
+def _extract_all_hpt(hwpx_path):
+    """HWPX에서 모든 <hp:t> 텍스트를 순서대로 추출 (중복 포함)."""
+    texts = []
+    with zipfile.ZipFile(hwpx_path, "r") as zf:
+        for name in sorted(zf.namelist()):
+            if name.startswith("Contents/") and name.endswith(".xml"):
+                data = zf.read(name).decode("utf-8")
+                for m in re.finditer(r"<hp:t>(.*?)</hp:t>", data, re.DOTALL):
+                    clean = re.sub(r"<[^>]+>", "", m.group(1)).strip()
+                    if clean:
+                        texts.append(clean)
+    return texts
 
 
 def main():
