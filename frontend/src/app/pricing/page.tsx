@@ -194,20 +194,20 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* ── 레벨 ── */}
+        {/* ── 단계 ── */}
         <div className="mb-24 max-w-3xl mx-auto">
-          <h2 className="text-xl font-extrabold tracking-tight text-center mb-8">사용할수록 레벨 업</h2>
+          <h2 className="text-xl font-extrabold tracking-tight text-center mb-8">쓸수록 단계가 올라요</h2>
           <div className="flex items-center justify-between gap-2">
             {[
-              { lv: 1, title: "새내기", docs: "0건" },
-              { lv: 2, title: "문서러", docs: "5건" },
-              { lv: 3, title: "전문가", docs: "20건" },
-              { lv: 4, title: "마스터", docs: "50건" },
-              { lv: 5, title: "달인", docs: "100건" },
+              { lv: 1, title: "AI 입문자", docs: "0건" },
+              { lv: 2, title: "복붙 탈출", docs: "5건" },
+              { lv: 3, title: "칼퇴 요정", docs: "20건" },
+              { lv: 4, title: "팀 에이스", docs: "50건" },
+              { lv: 5, title: "자동화의 신", docs: "100건" },
             ].map((l, i) => (
               <div key={l.lv} className="flex flex-col items-center gap-1.5 flex-1">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black ${
-                  i === 0 ? "bg-gray-100 text-gray-400" : "bg-[#DBEAFE] text-[#1E40AF]"
+                  i === 0 ? "bg-emerald-50 text-emerald-500" : i === 1 ? "bg-sky-50 text-sky-500" : i === 2 ? "bg-violet-50 text-violet-500" : i === 3 ? "bg-amber-50 text-amber-500" : "bg-rose-50 text-rose-500"
                 }`}>
                   {l.lv}
                 </div>

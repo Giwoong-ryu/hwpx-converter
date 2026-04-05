@@ -33,7 +33,7 @@ export default function ProfileHeader() {
   const gauge = user.gauge_pct || 0;
   const streak = user.streak_days || 0;
   const level = user.level || 1;
-  const levelTitle = user.level_title || "새내기";
+  const levelTitle = user.level_title || "AI 입문자";
   const totalDocs = user.total_docs || 0;
 
   const barColor = gauge > 100 ? "bg-emerald-500" : gauge > 30 ? "bg-[#2563EB]" : gauge > 10 ? "bg-amber-500" : "bg-red-500";
@@ -51,7 +51,7 @@ export default function ProfileHeader() {
         <div>
           <p className="font-bold text-[#1a1c1b]">{user.email}</p>
           <p className="text-sm text-[#57423c]">
-            Lv.{level} {levelTitle}
+            {level}단계 {levelTitle}
             <span className="mx-1.5 text-[#57423c]/30">·</span>
             {plan === "free" ? (
               <span className="text-[#57423c]/60">Free 플랜</span>

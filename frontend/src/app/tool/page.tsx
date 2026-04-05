@@ -116,7 +116,7 @@ function GaugeBadge() {
   const gauge = user.gauge_pct || 0;
   const streak = user.streak_days || 0;
   const level = user.level || 1;
-  const levelTitle = user.level_title || "새내기";
+  const levelTitle = user.level_title || "AI 입문자";
 
   // 게이지 바 색상: 100%+ 초록, 30%+ 파랑, 10%+ 노랑, 그 아래 빨강
   const barColor = gauge > 100 ? "bg-emerald-500" : gauge > 30 ? "bg-[#2563EB]" : gauge > 10 ? "bg-amber-500" : "bg-red-500";
@@ -153,9 +153,9 @@ function GaugeBadge() {
         </span>
       )}
 
-      {/* 레벨 (2 이상만 표시) */}
+      {/* 단계 (2 이상만 표시) */}
       {level >= 2 && (
-        <span className="text-[#57423c]/30">Lv.{level}</span>
+        <span className="text-[#57423c]/30">{level}단계</span>
       )}
     </Link>
   );
@@ -181,7 +181,7 @@ function UserMenu({ onLoginClick }: { onLoginClick: () => void }) {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-lg p-2 min-w-[160px] z-50">
             <div className="px-3 py-2 border-b border-gray-100 mb-1">
-              <p className="text-xs font-bold text-[#1a1c1b]">Lv.{user.level || 1} {user.level_title || "새내기"}</p>
+              <p className="text-xs font-bold text-[#1a1c1b]">{user.level || 1}단계 {user.level_title || "AI 입문자"}</p>
               <p className="text-[10px] text-[#57423c]/40">문서 {user.total_docs || 0}건 완성</p>
             </div>
             <Link href="/mypage" className="flex items-center gap-2 px-3 py-2 text-sm text-[#57423c] hover:bg-[#f4f4f1] rounded-lg" onClick={() => setOpen(false)}>

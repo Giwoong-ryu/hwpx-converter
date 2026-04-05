@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { listAchievements } from "@/lib/api";
-import { Trophy, CheckCircle2, Circle } from "lucide-react";
+import { Trophy, CheckCircle2, Circle, Sprout, Scissors, Wand2, Star, Crown } from "lucide-react";
 
 const LEVELS = [
-  { level: 1, title: "새내기", docs: 0 },
-  { level: 2, title: "문서러", docs: 5 },
-  { level: 3, title: "자동화 전문가", docs: 20 },
-  { level: 4, title: "문서 마스터", docs: 50 },
-  { level: 5, title: "DocFlow 달인", docs: 100 },
+  { level: 1, title: "AI 입문자", docs: 0, icon: Sprout, color: "text-emerald-500", bg: "bg-emerald-50" },
+  { level: 2, title: "복붙 탈출", docs: 5, icon: Scissors, color: "text-sky-500", bg: "bg-sky-50" },
+  { level: 3, title: "칼퇴 요정", docs: 20, icon: Wand2, color: "text-violet-500", bg: "bg-violet-50" },
+  { level: 4, title: "팀 에이스", docs: 50, icon: Star, color: "text-amber-500", bg: "bg-amber-50" },
+  { level: 5, title: "자동화의 신", docs: 100, icon: Crown, color: "text-rose-500", bg: "bg-rose-50" },
 ];
 
 interface AchDef { label: string; reward: number; condition?: string }
@@ -50,36 +50,41 @@ export default function LevelAchievements() {
         <Trophy size={18} className="text-[#2563EB]" />
         <h3 className="font-bold text-[#1a1c1b]">내 성장 기록</h3>
       </div>
-      <p className="text-xs text-[#57423c]/60 mb-5">문서를 만들수록 레벨이 오르고, 보상이 쌓여요.</p>
+      <p className="text-xs text-[#57423c]/60 mb-5">문서를 만들수록 단계가 오르고, 보상이 쌓여요.</p>
 
-      {/* 레벨 진행도 */}
+      {/* 단계 진행도 */}
       <div className="mb-6">
         <div className="flex items-center gap-1 mb-2">
-          {LEVELS.map((l) => (
-            <div key={l.level} className="flex-1 flex flex-col items-center gap-1">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                l.level === level
-                  ? "bg-[#2563EB] text-white ring-2 ring-[#93C5FD] ring-offset-2"
-                  : l.level < level
-                  ? "bg-[#DBEAFE] text-[#1E40AF]"
-                  : "bg-gray-100 text-[#57423c]/40"
-              }`}>
-                {l.level}
+          {LEVELS.map((l) => {
+            const Icon = l.icon;
+            const isCurrent = l.level === level;
+            const isPast = l.level < level;
+            return (
+              <div key={l.level} className="flex-1 flex flex-col items-center gap-1.5">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                  isCurrent
+                    ? `${l.bg} ring-2 ring-offset-2 ring-current ${l.color}`
+                    : isPast
+                    ? `${l.bg} ${l.color}`
+                    : "bg-gray-100 text-[#57423c]/25"
+                }`}>
+                  <Icon size={20} strokeWidth={isCurrent ? 2.5 : 1.8} />
+                </div>
+                <span className={`text-[10px] leading-tight text-center ${isCurrent ? "font-bold text-[#1a1c1b]" : isPast ? "font-medium text-[#57423c]/70" : "text-[#57423c]/35"}`}>
+                  {l.title}
+                </span>
               </div>
-              <span className={`text-[10px] ${l.level === level ? "font-bold text-[#1a1c1b]" : "text-[#57423c]/40"}`}>
-                {l.title}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {nextLevel && (
-          <p className="text-xs text-[#57423c]/60 text-center mt-2">
-            다음 레벨({nextLevel.title})까지 문서 <span className="font-bold text-[#2563EB]">{docsToNext}건</span> 남았어요
+          <p className="text-xs text-[#57423c]/60 text-center mt-3">
+            다음 단계({nextLevel.title})까지 문서 <span className="font-bold text-[#2563EB]">{docsToNext}건</span> 남았어요
           </p>
         )}
         {!nextLevel && (
-          <p className="text-xs text-[#2563EB] font-semibold text-center mt-2">
-            최고 레벨에 도달했어요!
+          <p className="text-xs text-[#2563EB] font-semibold text-center mt-3">
+            최고 단계에 도달했어요!
           </p>
         )}
       </div>

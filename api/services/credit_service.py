@@ -32,13 +32,13 @@ ACHIEVEMENTS = {
     "docs_10": {"condition_docs": 10, "reward": 50.0, "label": "문서 10건 달성"},
 }
 
-# ═══ 레벨 정의 ═══
+# ═══ 단계 정의 ═══
 LEVELS = [
-    {"level": 1, "title": "새내기", "docs": 0, "reward": 0},
-    {"level": 2, "title": "문서러", "docs": 5, "reward": 25.0},
-    {"level": 3, "title": "자동화 전문가", "docs": 20, "reward": 50.0},
-    {"level": 4, "title": "문서 마스터", "docs": 50, "reward": 50.0},
-    {"level": 5, "title": "DocFlow 달인", "docs": 100, "reward": 50.0},
+    {"level": 1, "title": "AI 입문자", "docs": 0, "reward": 0},
+    {"level": 2, "title": "복붙 탈출", "docs": 5, "reward": 25.0},
+    {"level": 3, "title": "칼퇴 요정", "docs": 20, "reward": 50.0},
+    {"level": 4, "title": "팀 에이스", "docs": 50, "reward": 50.0},
+    {"level": 5, "title": "자동화의 신", "docs": 100, "reward": 50.0},
 ]
 
 # ═══ 스트릭 보상 ═══
