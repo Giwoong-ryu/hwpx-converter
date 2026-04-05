@@ -50,15 +50,15 @@ export default function ProfileHeader() {
         </div>
         <div>
           <p className="font-bold text-[#1a1c1b]">{user.email}</p>
-          <p className="text-sm text-[#57423c]">
+          <p className="text-base text-[#57423c]">
             {level}단계 {levelTitle}
             <span className="mx-1.5 text-[#57423c]/30">·</span>
             {plan === "free" ? (
               <span className="text-[#57423c]/60">Free 플랜</span>
             ) : plan === "pro" ? (
-              <span className="font-bold text-white bg-[#1E40AF] px-1.5 py-0.5 rounded text-[10px]">PRO</span>
+              <span className="font-bold text-white bg-[#1E40AF] px-1.5 py-0.5 rounded text-xs">PRO</span>
             ) : (
-              <span className="font-bold text-[#2563EB] bg-[#DBEAFE] px-1.5 py-0.5 rounded text-[10px]">PLUS</span>
+              <span className="font-bold text-[#2563EB] bg-[#DBEAFE] px-1.5 py-0.5 rounded text-xs">PLUS</span>
             )}
             <span className="mx-1.5 text-[#57423c]/30">·</span>
             문서 {totalDocs}건 완성
@@ -76,26 +76,26 @@ export default function ProfileHeader() {
           <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
             <div className={`h-full rounded-full transition-all duration-700 ${barColor}`} style={{ width: `${barWidth}%` }} />
           </div>
-          <p className="text-xs text-[#57423c]/70 mt-1.5">{gaugeMessage(gauge, plan)}</p>
+          <p className="text-sm text-[#57423c]/70 mt-1.5">{gaugeMessage(gauge, plan)}</p>
         </div>
       )}
 
       {/* Free 플랜 안내 */}
       {plan === "free" && (
         <div className="mb-4 bg-[#f4f4f1] rounded-xl p-3">
-          <p className="text-sm text-[#57423c]">{gaugeMessage(gauge, plan)}</p>
-          <Link href="/pricing" className="text-xs text-[#2563EB] font-semibold mt-1 inline-block hover:underline">
+          <p className="text-base text-[#57423c]">{gaugeMessage(gauge, plan)}</p>
+          <Link href="/pricing" className="text-sm text-[#2563EB] font-semibold mt-1 inline-block hover:underline">
             Plus로 업그레이드하면 AI를 더 많이 사용할 수 있어요 →
           </Link>
         </div>
       )}
 
       {/* 스트릭 */}
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-2 text-base">
         <Flame size={16} className={streak >= 3 ? "text-orange-500" : "text-[#57423c]/30"} />
         <span className="text-[#57423c]">{streakMessage(streak)}</span>
         {nextStreakReward && streak > 0 && (
-          <span className="text-[10px] text-[#57423c]/40 ml-auto">
+          <span className="text-xs text-[#57423c]/40 ml-auto">
             다음 보상: {nextStreakReward.days}일 (+{nextStreakReward.reward}%)
           </span>
         )}

@@ -113,7 +113,7 @@ export default function PresetManager() {
           </button>
         )}
       </div>
-      <p className="text-xs text-[#57423c]/60 mb-4">자주 쓰는 정보를 저장해두면 다음에 바로 사용할 수 있어요.</p>
+      <p className="text-sm text-[#57423c]/60 mb-4">자주 쓰는 정보를 저장해두면 다음에 바로 사용할 수 있어요.</p>
 
       {/* 편집/생성 폼 */}
       {isEditing && (
@@ -142,7 +142,7 @@ export default function PresetManager() {
             </div>
           ))}
           <button onClick={addField} className="text-xs text-[#2563EB] hover:underline">+ 항목 추가</button>
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex gap-2 justify-end">
             <button onClick={cancel} className="px-3 py-1.5 text-xs text-[#57423c] hover:bg-[#f4f4f1] rounded-lg">취소</button>
             <button onClick={doSave} disabled={saving} className="px-4 py-1.5 text-xs font-semibold text-white bg-[#2563EB] rounded-lg hover:bg-[#1E40AF] disabled:opacity-50 flex items-center gap-1">
@@ -155,18 +155,18 @@ export default function PresetManager() {
 
       {/* 프리셋 목록 */}
       {loading ? (
-        <div className="text-center py-6 text-sm text-[#57423c]/40"><Loader2 size={16} className="animate-spin inline" /> 불러오는 중...</div>
+        <div className="text-center py-6 text-base text-[#57423c]/40"><Loader2 size={16} className="animate-spin inline" /> 불러오는 중...</div>
       ) : presets.length === 0 && !isEditing ? (
         <div className="text-center py-6">
-          <p className="text-sm text-[#57423c]/50 mb-2">아직 저장한 프리셋이 없어요.</p>
-          <p className="text-xs text-[#57423c]/40">도구 페이지에서 문서 작성 시 자주 쓰는 정보를 저장해보세요.</p>
+          <p className="text-base text-[#57423c]/50 mb-2">아직 저장한 프리셋이 없어요.</p>
+          <p className="text-sm text-[#57423c]/40">도구 페이지에서 문서 작성 시 자주 쓰는 정보를 저장해보세요.</p>
         </div>
       ) : (
         <div className="space-y-2">
           {presets.map((p) => (
             <div key={p.id} className="border border-gray-100 rounded-xl p-3 hover:border-[#93C5FD]/50 transition-colors">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-[#1a1c1b]">{p.name}</span>
+                <span className="text-base font-semibold text-[#1a1c1b]">{p.name}</span>
                 <div className="flex items-center gap-1">
                   <button onClick={() => startEdit(p)} className="p-1 text-[#57423c]/30 hover:text-[#2563EB]"><Pencil size={12} /></button>
                   <button onClick={() => doDelete(p.id)} className="p-1 text-[#57423c]/30 hover:text-red-500"><Trash2 size={12} /></button>
@@ -179,7 +179,7 @@ export default function PresetManager() {
                   </p>
                 ))}
                 {Object.keys(p.data).length > 4 && (
-                  <p className="text-[10px] text-[#57423c]/40">+{Object.keys(p.data).length - 4}개 더</p>
+                  <p className="text-xs text-[#57423c]/40">+{Object.keys(p.data).length - 4}개 더</p>
                 )}
               </div>
             </div>
@@ -189,9 +189,9 @@ export default function PresetManager() {
 
       {/* 한도 표시 */}
       <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-        <span className="text-[11px] text-[#57423c]/40">{presets.length}/{limit >= 9999 ? "무제한" : limit}개 사용 중</span>
+        <span className="text-xs text-[#57423c]/40">{presets.length}/{limit >= 9999 ? "무제한" : limit}개 사용 중</span>
         {presets.length >= limit && limit < 9999 && (
-          <Link href="/pricing" className="text-[11px] text-[#2563EB] hover:underline">
+          <Link href="/pricing" className="text-xs text-[#2563EB] hover:underline">
             {plan === "free" ? "Plus로 업그레이드 →" : "Pro로 업그레이드 →"}
           </Link>
         )}

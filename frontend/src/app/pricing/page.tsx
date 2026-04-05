@@ -82,7 +82,7 @@ export default function PricingPage() {
           <div className="bg-white rounded-2xl border border-gray-200/80 p-8 flex flex-col">
             <div className="text-xs font-bold text-[#57423c]/30 uppercase tracking-widest mb-4">Free</div>
             <div className="text-3xl font-black tracking-tight mb-1">0원</div>
-            <p className="text-sm text-[#57423c]/40 mb-8">가입 없이도 바로 사용</p>
+            <p className="text-base text-[#57423c]/40 mb-8">가입 없이도 바로 사용</p>
             <ul className="space-y-3 mb-8 flex-1 text-sm">
               <Li text="HWP/HWPX/DOCX 변환 무제한" />
               <Li text="문서 → 엑셀 추출 무제한" />
@@ -98,15 +98,15 @@ export default function PricingPage() {
 
           {/* Plus */}
           <div className="bg-white rounded-2xl border-2 border-[#2563EB] p-8 flex flex-col relative shadow-[0_4px_32px_rgba(37,99,235,0.08)]">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#2563EB] text-white text-[11px] font-bold px-4 py-1 rounded-full tracking-wide">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#2563EB] text-white text-xs font-bold px-4 py-1 rounded-full tracking-wide">
               오픈 특가
             </div>
             <div className="text-xs font-bold text-[#2563EB]/60 uppercase tracking-widest mb-4 flex items-center gap-1.5">
               <Zap size={12} /> Plus
             </div>
             <div className="text-3xl font-black tracking-tight mb-1">4,900원</div>
-            <p className="text-sm text-[#2563EB] font-medium mb-2">첫 구매 시 사용량 2배 충전</p>
-            <p className="text-xs text-[#57423c]/40 mb-6">한번 결제, 기간 만료 없이 사용. 부족하면 추가 구매.</p>
+            <p className="text-base text-[#2563EB] font-medium mb-2">첫 구매 시 사용량 2배 충전</p>
+            <p className="text-sm text-[#57423c]/40 mb-6">한번 결제, 기간 만료 없이 사용. 부족하면 추가 구매.</p>
             <ul className="space-y-3 mb-8 flex-1 text-sm">
               <Li text="무료 기능 전부 포함" />
               <Li text="AI 사용량 게이지 충전" highlight />
@@ -131,8 +131,8 @@ export default function PricingPage() {
               <Crown size={12} /> Pro
             </div>
             <div className="text-3xl font-black tracking-tight mb-1">9,900원<span className="text-base font-normal text-[#57423c]/30">/월</span></div>
-            <p className="text-sm text-[#57423c]/50 mb-2">AI 무제한, 횟수 걱정 없이</p>
-            <p className="text-xs text-[#57423c]/40 mb-6">매주 자동 리셋. 오픈 특가 가입 시 영구 적용.</p>
+            <p className="text-base text-[#57423c]/50 mb-2">AI 무제한, 횟수 걱정 없이</p>
+            <p className="text-sm text-[#57423c]/40 mb-6">매주 자동 리셋. 오픈 특가 가입 시 영구 적용.</p>
             <ul className="space-y-3 mb-8 flex-1 text-sm">
               <Li text="무료 기능 전부 포함" />
               <Li text="AI 매핑/작성 무제한" highlight />
@@ -164,7 +164,7 @@ export default function PricingPage() {
         {/* ── 보상 체계 ── */}
         <div id="rewards" className="mb-24">
           <h2 className="text-xl font-extrabold tracking-tight text-center mb-2">쓸수록 돌아오는 보상</h2>
-          <p className="text-sm text-[#57423c]/40 text-center mb-10">문서를 완성할 때마다 보너스 사용량이 충전됩니다</p>
+          <p className="text-base text-[#57423c]/40 text-center mb-10">문서를 완성할 때마다 보너스 사용량이 충전됩니다</p>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-4xl mx-auto">
             <RewardCard
@@ -210,9 +210,9 @@ export default function PricingPage() {
                   {l.lv}
                 </div>
                 <span className="text-xs font-bold text-[#1a1c1b]">{l.title}</span>
-                <span className={`text-[9px] ${l.color}`}>{l.medal}</span>
-                <span className="text-[10px] text-[#57423c]/30">{l.docs}</span>
-                {i < 4 && l.lv > 1 && <span className="text-[10px] text-[#2563EB]">+{l.lv === 2 ? "25" : "50"}%</span>}
+                <span className={`text-xs ${l.color}`}>{l.medal}</span>
+                <span className="text-xs text-[#57423c]/30">{l.docs}</span>
+                {i < 4 && l.lv > 1 && <span className="text-xs text-[#2563EB]">+{l.lv === 2 ? "25" : "50"}%</span>}
               </div>
             ))}
           </div>
@@ -221,7 +221,7 @@ export default function PricingPage() {
         {/* ── 시간 환산 ── */}
         <div className="mb-24">
           <h2 className="text-xl font-extrabold tracking-tight text-center mb-2">같은 서류, 이만큼 차이납니다</h2>
-          <p className="text-sm text-[#57423c]/40 text-center mb-8">사업계획서 1건 기준</p>
+          <p className="text-base text-[#57423c]/40 text-center mb-8">사업계획서 1건 기준</p>
           <div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
             <TimeCard label="직접 작성" time="3~5시간" sub="시급 환산 약 45,000원" />
             <TimeCard label="외주 대행" time="3~7일" sub="30~100만원" />
@@ -232,7 +232,7 @@ export default function PricingPage() {
         {/* ── 경쟁사 비교 ── */}
         <div className="mb-24">
           <h2 className="text-xl font-extrabold tracking-tight text-center mb-2">다른 서비스와 비교</h2>
-          <p className="text-xs text-[#57423c]/30 text-center mb-8">2026년 4월 각 서비스 공식 가격 기준</p>
+          <p className="text-sm text-[#57423c]/30 text-center mb-8">2026년 4월 각 서비스 공식 가격 기준</p>
           <div className="bg-white rounded-2xl border border-gray-200/80 overflow-hidden max-w-3xl mx-auto">
             <table className="w-full text-sm">
               <thead>
@@ -270,7 +270,7 @@ export default function PricingPage() {
         </div>
 
         {/* ── 신뢰 ── */}
-        <div className="flex items-center justify-center gap-8 text-xs text-[#57423c]/30 pt-8 border-t border-gray-200/60">
+        <div className="flex items-center justify-center gap-8 text-sm text-[#57423c]/30 pt-8 border-t border-gray-200/60">
           <span className="flex items-center gap-1.5"><Shield size={12} /> 광고 없음</span>
           <span className="flex items-center gap-1.5"><Shield size={12} /> 파일 즉시 삭제</span>
           <span className="flex items-center gap-1.5"><Shield size={12} /> 로그인 없이 사용 가능</span>
@@ -304,7 +304,7 @@ function RewardCard({ icon, title, desc, color }: { icon: React.ReactNode; title
     <div className="bg-white rounded-xl border border-gray-200/80 p-5">
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${colors[color]}`}>{icon}</div>
       <p className="font-bold text-sm text-[#1a1c1b] mb-1">{title}</p>
-      <p className="text-xs text-[#57423c]/50 leading-relaxed">{desc}</p>
+      <p className="text-sm text-[#57423c]/50 leading-relaxed">{desc}</p>
     </div>
   );
 }
@@ -314,7 +314,7 @@ function TimeCard({ label, time, sub, highlight }: { label: string; time: string
     <div className={`rounded-2xl p-6 text-center ${highlight ? "bg-[#2563EB] text-white" : "bg-white border border-gray-200/80"}`}>
       <p className={`text-sm mb-3 ${highlight ? "text-white/70" : "text-[#57423c]/40"}`}>{label}</p>
       <p className="text-2xl font-black tracking-tight mb-1">{time}</p>
-      <p className={`text-xs ${highlight ? "text-white/50" : "text-[#57423c]/30"}`}>{sub}</p>
+      <p className={`text-sm ${highlight ? "text-white/50" : "text-[#57423c]/30"}`}>{sub}</p>
     </div>
   );
 }
@@ -338,7 +338,7 @@ function FAQ({ q, a }: { q: string; a: string }) {
         <span className="font-bold text-sm text-[#1a1c1b]">{q}</span>
         <ChevronDown size={16} className={`text-[#57423c]/30 transition-transform shrink-0 ml-4 ${open ? "rotate-180" : ""}`} />
       </button>
-      {open && <p className="px-5 pb-5 text-sm text-[#57423c]/50 leading-relaxed -mt-1">{a}</p>}
+      {open && <p className="px-5 pb-5 text-base text-[#57423c]/50 leading-relaxed -mt-1">{a}</p>}
     </div>
   );
 }
@@ -380,7 +380,7 @@ function LoginModal({ onClose }: { onClose: () => void }) {
         </div>
         <div className="flex items-center gap-4 mb-6">
           <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-xs text-[#57423c]/30">또는</span>
+          <span className="text-sm text-[#57423c]/30">또는</span>
           <div className="flex-1 h-px bg-gray-200" />
         </div>
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -392,13 +392,13 @@ function LoginModal({ onClose }: { onClose: () => void }) {
             className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm focus:border-[#1a1c1b] focus:outline-none" />
           <input type="password" placeholder="비밀번호" value={password} onChange={(e) => setPassword(e.target.value)} required
             className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm focus:border-[#1a1c1b] focus:outline-none" />
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-sm text-red-500">{error}</p>}
           <button type="submit" disabled={loading}
             className="w-full py-3 rounded-xl bg-[#1a1c1b] text-white font-bold text-sm hover:bg-black transition-colors disabled:opacity-50">
             {loading ? "처리 중..." : mode === "login" ? "로그인" : "가입하기"}
           </button>
         </form>
-        <p className="text-xs text-[#57423c]/40 text-center mt-4">
+        <p className="text-sm text-[#57423c]/40 text-center mt-4">
           {mode === "login" ? (
             <>계정이 없으신가요? <button onClick={() => setMode("signup")} className="text-[#1a1c1b] font-bold">회원가입</button></>
           ) : (

@@ -50,7 +50,7 @@ export default function LevelAchievements() {
         <Trophy size={18} className="text-[#2563EB]" />
         <h3 className="font-bold text-[#1a1c1b]">내 성장 기록</h3>
       </div>
-      <p className="text-xs text-[#57423c]/60 mb-5">문서를 만들수록 단계가 오르고, 보상이 쌓여요.</p>
+      <p className="text-sm text-[#57423c]/60 mb-5">문서를 만들수록 단계가 오르고, 보상이 쌓여요.</p>
 
       {/* 단계 진행도 */}
       <div className="mb-6">
@@ -74,10 +74,10 @@ export default function LevelAchievements() {
                     <Award size={18} strokeWidth={isCurrent ? 2.5 : 1.8} />
                   )}
                 </div>
-                <span className={`text-[10px] leading-tight text-center ${isCurrent ? "font-bold text-[#1a1c1b]" : isPast ? "font-medium text-[#57423c]/70" : "text-[#57423c]/35"}`}>
+                <span className={`text-xs leading-tight text-center ${isCurrent ? "font-bold text-[#1a1c1b]" : isPast ? "font-medium text-[#57423c]/70" : "text-[#57423c]/35"}`}>
                   {l.title}
                 </span>
-                <span className={`text-[9px] ${isCurrent ? "font-semibold " + l.color : "text-[#57423c]/25"}`}>
+                <span className={`text-xs ${isCurrent ? "font-semibold " + l.color : "text-[#57423c]/25"}`}>
                   {l.medal}
                 </span>
               </div>
@@ -85,12 +85,12 @@ export default function LevelAchievements() {
           })}
         </div>
         {nextLevel && (
-          <p className="text-xs text-[#57423c]/60 text-center mt-3">
+          <p className="text-sm text-[#57423c]/60 text-center mt-3">
             다음 단계({nextLevel.title})까지 문서 <span className="font-bold text-[#2563EB]">{docsToNext}건</span> 남았어요
           </p>
         )}
         {!nextLevel && (
-          <p className="text-xs text-[#2563EB] font-semibold text-center mt-3">
+          <p className="text-sm text-[#2563EB] font-semibold text-center mt-3">
             최고 단계에 도달했어요!
           </p>
         )}
@@ -112,14 +112,14 @@ export default function LevelAchievements() {
                 <Circle size={16} className="text-[#57423c]/40 shrink-0" />
               )}
               <div className="flex-1 min-w-0">
-                <span className={`text-sm ${done ? "text-[#1a1c1b] font-semibold" : "text-[#57423c]"}`}>
+                <span className={`text-base ${done ? "text-[#1a1c1b] font-semibold" : "text-[#57423c]"}`}>
                   {def.label}
                 </span>
                 <span className={`text-xs ml-2 ${done ? "text-emerald-600" : "text-[#57423c]/60"}`}>
                   +{def.reward}%
                 </span>
               </div>
-              <span className={`text-[11px] shrink-0 ${done ? "text-[#57423c]/50" : "text-[#2563EB]/70"}`}>
+              <span className={`text-xs shrink-0 ${done ? "text-[#57423c]/50" : "text-[#2563EB]/70"}`}>
                 {done && record
                   ? new Date(record.created_at).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })
                   : remaining}

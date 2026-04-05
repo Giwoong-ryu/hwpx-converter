@@ -66,11 +66,11 @@ export default function MappingManager() {
         <FileText size={18} className="text-[#2563EB]" />
         <h3 className="font-bold text-[#1a1c1b]">저장된 양식 매핑</h3>
       </div>
-      <p className="text-xs text-[#57423c]/60 mb-4">한번 만든 매핑을 저장하면 같은 양식에 다시 쓸 수 있어요.</p>
+      <p className="text-sm text-[#57423c]/60 mb-4">한번 만든 매핑을 저장하면 같은 양식에 다시 쓸 수 있어요.</p>
 
-      {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
+      {error && <p className="text-sm text-red-500 mb-2">{error}</p>}
       {rewardMsg && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-sm text-emerald-700 mb-3">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-base text-emerald-700 mb-3">
           {rewardMsg}
         </div>
       )}
@@ -78,29 +78,29 @@ export default function MappingManager() {
       {/* Free 사용자 */}
       {plan === "free" && limit === 0 ? (
         <div className="text-center py-6">
-          <p className="text-sm text-[#57423c]/50 mb-2">무료 플랜은 매핑 저장을 지원하지 않아요.</p>
-          <Link href="/pricing" className="text-xs text-[#2563EB] font-semibold hover:underline">
+          <p className="text-base text-[#57423c]/50 mb-2">무료 플랜은 매핑 저장을 지원하지 않아요.</p>
+          <Link href="/pricing" className="text-sm text-[#2563EB] font-semibold hover:underline">
             Plus로 업그레이드하면 10개까지 저장할 수 있어요 →
           </Link>
         </div>
       ) : loading ? (
-        <div className="text-center py-6 text-sm text-[#57423c]/40"><Loader2 size={16} className="animate-spin inline" /> 불러오는 중...</div>
+        <div className="text-center py-6 text-base text-[#57423c]/40"><Loader2 size={16} className="animate-spin inline" /> 불러오는 중...</div>
       ) : mappings.length === 0 ? (
         <div className="text-center py-6">
-          <p className="text-sm text-[#57423c]/50 mb-2">아직 저장한 매핑이 없어요.</p>
-          <p className="text-xs text-[#57423c]/40">도구 페이지에서 AI 매핑 후 &apos;매핑 저장&apos; 버튼을 눌러보세요.</p>
+          <p className="text-base text-[#57423c]/50 mb-2">아직 저장한 매핑이 없어요.</p>
+          <p className="text-sm text-[#57423c]/40">도구 페이지에서 AI 매핑 후 &apos;매핑 저장&apos; 버튼을 눌러보세요.</p>
         </div>
       ) : (
         <div className="space-y-2">
           {mappings.map((m) => (
             <div key={m.id} className="border border-gray-100 rounded-xl p-3 hover:border-[#93C5FD]/50 transition-colors">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-semibold text-[#1a1c1b] truncate">{m.form_name}</span>
+                <span className="text-base font-semibold text-[#1a1c1b] truncate">{m.form_name}</span>
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => doTogglePublic(m)}
                     disabled={toggling === m.id}
-                    className={`p-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors ${
+                    className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors ${
                       m.is_public
                         ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
                         : "text-[#57423c]/40 hover:text-[#2563EB] hover:bg-[#EFF6FF]"
@@ -112,13 +112,13 @@ export default function MappingManager() {
                   <button onClick={() => doDelete(m.id)} className="p-1 text-[#57423c]/30 hover:text-red-500"><Trash2 size={12} /></button>
                 </div>
               </div>
-              <div className="flex items-center gap-3 text-[11px] text-[#57423c]/40">
+              <div className="flex items-center gap-3 text-xs text-[#57423c]/40">
                 <span>{m.form_field_count}개 항목</span>
                 {m.likes > 0 && <span>{m.likes}명이 사용</span>}
                 <span>{new Date(m.created_at).toLocaleDateString("ko-KR")}</span>
               </div>
               {!m.is_public && (
-                <p className="text-[10px] text-[#57423c]/30 mt-1">공개하면 다른 사용자도 이 매핑을 사용할 수 있어요. 처음 공개 시 +25% 보상!</p>
+                <p className="text-xs text-[#57423c]/30 mt-1">공개하면 다른 사용자도 이 매핑을 사용할 수 있어요. 처음 공개 시 +25% 보상!</p>
               )}
             </div>
           ))}
@@ -128,9 +128,9 @@ export default function MappingManager() {
       {/* 한도 표시 */}
       {limit > 0 && (
         <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-          <span className="text-[11px] text-[#57423c]/40">{mappings.length}/{limit >= 9999 ? "무제한" : limit}개 사용 중</span>
+          <span className="text-xs text-[#57423c]/40">{mappings.length}/{limit >= 9999 ? "무제한" : limit}개 사용 중</span>
           {mappings.length >= limit && limit < 9999 && (
-            <Link href="/pricing" className="text-[11px] text-[#2563EB] hover:underline">Pro로 업그레이드 →</Link>
+            <Link href="/pricing" className="text-xs text-[#2563EB] hover:underline">Pro로 업그레이드 →</Link>
           )}
         </div>
       )}

@@ -67,11 +67,15 @@ export async function analyzeForm(file: File) {
   return res.json();
 }
 
-export async function aiMap(fileId: string, text: string, contentFile?: File) {
+export async function aiMap(fileId: string, text: string, contentFiles?: File[]) {
   const fd = new FormData();
   fd.append("file_id", fileId);
   fd.append("text", text);
-  if (contentFile) fd.append("content_file", contentFile);
+  if (contentFiles && contentFiles.length === 1) {
+    fd.append("content_file", contentFiles[0]);
+  } else if (contentFiles && contentFiles.length > 1) {
+    contentFiles.forEach((f) => fd.append("content_files", f));
+  }
   const token = await _getToken();
   const headers: Record<string, string> = { "X-Fingerprint": _fingerprint() };
   if (token) headers["Authorization"] = `Bearer ${token}`;

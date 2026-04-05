@@ -107,7 +107,7 @@ function GaugeBadge() {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return (
-    <Link href="/pricing" className="flex items-center gap-1.5 text-[11px] text-[#57423c]/50 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors">
+    <Link href="/pricing" className="flex items-center gap-1.5 text-xs text-[#57423c]/50 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors">
       <Zap size={10} /> 무료 사용 중 · <span className="text-[#2563EB] font-bold">업그레이드</span>
     </Link>
   );
@@ -123,19 +123,19 @@ function GaugeBadge() {
   const barWidth = Math.min(gauge, 100);
 
   if (plan === "free") return (
-    <Link href="/pricing" className="flex items-center gap-1.5 text-[11px] text-[#57423c]/50 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors">
+    <Link href="/pricing" className="flex items-center gap-1.5 text-xs text-[#57423c]/50 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors">
       <Zap size={10} /> 무료 · <span className="text-[#2563EB] font-bold">업그레이드</span>
       {streak > 0 && <span className="text-[#57423c]/30">· {streak}일</span>}
     </Link>
   );
 
   return (
-    <Link href="/mypage" className="flex items-center gap-2 text-[11px] bg-white border border-gray-200/80 px-3 py-1.5 rounded-lg hover:border-[#93C5FD] transition-colors">
+    <Link href="/mypage" className="flex items-center gap-2 text-xs bg-white border border-gray-200/80 px-3 py-1.5 rounded-lg hover:border-[#93C5FD] transition-colors">
       {/* 플랜 뱃지 */}
       {plan === "pro" ? (
-        <span className="font-bold text-white bg-[#1E40AF] px-1.5 py-0.5 rounded text-[10px]">PRO</span>
+        <span className="font-bold text-white bg-[#1E40AF] px-1.5 py-0.5 rounded text-xs">PRO</span>
       ) : (
-        <span className="font-bold text-[#2563EB] bg-[#DBEAFE] px-1.5 py-0.5 rounded text-[10px]">PLUS</span>
+        <span className="font-bold text-[#2563EB] bg-[#DBEAFE] px-1.5 py-0.5 rounded text-xs">PLUS</span>
       )}
 
       {/* 게이지 바 */}
@@ -182,7 +182,7 @@ function UserMenu({ onLoginClick }: { onLoginClick: () => void }) {
           <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-lg p-2 min-w-[160px] z-50">
             <div className="px-3 py-2 border-b border-gray-100 mb-1">
               <p className="text-xs font-bold text-[#1a1c1b]">{user.level || 1}단계 {user.level_title || "복붙 탈출"}</p>
-              <p className="text-[10px] text-[#57423c]/40">문서 {user.total_docs || 0}건 완성</p>
+              <p className="text-xs text-[#57423c]/40">문서 {user.total_docs || 0}건 완성</p>
             </div>
             <Link href="/mypage" className="flex items-center gap-2 px-3 py-2 text-sm text-[#57423c] hover:bg-[#f4f4f1] rounded-lg" onClick={() => setOpen(false)}>
               <User size={12} /> 마이페이지
@@ -239,14 +239,14 @@ function ShareFormButton({ file, filename, fieldCount }: { file: File | null; fi
         onClick={() => setShowModal(true)}
         className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold border border-dashed border-[#93C5FD]/60 text-[#2563EB] hover:bg-[#EFF6FF] transition-all"
       >
-        <Globe size={12} /> 갤러리에 공유하기 <span className="text-[10px] bg-[#DBEAFE] px-1.5 py-0.5 rounded font-bold">+25%</span>
+        <Globe size={12} /> 갤러리에 공유하기 <span className="text-xs bg-[#DBEAFE] px-1.5 py-0.5 rounded font-bold">+25%</span>
       </button>
 
       {showModal && (
         <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-bold text-[#1a1c1b] mb-1">양식 갤러리에 공유</h3>
-            <p className="text-xs text-[#57423c]/60 mb-4">빈 양식만 공유됩니다. 입력한 내용은 포함되지 않습니다.</p>
+            <p className="text-sm text-[#57423c]/60 mb-4">빈 양식만 공유됩니다. 입력한 내용은 포함되지 않습니다.</p>
 
             <div className="space-y-3 mb-4">
               <div>
@@ -265,7 +265,7 @@ function ShareFormButton({ file, filename, fieldCount }: { file: File | null; fi
                     <button
                       key={c}
                       onClick={() => setCategory(c)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${
                         category === c ? "bg-[#2563EB] text-white" : "bg-[#f4f4f1] text-[#57423c] hover:bg-[#e2e3e0]"
                       }`}
                     >{c}</button>
@@ -274,7 +274,7 @@ function ShareFormButton({ file, filename, fieldCount }: { file: File | null; fi
               </div>
             </div>
 
-            <p className="text-[10px] text-[#57423c]/40 mb-4">
+            <p className="text-xs text-[#57423c]/40 mb-4">
               업로드한 콘텐츠의 저작권 책임은 사용자에게 있습니다.
             </p>
 
@@ -368,13 +368,13 @@ function Main() {
               </div>
               <span className="text-lg font-extrabold tracking-tighter text-[#1a1c1b]">Eazy HWPX</span>
             </Link>
-            <span className="hidden sm:block text-sm text-[#57423c]">양식 파일을 올리면 AI가 내용을 채워줍니다</span>
+            <span className="hidden sm:block text-base text-[#57423c]">양식 파일을 올리면 AI가 내용을 채워줍니다</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2">
-              <span className="text-[11px] font-bold text-[#1E40AF] bg-[#DBEAFE]/40 px-2.5 py-1 rounded-md">HWP</span>
-              <span className="text-[11px] font-bold text-[#1E40AF] bg-[#DBEAFE]/40 px-2.5 py-1 rounded-md">HWPX</span>
-              <span className="text-[11px] font-bold text-[#57423c]/70 bg-[#e2e3e0]/50 px-2.5 py-1 rounded-md">DOCX</span>
+              <span className="text-xs font-bold text-[#1E40AF] bg-[#DBEAFE]/40 px-2.5 py-1 rounded-md">HWP</span>
+              <span className="text-xs font-bold text-[#1E40AF] bg-[#DBEAFE]/40 px-2.5 py-1 rounded-md">HWPX</span>
+              <span className="text-xs font-bold text-[#57423c]/70 bg-[#e2e3e0]/50 px-2.5 py-1 rounded-md">DOCX</span>
             </div>
             <div className="w-px h-5 bg-gray-200 hidden sm:block" />
             <GaugeBadge />
@@ -397,7 +397,7 @@ function Main() {
                 </div>
                 <h2 className="font-bold text-sm text-[#1a1c1b]">양식 넣기</h2>
               </div>
-              <p className="text-sm text-[#57423c] mb-5">양식 문서를 올리고 분석하세요.</p>
+              <p className="text-base text-[#57423c] mb-5">양식 문서를 올리고 분석하세요.</p>
 
               <div id="onboard-upload" className="min-h-[100px]">
                 <FileUpload accept=".hwp,.hwpx,.docx" label="HWP / HWPX / DOCX 파일" onFiles={(f) => setFile(f[0])} />
@@ -413,16 +413,16 @@ function Main() {
                 {loading ? "분석 중..." : "양식 분석"}
               </button>
 
-              {error && <div className="text-sm text-red-600 mt-2 bg-red-50 rounded-lg p-2">{error}</div>}
-              {warning && <div className="text-sm text-amber-700 mt-2 bg-amber-50 rounded-lg p-2">{warning}</div>}
+              {error && <div className="text-base text-red-600 mt-2 bg-red-50 rounded-lg p-2">{error}</div>}
+              {warning && <div className="text-base text-amber-700 mt-2 bg-amber-50 rounded-lg p-2">{warning}</div>}
 
               {isAnalyzed && (
                 <div className="mt-3 space-y-2">
                   <div className="bg-[#f0fdf4] border border-emerald-200/50 rounded-xl px-3 py-2.5 flex items-start gap-2">
                     <CheckCircle2 size={15} className="text-emerald-600 mt-0.5 shrink-0" />
                     <div>
-                      <div className="text-sm font-bold text-[#1a1c1b]">{filename}</div>
-                      <div className="text-sm text-[#57423c]">{fieldCount}개 항목 발견</div>
+                      <div className="text-base font-bold text-[#1a1c1b]">{filename}</div>
+                      <div className="text-base text-[#57423c]">{fieldCount}개 항목 발견</div>
                     </div>
                   </div>
                   <ShareFormButton file={file} filename={filename || ""} fieldCount={fieldCount || 0} />
@@ -516,7 +516,7 @@ function Main() {
 
             {/* 예시 */}
             <div className="pt-5 border-t border-[#93C5FD]/20">
-              <p className="text-sm text-[#57423c]/70 font-bold tracking-wider uppercase mb-3">이런 식으로 사용합니다</p>
+              <p className="text-base text-[#57423c]/70 font-bold tracking-wider uppercase mb-3">이런 식으로 사용합니다</p>
               <div className="space-y-2.5">
                 {guide.examples.map((ex, i) => (
                   <div key={`${activeTab}-${i}`} className="flex gap-3 items-start">
@@ -534,14 +534,14 @@ function Main() {
                 className="w-full py-2 flex items-center gap-2 hover:opacity-70 transition-opacity text-left"
               >
                 <Shield size={15} className="text-[#1E40AF] shrink-0" />
-                <span className="text-sm font-semibold text-[#1a1c1b]">내 데이터는 어떻게 처리되나요?</span>
+                <span className="text-base font-semibold text-[#1a1c1b]">내 데이터는 어떻게 처리되나요?</span>
                 {showInfo
                   ? <ChevronUp size={14} className="text-[#57423c] ml-auto" />
                   : <ChevronDown size={14} className="text-[#57423c] ml-auto" />
                 }
               </button>
               {showInfo && (
-                <div className="pt-3 pb-2 text-sm text-[#57423c] leading-relaxed space-y-3">
+                <div className="pt-3 pb-2 text-base text-[#57423c] leading-relaxed space-y-3">
                   <div>
                     <p className="font-semibold text-[#1a1c1b] mb-0.5">양식 분석 / 문서 생성 / 추출 / 병합</p>
                     <p>외부 서비스를 거치지 않고, 이 서버 안에서만 처리됩니다. 문서 내용이 외부로 전송되지 않습니다.</p>
@@ -566,7 +566,7 @@ function Main() {
       </div>
 
       {/* 푸터 */}
-      <footer className="max-w-screen-xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-center gap-4 text-sm text-[#57423c]/50">
+      <footer className="max-w-screen-xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-center gap-4 text-base text-[#57423c]/50">
         <span>Eazy HWPX</span>
         <span>·</span>
         <Link href="/pricing" className="hover:text-[#1E40AF] transition-colors">요금제</Link>

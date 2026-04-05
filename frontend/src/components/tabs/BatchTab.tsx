@@ -58,12 +58,12 @@ export default function BatchTab() {
     <div className="space-y-4">
       <p className="text-base text-[#57423c]">
         엑셀 파일을 올리면 AI가 양식과 자동 매칭하여 문서를 한번에 만들어줍니다.
-        <span className="text-sm block mt-1 text-[#57423c]">
+        <span className="text-base block mt-1 text-[#57423c]">
           예: 직원명단.xlsx + 위촉장 양식 = 위촉장 100개
         </span>
       </p>
       {!isAnalyzed && (
-        <div className="text-sm px-3 py-2 rounded-xl inline-flex items-center gap-1 bg-[#DBEAFE] text-[#1E40AF] font-medium">
+        <div className="text-base px-3 py-2 rounded-xl inline-flex items-center gap-1 bg-[#DBEAFE] text-[#1E40AF] font-medium">
           왼쪽에서 양식을 먼저 분석해주세요
         </div>
       )}
@@ -81,7 +81,7 @@ export default function BatchTab() {
         {mapping ? "AI 매칭 중..." : "AI 자동 매칭"}
       </button>
 
-      {error && <div className="text-xs text-red-600 bg-red-50 p-2 rounded-xl">{error}</div>}
+      {error && <div className="text-sm text-red-600 bg-red-50 p-2 rounded-xl">{error}</div>}
 
       {mappings.length > 0 && (
         <div className="space-y-3">
@@ -90,7 +90,7 @@ export default function BatchTab() {
               <span className="text-xs font-bold text-[#1a1c1b]">
                 매칭 결과 — {rowCount}개 문서 생성 예정
               </span>
-              <span className="text-[10px] text-[#57423c]/80">틀린 부분은 직접 수정 가능</span>
+              <span className="text-xs text-[#57423c]/80">틀린 부분은 직접 수정 가능</span>
             </div>
             <table className="w-full text-xs">
               <thead>
@@ -117,7 +117,7 @@ export default function BatchTab() {
                         }}
                       />
                     </td>
-                    <td className="px-3 py-1.5 text-[11px] text-[#57423c]/80">
+                    <td className="px-3 py-1.5 text-xs text-[#57423c]/80">
                       {sampleRow[i] || ""}
                     </td>
                   </tr>

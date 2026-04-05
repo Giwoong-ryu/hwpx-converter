@@ -15,7 +15,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
   const { fileId, isAnalyzed, filename, fieldCount, docType, smartFields } = useForm();
   const { user } = useAuth();
   const [text, setText] = useState("");
-  const [contentFile, setContentFile] = useState<File | null>(null);
+  const [contentFiles, setContentFiles] = useState<File[]>([]);
   const [smartValues, setSmartValues] = useState<Record<string, string>>({});
   const [remember, setRemember] = useState(false);
   const [mode, setMode] = useState<"smart" | "free">("smart");
@@ -81,11 +81,11 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
   const doMap = async () => {
     if (!fileId) return;
     const prompt = useSmartMode ? buildSmartPrompt() : text;
-    if (!prompt && !contentFile) return;
+    if (!prompt && contentFiles.length === 0) return;
     setLoading(true);
     setError("");
     try {
-      const res = await aiMap(fileId, prompt, contentFile || undefined);
+      const res = await aiMap(fileId, prompt, contentFiles.length > 0 ? contentFiles : undefined);
       setMappings(Object.entries(res.mappings));
       setIsGeneration(res.is_generation || false);
       setCoverage(res.coverage || null);
@@ -195,7 +195,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
   return (
     <div className="space-y-4">
       {!isAnalyzed && (
-        <div className="text-sm px-3 py-2 rounded-xl inline-flex items-center gap-1 bg-[#DBEAFE] text-[#1E40AF] font-medium">
+        <div className="text-base px-3 py-2 rounded-xl inline-flex items-center gap-1 bg-[#DBEAFE] text-[#1E40AF] font-medium">
           왼쪽에서 양식을 먼저 분석해주세요
         </div>
       )}
@@ -212,12 +212,12 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
             </div>
             <button
               onClick={() => setMode("free")}
-              className="text-[11px] text-[#57423c]/50 hover:text-[#2563EB] flex items-center gap-1 transition-colors"
+              className="text-xs text-[#57423c]/50 hover:text-[#2563EB] flex items-center gap-1 transition-colors"
             >
               <PenLine size={10} /> 직접 입력
             </button>
           </div>
-          <p className="text-xs text-[#57423c]/60">아래 정보만 입력하면 AI가 나머지를 채워드립니다.</p>
+          <p className="text-sm text-[#57423c]/60">아래 정보만 입력하면 AI가 나머지를 채워드립니다.</p>
           <div className="space-y-2">
             {smartFields.map((f) => (
               <div key={f.key} className="flex items-center gap-2">
@@ -241,11 +241,11 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
               onChange={(e) => handleRememberToggle(e.target.checked)}
               className="rounded accent-[#2563EB] w-3.5 h-3.5"
             />
-            <span className="text-[11px] text-[#57423c]/60 group-hover:text-[#57423c] transition-colors">
+            <span className="text-xs text-[#57423c]/60 group-hover:text-[#57423c] transition-colors">
               이 기기에서 내 정보 기억하기
             </span>
             {remember && (
-              <span className="text-[10px] text-[#57423c]/40">
+              <span className="text-xs text-[#57423c]/40">
                 서버에 전송되지 않습니다
               </span>
             )}
@@ -264,12 +264,12 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
           <div className="flex items-center justify-between">
             <div className="text-base text-[#57423c] space-y-1">
               <p className="font-semibold text-[#1a1c1b]">&quot;써줘&quot;라고 입력하면 AI가 대신 작성합니다.</p>
-              <p className="text-sm">또는 채울 내용을 직접 붙여넣을 수도 있습니다. <span className="text-[#57423c]/70">Google AI 사용 · 학습에 미사용</span></p>
+              <p className="text-base">또는 채울 내용을 직접 붙여넣을 수도 있습니다. <span className="text-[#57423c]/70">Google AI 사용 · 학습에 미사용</span></p>
             </div>
             {docType && (
               <button
                 onClick={() => setMode("smart")}
-                className="text-[11px] text-[#57423c]/50 hover:text-[#2563EB] flex items-center gap-1 transition-colors shrink-0"
+                className="text-xs text-[#57423c]/50 hover:text-[#2563EB] flex items-center gap-1 transition-colors shrink-0"
               >
                 <Sparkles size={10} /> 스마트 입력
               </button>
@@ -285,13 +285,32 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
           <div>
             <FileUpload
               accept=".txt,.xlsx,.xls,.docx,.csv,.json,.md"
-              label="또는 내용이 담긴 파일 업로드 (txt, xlsx, docx, csv)"
-              onFiles={(f) => setContentFile(f[0])}
+              label="내용이 담긴 파일 업로드 (txt, xlsx, docx, csv) - 여러 개 가능"
+              multiple
+              onFiles={(f) => setContentFiles((prev) => [...prev, ...f].slice(0, 5))}
             />
+            {contentFiles.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {contentFiles.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between bg-[#f4f4f1] rounded-lg px-3 py-1.5">
+                    <span className="text-xs text-[#57423c] truncate">{f.name} ({(f.size / 1024).toFixed(0)}KB)</span>
+                    <button
+                      onClick={() => setContentFiles((prev) => prev.filter((_, j) => j !== i))}
+                      className="text-[#57423c]/40 hover:text-red-500 text-xs ml-2"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                {!user && contentFiles.length > 1 && (
+                  <p className="text-xs text-amber-600">여러 파일은 Plus 이상에서 사용 가능합니다</p>
+                )}
+              </div>
+            )}
           </div>
           <button
             onClick={doMap}
-            disabled={loading || !isAnalyzed || (!text && !contentFile)}
+            disabled={loading || !isAnalyzed || (!text && contentFiles.length === 0)}
             className="w-full bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
@@ -300,13 +319,13 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
         </div>
       )}
 
-      {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</div>}
+      {error && <div className="text-base text-red-600 bg-red-50 p-3 rounded-xl">{error}</div>}
 
       {mappings.length > 0 && (
         <div className="border border-[#93C5FD]/50 rounded-xl overflow-hidden">
           {/* AI 생성 모드 경고 */}
           {isGeneration && (
-            <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-sm text-amber-800">
+            <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-base text-amber-800">
               <strong>AI가 작성한 내용입니다.</strong> 이름, 날짜, 금액, 수치 등은 실제와 다를 수 있습니다. 반드시 확인 후 사용하세요.
             </div>
           )}
@@ -315,9 +334,9 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
             <div className="bg-[#f0fdf4] px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CheckCircle2 size={18} className="text-emerald-600" />
-                <span className="text-sm font-semibold text-[#1a1c1b]">{mappings.length}개 항목 매핑 완료</span>
+                <span className="text-base font-semibold text-[#1a1c1b]">{mappings.length}개 항목 매핑 완료</span>
               </div>
-              <span className="text-xs text-[#57423c]">
+              <span className="text-sm text-[#57423c]">
                 전체 {coverage.total_fields}개 필드 중 {coverage.mapped}개 매핑 ({coverage.coverage_pct}%)
               </span>
             </div>
@@ -325,7 +344,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
           {!coverage && (
           <div className="bg-[#f0fdf4] px-4 py-3 flex items-center gap-2">
             <CheckCircle2 size={18} className="text-emerald-600" />
-            <span className="text-sm font-semibold text-[#1a1c1b]">{mappings.length}개 항목 매핑 완료</span>
+            <span className="text-base font-semibold text-[#1a1c1b]">{mappings.length}개 항목 매핑 완료</span>
           </div>
           )}
 
@@ -344,7 +363,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
                 />
                 <ImageOff size={16} />
                 이미지 제거
-                {stripImages && <span className="text-[10px] font-bold bg-red-100 px-1.5 py-0.5 rounded">ON</span>}
+                {stripImages && <span className="text-xs font-bold bg-red-100 px-1.5 py-0.5 rounded">ON</span>}
               </label>
               <div className="flex items-center gap-1 text-xs text-[#57423c]">
                 <span>저장 형식:</span>
@@ -443,13 +462,13 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {savedList.length === 0 ? (
-                <p className="text-sm text-[#57423c]/60 text-center py-8">저장된 매핑이 없습니다.</p>
+                <p className="text-base text-[#57423c]/60 text-center py-8">저장된 매핑이 없습니다.</p>
               ) : (
                 savedList.map((m) => (
                   <div key={m.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-[#93C5FD]/50 transition-colors">
                     <button onClick={() => doApplyMapping(m.id)} className="flex-1 text-left">
-                      <p className="text-sm font-semibold text-[#1a1c1b] truncate">{m.form_name}</p>
-                      <p className="text-[11px] text-[#57423c]/50">{m.form_field_count}개 필드 · {new Date(m.created_at).toLocaleDateString("ko-KR")}</p>
+                      <p className="text-base font-semibold text-[#1a1c1b] truncate">{m.form_name}</p>
+                      <p className="text-xs text-[#57423c]/50">{m.form_field_count}개 필드 · {new Date(m.created_at).toLocaleDateString("ko-KR")}</p>
                     </button>
                     <button onClick={() => doDeleteMapping(m.id)} className="p-1.5 text-[#57423c]/30 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                   </div>

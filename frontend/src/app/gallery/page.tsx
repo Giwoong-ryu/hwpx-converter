@@ -146,7 +146,7 @@ export default function GalleryPage() {
           <h1 className="text-2xl font-extrabold text-[#1a1c1b] mb-2">
             다른 사람들이 쓰는 양식, 바로 사용하세요
           </h1>
-          <p className="text-sm text-[#57423c]">
+          <p className="text-base text-[#57423c]">
             양식 구하러 돌아다닐 필요 없이, 여기서 선택하면 AI가 채워드립니다
           </p>
         </div>
@@ -205,7 +205,7 @@ export default function GalleryPage() {
         ) : forms.length === 0 ? (
           <div className="text-center py-20">
             <FileText size={40} className="mx-auto text-[#57423c]/20 mb-3" />
-            <p className="text-sm text-[#57423c]/50">아직 공유된 양식이 없습니다</p>
+            <p className="text-base text-[#57423c]/50">아직 공유된 양식이 없습니다</p>
             <Link href="/tool" className="text-sm text-[#2563EB] hover:underline mt-2 inline-block">
               첫 번째 양식을 공유해보세요
             </Link>
@@ -219,12 +219,12 @@ export default function GalleryPage() {
               >
                 {/* 카테고리 + 시간 */}
                 <div className="flex items-center justify-between mb-3">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
                     CATEGORY_COLORS[form.category] || CATEGORY_COLORS["기타"]
                   }`}>
                     {form.category}
                   </span>
-                  <span className="text-[10px] text-[#57423c]/40">{timeAgo(form.created_at)}</span>
+                  <span className="text-xs text-[#57423c]/40">{timeAgo(form.created_at)}</span>
                 </div>
 
                 {/* 제목 */}
@@ -233,7 +233,7 @@ export default function GalleryPage() {
                 </h3>
 
                 {/* 필드 수 */}
-                <p className="text-xs text-[#57423c]/50 mb-4">
+                <p className="text-sm text-[#57423c]/50 mb-4">
                   {form.field_count}개 필드
                   {form.doc_type && form.doc_type !== form.category ? ` · ${form.doc_type}` : ""}
                 </p>

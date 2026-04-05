@@ -73,9 +73,9 @@ function PopularForms() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {["사업계획서", "이력서", "견적서", "보고서", "계약서", "공문"].map((name) => (
           <div key={name} className="bg-[#f9f9f6] rounded-2xl border border-dashed border-[#93C5FD]/40 p-5 text-center">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${COLORS[name] || "bg-gray-100 text-gray-600"}`}>{name}</span>
-            <p className="text-xs text-[#57423c]/40 mt-3">아직 공유된 양식이 없습니다</p>
-            <Link href="/tool" className="text-[11px] text-[#2563EB] mt-1 inline-block">첫 번째 양식 공유하기</Link>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${COLORS[name] || "bg-gray-100 text-gray-600"}`}>{name}</span>
+            <p className="text-sm text-[#57423c]/40 mt-3">아직 공유된 양식이 없습니다</p>
+            <Link href="/tool" className="text-xs text-[#2563EB] mt-1 inline-block">첫 번째 양식 공유하기</Link>
           </div>
         ))}
       </div>
@@ -86,11 +86,11 @@ function PopularForms() {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {forms.map((f, i) => (
         <div key={f.id} className="scroll-fade bg-[#f9f9f6] rounded-2xl border border-[#93C5FD]/30 p-5 hover:border-[#2563EB]/40 hover:shadow-md transition-all group" data-delay={i * 80}>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${COLORS[f.category] || "bg-gray-100 text-gray-600"}`}>{f.category}</span>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${COLORS[f.category] || "bg-gray-100 text-gray-600"}`}>{f.category}</span>
           <h3 className="text-sm font-bold text-[#1a1c1b] mt-2 mb-1 line-clamp-1 group-hover:text-[#2563EB] transition-colors">{f.title}</h3>
-          <p className="text-xs text-[#57423c]/50 mb-3">{f.field_count}개 필드</p>
+          <p className="text-sm text-[#57423c]/50 mb-3">{f.field_count}개 필드</p>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#57423c]/40">{f.likes} 좋아요 · {f.downloads}명 사용</span>
+            <span className="text-sm text-[#57423c]/40">{f.likes} 좋아요 · {f.downloads}명 사용</span>
             <Link
               href={`/tool?gallery_id=${f.id}`}
               className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white text-xs font-bold hover:opacity-90 transition-opacity"
@@ -167,7 +167,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex flex-col gap-0.5">
                   <span className="text-sm font-bold text-[#1a1c1b]">+ DOCX 완벽 지원</span>
-                  <span className="text-xs text-[#57423c]/60">표, 수식, 개조식까지 깨짐 없이</span>
+                  <span className="text-sm text-[#57423c]/60">표, 수식, 개조식까지 깨짐 없이</span>
                 </div>
               </div>
             </div>
@@ -189,11 +189,11 @@ export default function LandingPage() {
               >
                 무료로 시작하기 <ArrowRight size={17} />
               </Link>
-              <span className="text-xs text-[#57423c]/50">회원가입 없이 바로 사용</span>
+              <span className="text-sm text-[#57423c]/50">회원가입 없이 바로 사용</span>
             </div>
 
             {/* 핵심 수치 */}
-            <div className="hero-stagger hero-s4 flex items-center gap-6 text-sm text-[#57423c]/60">
+            <div className="hero-stagger hero-s4 flex items-center gap-6 text-base text-[#57423c]/60">
               <span><strong className="text-[#1a1c1b]">7가지</strong> 자동화 도구</span>
               <span className="text-[#BFDBFE]">|</span>
               <span>평균 <strong className="text-[#1a1c1b]">3분</strong> 완성</span>
@@ -500,7 +500,7 @@ export default function LandingPage() {
       {/* 스크롤 유도 화살표 */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce cursor-pointer z-20 text-[#57423c]/40 hover:text-[#57423c]/80 transition-colors"
            onClick={() => document.getElementById('demo-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
-        <span className="text-[10px] uppercase font-bold tracking-widest hidden lg:block">Scroll to explore</span>
+        <span className="text-xs uppercase font-bold tracking-widest hidden lg:block">Scroll to explore</span>
         <ArrowRight className="rotate-90 hidden lg:block" size={16} />
       </div>
   </section>
@@ -529,7 +529,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="scroll-fade" data-delay="200">
-              <div className="text-[10px] font-bold text-[#1E40AF] tracking-wide uppercase mb-2 text-center">After — 3분</div>
+              <div className="text-xs font-bold text-[#1E40AF] tracking-wide uppercase mb-2 text-center">After — 3분</div>
               <div className="bg-white rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(26,28,27,0.04)] border border-[#1E40AF]/10">
                 <img src="/images/after-filled.png" alt="채워진 양식" className="w-full h-auto" />
               </div>
@@ -629,7 +629,7 @@ export default function LandingPage() {
               <h2 className="text-xl lg:text-2xl font-extrabold text-[#1a1c1b] mb-1">
                 다른 사람들이 쓰는 양식, 바로 사용하세요
               </h2>
-              <p className="text-sm text-[#57423c]">양식 구하러 돌아다닐 필요 없이, 여기서 선택하면 AI가 채워드립니다</p>
+              <p className="text-base text-[#57423c]">양식 구하러 돌아다닐 필요 없이, 여기서 선택하면 AI가 채워드립니다</p>
             </div>
             <Link
               href="/gallery"
@@ -665,15 +665,15 @@ export default function LandingPage() {
             <div className="space-y-2.5">
               <div className="flex items-start gap-3 bg-[#f4f4f1] rounded-lg px-4 py-3">
                 <Server size={14} className="text-[#57423c]/40 mt-0.5 shrink-0" />
-                <span className="text-sm text-[#57423c]">양식 분석과 문서 생성은 이 서버에서만 처리됩니다</span>
+                <span className="text-base text-[#57423c]">양식 분석과 문서 생성은 이 서버에서만 처리됩니다</span>
               </div>
               <div className="flex items-start gap-3 bg-[#f4f4f1] rounded-lg px-4 py-3">
                 <Lock size={14} className="text-[#57423c]/40 mt-0.5 shrink-0" />
-                <span className="text-sm text-[#57423c]">AI 자동 작성만 Google AI를 사용하며, 데이터는 학습에 사용되지 않습니다</span>
+                <span className="text-base text-[#57423c]">AI 자동 작성만 Google AI를 사용하며, 데이터는 학습에 사용되지 않습니다</span>
               </div>
               <div className="flex items-start gap-3 bg-[#f4f4f1] rounded-lg px-4 py-3">
                 <Trash2 size={14} className="text-[#57423c]/40 mt-0.5 shrink-0" />
-                <span className="text-sm text-[#57423c]">업로드된 파일은 3시간 후 자동 삭제됩니다</span>
+                <span className="text-base text-[#57423c]">업로드된 파일은 3시간 후 자동 삭제됩니다</span>
               </div>
             </div>
           </div>
@@ -683,7 +683,7 @@ export default function LandingPage() {
             <h2 className="text-2xl lg:text-3xl font-bold mb-3">
               양식 문서, 이제 직접 쓰지 마세요
             </h2>
-            <p className="text-sm text-[#57423c] mb-6">
+            <p className="text-base text-[#57423c] mb-6">
               파일 하나만 올리면 바로 시작할 수 있습니다
             </p>
             <Link
@@ -692,7 +692,7 @@ export default function LandingPage() {
             >
               무료로 시작하기 <ArrowRight size={17} />
             </Link>
-            <p className="text-xs text-[#57423c]/40 mt-3">
+            <p className="text-sm text-[#57423c]/40 mt-3">
               <Clock size={10} className="inline mr-1" />
               회원가입 없이 / HWP · HWPX · DOCX 지원
             </p>
@@ -703,8 +703,8 @@ export default function LandingPage() {
       {/* ── 푸터 ── */}
       <footer className="border-t border-[#BFDBFE]/40 py-6 px-8 lg:px-12 bg-[#f4f4f1]">
         <div className="max-w-screen-2xl mx-auto flex justify-between items-center">
-          <span className="text-sm font-bold">Eazy HWPX</span>
-          <span className="text-xs text-[#57423c]/40">HTTPS 암호화 · 파일 3시간 후 삭제</span>
+          <span className="text-base font-bold">Eazy HWPX</span>
+          <span className="text-sm text-[#57423c]/40">HTTPS 암호화 · 파일 3시간 후 삭제</span>
         </div>
       </footer>
     </div>
