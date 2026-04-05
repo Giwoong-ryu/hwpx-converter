@@ -2,12 +2,20 @@
 
 import { createContext, useContext, useState, ReactNode } from "react";
 
+interface SmartField {
+  key: string;
+  label: string;
+  placeholder: string;
+}
+
 interface FormState {
   fileId: string | null;
   filename: string | null;
   fields: string[];
   fieldCount: number;
   isAnalyzed: boolean;
+  docType: string | null;
+  smartFields: SmartField[];
 }
 
 interface FormCtx extends FormState {
@@ -15,7 +23,7 @@ interface FormCtx extends FormState {
   reset: () => void;
 }
 
-const init: FormState = { fileId: null, filename: null, fields: [], fieldCount: 0, isAnalyzed: false };
+const init: FormState = { fileId: null, filename: null, fields: [], fieldCount: 0, isAnalyzed: false, docType: null, smartFields: [] };
 const Ctx = createContext<FormCtx>({ ...init, setForm: () => {}, reset: () => {} });
 
 export function FormProvider({ children }: { children: ReactNode }) {

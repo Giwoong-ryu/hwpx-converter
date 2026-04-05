@@ -1,11 +1,45 @@
 const API = process.env.NEXT_PUBLIC_API_URL || "/api";
 
+// 인증 토큰 주입용 (AuthContext에서 설정)
+let _accessToken: string | null = null;
+export function setApiToken(token: string | null) { _accessToken = token; }
+
+function _authHeaders(): Record<string, string> {
+  if (_accessToken) return { Authorization: `Bearer ${_accessToken}` };
+  return {};
+}
+
+// 브라우저 핑거프린트 (비로그인 맛보기용)
+function _fingerprint(): string {
+  if (typeof window === "undefined") return "ssr";
+  const nav = window.navigator;
+  return btoa(`${nav.language}|${nav.hardwareConcurrency}|${screen.width}`).slice(0, 16);
+}
+
+export class GaugeEmptyError extends Error {
+  error_code: string;
+  plan: string;
+  gauge_pct: number;
+  constructor(data: { detail?: string; error_code?: string; plan?: string; gauge_pct?: number }) {
+    super(data.detail || "사용량 초과");
+    this.error_code = data.error_code || "GAUGE_EMPTY";
+    this.plan = data.plan || "";
+    this.gauge_pct = data.gauge_pct || 0;
+  }
+}
+
 async function handleError(res: Response, fallback: string): Promise<never> {
   let detail = "";
   try {
     const data = await res.json();
-    detail = data.detail || "";
-  } catch {
+    // 게이지 소진 에러 → 별도 에러 클래스
+    if (data.detail?.error_code === "GAUGE_EMPTY" || data.detail?.error_code === "LOGIN_REQUIRED" || data.error_code) {
+      const errData = typeof data.detail === "object" ? data.detail : data;
+      throw new GaugeEmptyError(errData);
+    }
+    detail = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail) || "";
+  } catch (e) {
+    if (e instanceof GaugeEmptyError) throw e;
     // 비-JSON 응답 (프록시 에러 등)
   }
   throw new Error(detail || `${fallback} (${res.status})`);
@@ -24,7 +58,11 @@ export async function aiMap(fileId: string, text: string, contentFile?: File) {
   fd.append("file_id", fileId);
   fd.append("text", text);
   if (contentFile) fd.append("content_file", contentFile);
-  const res = await fetch(`${API}/ai/map`, { method: "POST", body: fd });
+  const res = await fetch(`${API}/ai/map`, {
+    method: "POST",
+    body: fd,
+    headers: { ..._authHeaders(), "X-Fingerprint": _fingerprint() },
+  });
   if (!res.ok) await handleError(res, "매핑 실패");
   return res.json();
 }

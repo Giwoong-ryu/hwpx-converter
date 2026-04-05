@@ -62,12 +62,18 @@ async def analyze_form(file: UploadFile = File(...)):
 
     mlog("analyze", success=True, input_format=in_fmt, field_count=len(texts), duration_ms=t.ms)
 
+    from api.services.doc_type_detector import detect_doc_type
+    doc_info = detect_doc_type(texts)
+
     return {
         "file_id": file_id,
         "filename": file.filename,
         "field_count": len(texts),
         "fields": texts,
         "warning": warning,
+        "doc_type": doc_info["type"],
+        "doc_type_confidence": doc_info["confidence"],
+        "smart_fields": doc_info["smart_fields"],
     }
 
 

@@ -15,6 +15,8 @@ import StampTab from "@/components/tabs/StampTab";
 import MergeTab from "@/components/tabs/MergeTab";
 import ExcelTab from "@/components/tabs/ExcelTab";
 import LoginModal from "@/components/ui/LoginModal";
+import GaugeEmptyModal from "@/components/ui/GaugeEmptyModal";
+import RewardToast, { type RewardItem } from "@/components/ui/RewardToast";
 import {
   FileText, Loader2, Shield, Wand2, Layers, TableProperties,
   Calendar, Stamp, Merge, CheckCircle2, FileSpreadsheet,
@@ -206,6 +208,8 @@ function Main() {
   const [showExamples, setShowExamples] = useState(false);
   const [showSteps, setShowSteps] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [gaugeEmptyData, setGaugeEmptyData] = useState<{ errorCode: string; plan: string; gaugePct: number } | null>(null);
+  const [rewards, setRewards] = useState<RewardItem[]>([]);
 
   useEffect(() => {
     setShowExamples(false);
@@ -234,6 +238,8 @@ function Main() {
         fields: res.fields,
         fieldCount: res.field_count,
         isAnalyzed: true,
+        docType: res.doc_type || null,
+        smartFields: res.smart_fields || [],
       });
       setWarning(res.warning || "");
     } catch (e: unknown) {
@@ -437,7 +443,7 @@ function Main() {
 
             {/* 탭 콘텐츠 */}
             <div className="bg-white border border-[#93C5FD]/40 rounded-2xl p-5 shadow-[0_4px_20px_rgba(26,28,27,0.03)]">
-              {activeTab === "ai" && <AiMappingTab />}
+              {activeTab === "ai" && <AiMappingTab onGaugeEmpty={(data) => setGaugeEmptyData(data)} />}
               {activeTab === "batch" && <BatchTab />}
               {activeTab === "extract" && <ExtractTab />}
               {activeTab === "periodic" && <PeriodicTab />}
@@ -508,6 +514,17 @@ function Main() {
 
       {/* 로그인 모달 */}
       {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
+      {/* 게이지 소진 모달 */}
+      {gaugeEmptyData && (
+        <GaugeEmptyModal
+          errorCode={gaugeEmptyData.errorCode}
+          plan={gaugeEmptyData.plan}
+          gaugePct={gaugeEmptyData.gaugePct}
+          onClose={() => setGaugeEmptyData(null)}
+        />
+      )}
+      {/* 보상 토스트 */}
+      {rewards.length > 0 && <RewardToast rewards={rewards} onDone={() => setRewards([])} />}
     </div>
   );
 }

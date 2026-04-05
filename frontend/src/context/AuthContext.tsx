@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
+import { setApiToken } from "@/lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -42,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setAccessToken(session.access_token);
+        setApiToken(session.access_token);
         fetchProfile(session.access_token);
       } else {
         setLoading(false);
@@ -51,10 +53,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setAccessToken(session.access_token);
+        setApiToken(session.access_token);
         fetchProfile(session.access_token);
       } else {
         setUser(null);
         setAccessToken(null);
+        setApiToken(null);
         setLoading(false);
       }
     });
@@ -124,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     setAccessToken(null);
+    setApiToken(null);
   }
 
   return (
