@@ -18,7 +18,7 @@ SYSTEM_PROMPT_MAP = """\
 사용자가 양식(HWP/HWPX)의 테이블 구조와 내용을 제공하면, 값 필드에 적절한 내용을 매핑합니다.
 
 양식은 테이블 구조로 제공됩니다. 각 행에서:
-- **굵은 글씨** 또는 [H] 표시가 있는 셀 = 라벨/헤더 (절대 교체 금지)
+- [H] 표시가 있는 셀 = 라벨/헤더 (절대 교체 금지)
 - 일반 글씨 셀 = 값 (교체 대상)
 
 규칙:
@@ -32,7 +32,7 @@ SYSTEM_PROMPT_GEN = """\
 사용자가 양식(HWP/HWPX)의 테이블 구조와 간단한 지시를 제공하면, 값 필드를 새로 작성합니다.
 
 양식은 테이블 구조로 제공됩니다. 각 행에서:
-- **굵은 글씨** 또는 [H] 표시가 있는 셀 = 라벨/헤더 (절대 교체 금지)
+- [H] 표시가 있는 셀 = 라벨/헤더 (절대 교체 금지)
 - 일반 글씨 셀 = 값 (교체 대상)
 
 규칙:
@@ -49,7 +49,7 @@ USER_PROMPT_MAP = """\
 [사용자 제공 내용]
 {content}
 
-위 양식에서 **굵은 글씨**나 [H]가 아닌 값 셀 중, 사용자 내용으로 교체해야 할 항목을 JSON으로 반환하세요.
+위 양식에서 [H] 태그가 없는 값 셀 중, 사용자 내용으로 교체해야 할 항목을 JSON으로 반환하세요.
 형식: {{"원본 텍스트": "새 텍스트", ...}}
 라벨/헤더는 절대 포함하지 마세요."""
 
@@ -60,7 +60,7 @@ USER_PROMPT_GEN = """\
 [사용자 요청]
 {content}
 
-위 양식에서 **굵은 글씨**나 [H]가 아닌 값 셀을 사용자 요청 주제로 새로 작성하세요.
+위 양식에서 [H] 태그가 없는 값 셀을 사용자 요청 주제로 새로 작성하세요.
 라벨/헤더 셀은 절대 교체하지 마세요. 값 셀만 교체하세요.
 가능한 한 빠짐없이 교체하세요.
 
@@ -91,9 +91,9 @@ def _format_structured_fields(structured):
                 if not text or text in _SKIP:
                     cells.append("")
                     continue
-                # bold 또는 배경색 → 라벨 힌트 표시
+                # bold 또는 배경색 → 라벨 힌트 표시 ([H] 태그 사용, ** 충돌 방지)
                 if cell["bold"] or cell["bg"]:
-                    cells.append(f"**{text}**")
+                    cells.append(f"[H]{text}")
                 else:
                     cells.append(text)
             # 빈 행 스킵
@@ -298,13 +298,27 @@ def map_content(form_texts, user_content, content_file=None, structured=None):
         all_results = {}
 
         if use_structured:
-            # 구조화 모드: 테이블 구조를 그대로 프롬프트에 전달
-            # 구조 텍스트가 길면 배치 분할
+            # 구조화 모드: 테이블/문단 단위로 배치 분할 (줄 단위 X)
+            # 각 배치가 완전한 [표N] 또는 [본문] 블록을 포함하도록 분할
             struct_lines = structured_text.split("\n")
-            STRUCT_BATCH_LINES = 200  # 약 200줄씩 분할
             batches = []
-            for i in range(0, len(struct_lines), STRUCT_BATCH_LINES):
-                batches.append("\n".join(struct_lines[i:i + STRUCT_BATCH_LINES]))
+            current_batch = []
+            current_lines = 0
+            STRUCT_BATCH_LINES = 200
+
+            for line in struct_lines:
+                # [표N], [본문] 시작, 또는 배치가 너무 클 때 분할
+                is_section_start = line.startswith("[표") or line.startswith("[본문")
+                is_oversized = current_lines >= STRUCT_BATCH_LINES * 2  # 400줄 초과 시 강제 분할
+                if (is_section_start and current_lines >= STRUCT_BATCH_LINES) or is_oversized:
+                    batches.append("\n".join(current_batch))
+                    current_batch = []
+                    current_lines = 0
+                current_batch.append(line)
+                current_lines += 1
+
+            if current_batch:
+                batches.append("\n".join(current_batch))
             total_batches = len(batches)
 
             for batch_idx, batch_text in enumerate(batches):
@@ -429,9 +443,10 @@ def map_content(form_texts, user_content, content_file=None, structured=None):
             normalized[matched or k] = v
 
         # [Fix 3] 미매핑 필드 재시도: 1차에서 누락된 필드만 모아서 2차 호출
+        # 구조화 모드에서는 재시도 스킵 (평면 형식으로 보내면 라벨 보호 무효화됨)
         mapped_keys = set(normalized.keys())
         unmapped = [f for f in filtered_fields if f not in mapped_keys]
-        if unmapped and len(unmapped) > 5:
+        if not use_structured and unmapped and len(unmapped) > 5:
             retry_batches = (len(unmapped) + BATCH_SIZE - 1) // BATCH_SIZE
             print(f"[ai/map] 미매핑 {len(unmapped)}개 재시도 ({retry_batches} batches)")
             for rb in range(min(retry_batches, 3)):  # 최대 3배치만 재시도
