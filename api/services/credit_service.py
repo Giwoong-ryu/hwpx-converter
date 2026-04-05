@@ -151,6 +151,18 @@ async def use_gauge(user_id: str, action: str) -> dict:
 
 # ═══ 게이지 충전 (결제 시) ═══
 
+async def refund_gauge(user_id: str, amount: float):
+    """AI 호출 실패 시 차감된 게이지 복구"""
+    sb = get_supabase()
+    user = sb.table("docflow_users").select("gauge_percent").eq("id", user_id).single().execute()
+    if not user.data:
+        return
+    current = float(user.data.get("gauge_percent", 0))
+    sb.table("docflow_users").update({
+        "gauge_percent": round(current + amount, 1),
+    }).eq("id", user_id).execute()
+
+
 async def charge_gauge(user_id: str, plan: str):
     """결제 완료 후 게이지 충전"""
     sb = get_supabase()
@@ -394,6 +406,41 @@ async def check_anon(fingerprint: str, action: str) -> dict:
     }).execute()
 
     return {"ok": True}
+
+
+def _update_streak(sb, user_id: str, user_data: dict):
+    """사용일 기준 스트릭 갱신"""
+    today_str = date.today().isoformat()
+    last_date = user_data.get("streak_last_date")
+    streak = user_data.get("streak_days", 0)
+    freeze = user_data.get("streak_freeze_count", 0)
+
+    if last_date == today_str:
+        return  # 이미 오늘 갱신됨
+
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    if last_date == yesterday:
+        streak += 1
+    elif last_date and last_date < yesterday and freeze > 0:
+        # 프리즈 사용 (하루 빠졌지만 프리즈로 유지)
+        freeze -= 1
+    else:
+        streak = 1  # 리셋
+
+    update = {
+        "streak_days": streak,
+        "streak_last_date": today_str,
+        "streak_freeze_count": freeze,
+    }
+
+    # 스트릭 보상 체크
+    reward = STREAK_REWARDS.get(streak, 0)
+    if reward > 0:
+        gauge = float(user_data.get("gauge_percent", 0))
+        update["gauge_percent"] = round(gauge + reward, 1)
+        _grant_achievement(user_id, f"streak_{streak}", reward)
+
+    sb.table("docflow_users").update(update).eq("id", user_id).execute()
 
 
 def _log_usage(user_id: str, action: str, cost: float):
