@@ -5,7 +5,8 @@ import json
 import os
 import re
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 MODELS = {
     "mapping": "gemini-2.5-flash",       # 내용 매핑 (기존 내용 → 양식 채우기)
@@ -108,6 +109,65 @@ def _format_structured_fields(structured):
                 lines.append(f"- {p}")
 
     return "\n".join(lines)
+
+
+def _call_with_retry(client, model_name, prompt, system_prompt, temperature, max_retries=2):
+    """Gemini API 호출 + 429 재시도"""
+    for attempt in range(max_retries):
+        try:
+            return client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=temperature,
+                    max_output_tokens=32768,
+                )
+            )
+        except Exception as e:
+            if "429" in str(e) and attempt < max_retries - 1:
+                import time
+                print(f"[ai/map] 429 rate limit, 3초 대기 후 재시도")
+                time.sleep(3)
+            else:
+                raise
+
+
+def _call_cached_with_retry(client, model_name, cache_name, prompt, temperature, max_retries=2):
+    """캐시 사용 Gemini API 호출 + 429 재시도"""
+    for attempt in range(max_retries):
+        try:
+            return client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    cached_content=cache_name,
+                    temperature=temperature,
+                    max_output_tokens=32768,
+                )
+            )
+        except Exception as e:
+            if "429" in str(e) and attempt < max_retries - 1:
+                import time
+                print(f"[ai/map] 429 rate limit, 3초 대기 후 재시도")
+                time.sleep(3)
+            else:
+                raise
+
+
+def _collect_results(parsed):
+    """파싱된 JSON에서 유효한 key-value 쌍만 수집"""
+    results = {}
+    for k, v in parsed.items():
+        if not isinstance(k, str) or not k.strip():
+            continue
+        k = k.strip()
+        if isinstance(v, (int, float)):
+            v = str(v)
+        if not isinstance(v, str) or not v.strip():
+            continue
+        results[k] = v.strip()
+    return results
 
 
 def _is_generation_request(text):
@@ -288,118 +348,121 @@ def map_content(form_texts, user_content, content_file=None, structured=None):
         model_name = MODELS["mapping"]
 
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name, system_instruction=system_prompt)
-        gen_config = genai.GenerationConfig(
-            temperature=0.3 if is_gen else 0.1,
-            max_output_tokens=32768,
-        )
+        client = genai.Client(api_key=api_key)
+        temperature = 0.3 if is_gen else 0.1
 
         all_results = {}
 
+        # 양식 필드를 배치로 분할
         if use_structured:
-            # 구조화 모드: 테이블/문단 단위로 배치 분할 (줄 단위 X)
-            # 각 배치가 완전한 [표N] 또는 [본문] 블록을 포함하도록 분할
             struct_lines = structured_text.split("\n")
-            batches = []
+            field_batches = []
             current_batch = []
             current_lines = 0
             STRUCT_BATCH_LINES = 200
-
             for line in struct_lines:
-                # [표N], [본문] 시작, 또는 배치가 너무 클 때 분할
                 is_section_start = line.startswith("[표") or line.startswith("[본문")
-                is_oversized = current_lines >= STRUCT_BATCH_LINES * 2  # 400줄 초과 시 강제 분할
+                is_oversized = current_lines >= STRUCT_BATCH_LINES * 2
                 if (is_section_start and current_lines >= STRUCT_BATCH_LINES) or is_oversized:
-                    batches.append("\n".join(current_batch))
+                    field_batches.append("\n".join(current_batch))
                     current_batch = []
                     current_lines = 0
                 current_batch.append(line)
                 current_lines += 1
-
             if current_batch:
-                batches.append("\n".join(current_batch))
-            total_batches = len(batches)
-
-            for batch_idx, batch_text in enumerate(batches):
-                if is_gen:
-                    prompt = USER_PROMPT_GEN.format(fields=batch_text, content=combined_content)
-                else:
-                    prompt = USER_PROMPT_MAP.format(fields=batch_text, content=combined_content)
-
-                print(f"[ai/map] structured batch {batch_idx+1}/{total_batches}")
-
-                if batch_idx > 0:
-                    import time
-                    time.sleep(0.5)
-
-                for attempt in range(2):
-                    try:
-                        response = model.generate_content(prompt, generation_config=gen_config)
-                        break
-                    except Exception as retry_err:
-                        if "429" in str(retry_err) and attempt == 0:
-                            import time
-                            print(f"[ai/map] 429 rate limit, 3초 대기 후 재시도")
-                            time.sleep(3)
-                        else:
-                            raise
-
-                parsed = _parse_json_response(response.text)
-                if parsed:
-                    for k, v in parsed.items():
-                        if not isinstance(k, str) or not k.strip():
-                            continue
-                        k = k.strip()
-                        if isinstance(v, (int, float)):
-                            v = str(v)
-                        if not isinstance(v, str) or not v.strip():
-                            continue
-                        all_results[k] = v.strip()
-
+                field_batches.append("\n".join(current_batch))
         else:
-            # 폴백: 평면 리스트 모드 (구조화 데이터 없을 때)
-            total_batches = (len(filtered_fields) + BATCH_SIZE - 1) // BATCH_SIZE
+            field_batches = []
+            for i in range(0, len(filtered_fields), BATCH_SIZE):
+                batch = filtered_fields[i:i + BATCH_SIZE]
+                field_batches.append("\n".join(f"- {t}" for t in batch))
 
-            for batch_idx in range(total_batches):
-                start = batch_idx * BATCH_SIZE
-                batch = filtered_fields[start:start + BATCH_SIZE]
-                fields_text = "\n".join(f"- {t}" for t in batch)
+        total_batches = len(field_batches)
+        need_cache = total_batches > 1
 
-                if is_gen:
-                    prompt = USER_PROMPT_GEN.format(fields=fields_text, content=combined_content)
-                else:
-                    prompt = USER_PROMPT_MAP.format(fields=fields_text, content=combined_content)
+        # 소형 문서 (1배치): 캐시 없이 1회 호출
+        if not need_cache:
+            prompt_template = USER_PROMPT_GEN if is_gen else USER_PROMPT_MAP
+            prompt = prompt_template.format(fields=field_batches[0], content=combined_content)
+            print(f"[ai/map] 1회 호출 (캐시 불필요, 필드 {len(filtered_fields)}개)")
 
-                print(f"[ai/map] flat batch {batch_idx+1}/{total_batches}: {len(batch)} fields")
+            response = _call_with_retry(client, model_name, prompt, system_prompt, temperature)
+            parsed = _parse_json_response(response.text)
+            if parsed:
+                all_results = _collect_results(parsed)
 
-                if batch_idx > 0:
-                    import time
-                    time.sleep(0.5)
+        # 대형 문서 (다배치): Explicit Caching 사용
+        else:
+            cache = None
+            try:
+                # 캐시 생성: 시스템 프롬프트 + 콘텐츠 (TTL 10분)
+                cache = client.caches.create(
+                    model=model_name,
+                    config=types.CreateCachedContentConfig(
+                        system_instruction=system_prompt,
+                        contents=[types.Content(parts=[types.Part(text=combined_content)])],
+                        ttl="600s",
+                    )
+                )
+                print(f"[ai/map] 캐시 생성 완료: {total_batches}배치, TTL=10분")
 
-                for attempt in range(2):
+                for batch_idx, batch_text in enumerate(field_batches):
+                    prompt_template = USER_PROMPT_GEN if is_gen else USER_PROMPT_MAP
+                    # 캐시에 콘텐츠가 있으므로 프롬프트에서는 양식만
+                    prompt = prompt_template.format(fields=batch_text, content="(위에 제공된 내용 참조)")
+
+                    print(f"[ai/map] cached batch {batch_idx+1}/{total_batches}")
+
+                    if batch_idx > 0:
+                        import time
+                        time.sleep(0.5)
+
+                    # 캐시 유효성 체크 + 재생성
                     try:
-                        response = model.generate_content(prompt, generation_config=gen_config)
-                        break
-                    except Exception as retry_err:
-                        if "429" in str(retry_err) and attempt == 0:
-                            import time
-                            print(f"[ai/map] 429 rate limit, 3초 대기 후 재시도")
-                            time.sleep(3)
-                        else:
-                            raise
+                        client.caches.get(name=cache.name)
+                    except Exception:
+                        print("[ai/map] 캐시 만료, 재생성")
+                        cache = client.caches.create(
+                            model=model_name,
+                            config=types.CreateCachedContentConfig(
+                                system_instruction=system_prompt,
+                                contents=[types.Content(parts=[types.Part(text=combined_content)])],
+                                ttl="600s",
+                            )
+                        )
 
-                parsed = _parse_json_response(response.text)
-                if parsed:
-                    for k, v in parsed.items():
-                        if not isinstance(k, str) or not k.strip():
-                            continue
-                        k = k.strip()
-                        if isinstance(v, (int, float)):
-                            v = str(v)
-                        if not isinstance(v, str) or not v.strip():
-                            continue
-                        all_results[k] = v.strip()
+                    response = _call_cached_with_retry(client, model_name, cache.name, prompt, temperature)
+                    parsed = _parse_json_response(response.text)
+                    if parsed:
+                        for k, v in _collect_results(parsed).items():
+                            all_results[k] = v
+
+            except Exception as cache_err:
+                if "cache" in str(cache_err).lower() or "CachedContent" in str(cache_err):
+                    # 캐시 기능 실패 → 폴백: 캐시 없이 반복 전송
+                    print(f"[ai/map] 캐시 실패, 폴백 모드: {cache_err}")
+                    for batch_idx, batch_text in enumerate(field_batches):
+                        prompt_template = USER_PROMPT_GEN if is_gen else USER_PROMPT_MAP
+                        prompt = prompt_template.format(fields=batch_text, content=combined_content)
+                        print(f"[ai/map] fallback batch {batch_idx+1}/{total_batches}")
+                        if batch_idx > 0:
+                            import time
+                            time.sleep(0.5)
+                        response = _call_with_retry(client, model_name, prompt, system_prompt, temperature)
+                        parsed = _parse_json_response(response.text)
+                        if parsed:
+                            for k, v in _collect_results(parsed).items():
+                                all_results[k] = v
+                else:
+                    raise
+            finally:
+                # 3중 방어 (1): 즉시 삭제
+                if cache:
+                    try:
+                        client.caches.delete(name=cache.name)
+                        print("[ai/map] 캐시 삭제 완료")
+                    except Exception:
+                        pass  # (2): TTL 10분 자동 만료가 백업
 
         if not all_results:
             return None, "매핑할 항목을 찾지 못했습니다. 내용을 더 구체적으로 입력해주세요."

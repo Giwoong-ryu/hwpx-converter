@@ -35,6 +35,26 @@ async def start_cleanup_scheduler():
 
     asyncio.create_task(_cleanup_loop())
 
+
+# 서버 시작 시 잔류 Gemini 캐시 정리 (비정상 종료 시 남은 캐시 방지)
+@app.on_event("startup")
+async def cleanup_stale_gemini_caches():
+    try:
+        from ai_mapper import _get_api_key
+        from google import genai
+        api_key = _get_api_key()
+        if api_key:
+            client = genai.Client(api_key=api_key)
+            for c in client.caches.list():
+                try:
+                    client.caches.delete(name=c.name)
+                    print(f"[startup] 잔류 캐시 삭제: {c.name}")
+                except Exception:
+                    pass
+    except Exception:
+        pass  # 캐시 정리 실패해도 서버 시작은 정상 진행
+
+
 _allowed_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,

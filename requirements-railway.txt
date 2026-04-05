@@ -9,7 +9,7 @@ python-multipart>=0.0.9
 supabase>=2.0.0
 
 # AI
-google-generativeai>=0.8.0
+google-genai>=1.0.0
 
 # HWPX 처리 (순수 Python, COM 불필요)
 lxml>=4.9.0
