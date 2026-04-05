@@ -153,7 +153,7 @@ export default function LandingPage() {
       ══════════════════════════════════════════ */}
       <section className="relative pt-28 pb-16 lg:pb-12 lg:min-h-[95vh] flex items-center">
         <div className="absolute inset-0 warm-hero-bg" />
-        <div className="relative w-full max-w-screen-2xl mx-auto px-8 lg:px-12 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        <div className="relative w-full max-w-screen-2xl mx-auto px-8 lg:px-16 grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
 
           {/* 왼쪽: 카피 */}
           <div className="lg:col-span-6">
@@ -203,7 +203,7 @@ export default function LandingPage() {
           </div>
 
           {/* 오른쪽: 버블 프레임 + Before/After */}
-          <div className="lg:col-span-6 relative hidden lg:flex items-center justify-center h-[500px]">
+          <div className="lg:col-span-6 relative hidden lg:flex items-center justify-center h-[460px] scale-[0.85] origin-center">
 
             {/* ── 입체 버블들 (배경) ── */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
