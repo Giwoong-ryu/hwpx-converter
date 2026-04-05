@@ -315,3 +315,83 @@ export async function updateMappingPublic(id: number, isPublic: boolean) {
   if (!res.ok) await handleError(res, "공개 설정 실패");
   return res.json();
 }
+
+// ═══ 양식 갤러리 API ═══
+
+export interface GalleryForm {
+  id: number;
+  title: string;
+  category: string;
+  field_count: number;
+  doc_type: string | null;
+  likes: number;
+  downloads: number;
+  created_at: string;
+  user_id: string;
+  liked?: boolean;
+}
+
+export async function listGalleryForms(opts?: { category?: string; sort?: string; q?: string; page?: number }) {
+  const params = new URLSearchParams();
+  if (opts?.category) params.set("category", opts.category);
+  if (opts?.sort) params.set("sort", opts.sort);
+  if (opts?.q) params.set("q", opts.q);
+  if (opts?.page) params.set("page", String(opts.page));
+  const res = await fetch(`${API}/gallery/list?${params}`);
+  if (!res.ok) return { forms: [], page: 1, size: 20 };
+  return res.json();
+}
+
+export async function getGalleryForm(id: number) {
+  const res = await fetch(`${API}/gallery/${id}`);
+  if (!res.ok) throw new Error("양식을 찾을 수 없습니다.");
+  return res.json();
+}
+
+export async function downloadGalleryForm(id: number): Promise<Blob> {
+  const token = await _getToken();
+  if (!token) throw new Error("로그인이 필요합니다.");
+  const res = await fetch(`${API}/gallery/${id}/download`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error("다운로드 실패");
+  return res.blob();
+}
+
+export async function shareFormToGallery(file: File, title: string, category: string) {
+  const token = await _getToken();
+  if (!token) throw new Error("로그인이 필요합니다.");
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("title", title);
+  fd.append("category", category);
+  const res = await fetch(`${API}/gallery/share`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: fd,
+  });
+  if (!res.ok) await handleError(res, "양식 공유 실패");
+  return res.json();
+}
+
+export async function toggleGalleryLike(formId: number) {
+  const token = await _getToken();
+  if (!token) throw new Error("로그인이 필요합니다.");
+  const res = await fetch(`${API}/gallery/${formId}/like`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) await handleError(res, "좋아요 실패");
+  return res.json();
+}
+
+export async function deleteGalleryForm(formId: number) {
+  const token = await _getToken();
+  if (!token) throw new Error("로그인이 필요합니다.");
+  const res = await fetch(`${API}/gallery/${formId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) await handleError(res, "삭제 실패");
+  return res.json();
+}
