@@ -279,16 +279,15 @@ def _replace_across_runs(xml_text, replacements):
         # 매칭 성공: 합쳐진 텍스트에서 치환 수행
         replaced_combined = combined.replace(matched_key, saxutils.escape(matched_val))
 
-        # 위치 기반 교체: 뒤에서부터 교체하여 offset 밀림 방지
+        # 첫 번째 hp:t에 결과 전체를 넣고, 나머지 hp:t는 비움
         result = para
-        for i in range(len(t_matches) - 1, -1, -1):
-            m = t_matches[i]
-            start, end = m.start(), m.end()
+        for i, m in enumerate(t_matches):
+            old_tag = m.group(0)
             if i == 0:
                 new_tag = "<hp:t>" + replaced_combined + "</hp:t>"
             else:
                 new_tag = "<hp:t></hp:t>"
-            result = result[:start] + new_tag + result[end:]
+            result = result.replace(old_tag, new_tag, 1)
 
         return result
 
