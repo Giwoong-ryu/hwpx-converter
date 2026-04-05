@@ -409,7 +409,7 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
                     model=model_name,
                     config=types.CreateCachedContentConfig(
                         system_instruction=system_prompt,
-                        contents=[types.Content(parts=[types.Part(text=combined_content)])],
+                        contents=[types.Content(role="user", parts=[types.Part(text=combined_content)])],
                         ttl="600s",
                     )
                 )
@@ -435,7 +435,7 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
                             model=model_name,
                             config=types.CreateCachedContentConfig(
                                 system_instruction=system_prompt,
-                                contents=[types.Content(parts=[types.Part(text=combined_content)])],
+                                contents=[types.Content(role="user", parts=[types.Part(text=combined_content)])],
                                 ttl="600s",
                             )
                         )
