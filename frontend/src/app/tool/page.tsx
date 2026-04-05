@@ -17,6 +17,7 @@ import ExcelTab from "@/components/tabs/ExcelTab";
 import LoginModal from "@/components/ui/LoginModal";
 import GaugeEmptyModal from "@/components/ui/GaugeEmptyModal";
 import RewardToast, { type RewardItem } from "@/components/ui/RewardToast";
+import OnboardingGuide from "@/components/ui/OnboardingGuide";
 import {
   FileText, Loader2, Shield, Wand2, Layers, TableProperties,
   Calendar, Stamp, Merge, CheckCircle2, FileSpreadsheet,
@@ -525,6 +526,8 @@ function Main() {
       )}
       {/* 보상 토스트 */}
       {rewards.length > 0 && <RewardToast rewards={rewards} onDone={() => setRewards([])} />}
+      {/* 첫 방문 가이드 */}
+      <OnboardingGuide />
     </div>
   );
 }

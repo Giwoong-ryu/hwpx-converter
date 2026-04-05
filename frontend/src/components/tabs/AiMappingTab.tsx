@@ -23,7 +23,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
   const [showDetail, setShowDetail] = useState(false);
-  const [stripImages, setStripImages] = useState(true);
+  const [stripImages, setStripImages] = useState(false);
   const [outputFormat, setOutputFormat] = useState<"hwpx" | "hwp" | "docx">("hwpx");
   const [isGeneration, setIsGeneration] = useState(false);
   const [coverage, setCoverage] = useState<{ total_fields: number; mapped: number; coverage_pct: number } | null>(null);
@@ -250,15 +250,20 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
 
           <div className="p-3 space-y-2">
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-xs text-[#57423c] cursor-pointer select-none">
+              <label className={`flex items-center gap-2 text-sm cursor-pointer select-none px-3 py-1.5 rounded-lg border transition-colors ${
+                stripImages
+                  ? "bg-red-50 border-red-200 text-red-700"
+                  : "bg-[#f4f4f1] border-[#e2e3e0] text-[#57423c] hover:bg-[#e2e3e0]"
+              }`}>
                 <input
                   type="checkbox"
                   checked={stripImages}
                   onChange={(e) => setStripImages(e.target.checked)}
-                  className="rounded accent-[#1E40AF]"
+                  className="rounded accent-red-500 w-4 h-4"
                 />
-                <ImageOff size={14} />
-                원본 이미지 제거
+                <ImageOff size={16} />
+                이미지 제거
+                {stripImages && <span className="text-[10px] font-bold bg-red-100 px-1.5 py-0.5 rounded">ON</span>}
               </label>
               <div className="flex items-center gap-1 text-xs text-[#57423c]">
                 <span>저장 형식:</span>
