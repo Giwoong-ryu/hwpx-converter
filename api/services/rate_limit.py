@@ -49,4 +49,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
 
         timestamps.append(now)
+
+        # 주기적으로 빈 키 정리 (1000개 초과 시)
+        if len(_requests) > 1000:
+            # list()로 복사하여 iteration 중 변경 방지
+            empty_keys = [k for k, v in list(_requests.items()) if not v or v[-1] < window]
+            for k in empty_keys:
+                _requests.pop(k, None)
+
         return await call_next(request)
