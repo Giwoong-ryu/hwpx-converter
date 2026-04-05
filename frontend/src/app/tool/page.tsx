@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FormProvider, useForm } from "@/context/FormContext";
 import { useAuth } from "@/context/AuthContext";
-import { analyzeForm } from "@/lib/api";
+import { analyzeForm, shareFormToGallery } from "@/lib/api";
 import FileUpload from "@/components/ui/FileUpload";
 import AiMappingTab from "@/components/tabs/AiMappingTab";
 import BatchTab from "@/components/tabs/BatchTab";
@@ -22,7 +22,7 @@ import {
   FileText, Loader2, Shield, Wand2, Layers, TableProperties,
   Calendar, Stamp, Merge, CheckCircle2, FileSpreadsheet,
   Sparkles, ChevronLeft, Upload, ChevronDown, ChevronUp, Settings2,
-  User, Zap, LogOut, Flame
+  User, Zap, LogOut, Flame, Globe, Gift
 } from "lucide-react";
 
 const MAIN_TABS = [
@@ -197,6 +197,104 @@ function UserMenu({ onLoginClick }: { onLoginClick: () => void }) {
   );
 }
 
+const SHARE_CATEGORIES = ["사업계획서", "이력서", "견적서", "보고서", "계약서", "공문", "회의록", "수료증", "기타"];
+
+function ShareFormButton({ file, filename, fieldCount }: { file: File | null; filename: string; fieldCount: number }) {
+  const { user } = useAuth();
+  const [showModal, setShowModal] = useState(false);
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("기타");
+  const [sharing, setSharing] = useState(false);
+  const [shared, setShared] = useState(false);
+
+  useEffect(() => {
+    if (filename) setTitle(filename.replace(/\.(hwpx?|docx)$/i, ""));
+  }, [filename]);
+
+  if (!user || !file || shared) {
+    if (shared) return (
+      <div className="flex items-center gap-1.5 text-xs text-emerald-600 bg-emerald-50 px-3 py-2 rounded-xl">
+        <CheckCircle2 size={12} /> 갤러리에 공유됨
+      </div>
+    );
+    return null;
+  }
+
+  const doShare = async () => {
+    setSharing(true);
+    try {
+      await shareFormToGallery(file, title || filename, category);
+      setShared(true);
+      setShowModal(false);
+    } catch { /* ignore */ }
+    finally { setSharing(false); }
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setShowModal(true)}
+        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold border border-dashed border-[#93C5FD]/60 text-[#2563EB] hover:bg-[#EFF6FF] transition-all"
+      >
+        <Globe size={12} /> 갤러리에 공유하기 <span className="text-[10px] bg-[#DBEAFE] px-1.5 py-0.5 rounded font-bold">+25%</span>
+      </button>
+
+      {showModal && (
+        <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-bold text-[#1a1c1b] mb-1">양식 갤러리에 공유</h3>
+            <p className="text-xs text-[#57423c]/60 mb-4">빈 양식만 공유됩니다. 입력한 내용은 포함되지 않습니다.</p>
+
+            <div className="space-y-3 mb-4">
+              <div>
+                <label className="text-xs font-medium text-[#57423c] mb-1 block">양식 제목</label>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full border border-[#93C5FD]/40 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB]/50"
+                  placeholder="예: 초기창업패키지 사업계획서"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#57423c] mb-1 block">카테고리</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {SHARE_CATEGORIES.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCategory(c)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                        category === c ? "bg-[#2563EB] text-white" : "bg-[#f4f4f1] text-[#57423c] hover:bg-[#e2e3e0]"
+                      }`}
+                    >{c}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-[#57423c]/40 mb-4">
+              업로드한 콘텐츠의 저작권 책임은 사용자에게 있습니다.
+            </p>
+
+            <div className="flex gap-2">
+              <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-[#f4f4f1] text-[#57423c] hover:bg-[#e2e3e0]">
+                취소
+              </button>
+              <button
+                onClick={doShare}
+                disabled={sharing || !title.trim()}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {sharing ? <Loader2 size={14} className="animate-spin" /> : <Gift size={14} />}
+                {sharing ? "공유 중..." : "공유하기 (+25%)"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function Main() {
   const { isAnalyzed, filename, fieldCount, setForm } = useForm();
   const [file, setFile] = useState<File | null>(null);
@@ -315,12 +413,15 @@ function Main() {
               {warning && <div className="text-sm text-amber-700 mt-2 bg-amber-50 rounded-lg p-2">{warning}</div>}
 
               {isAnalyzed && (
-                <div className="mt-3 bg-[#f0fdf4] border border-emerald-200/50 rounded-xl px-3 py-2.5 flex items-start gap-2">
-                  <CheckCircle2 size={15} className="text-emerald-600 mt-0.5 shrink-0" />
-                  <div>
-                    <div className="text-sm font-bold text-[#1a1c1b]">{filename}</div>
-                    <div className="text-sm text-[#57423c]">{fieldCount}개 항목 발견</div>
+                <div className="mt-3 space-y-2">
+                  <div className="bg-[#f0fdf4] border border-emerald-200/50 rounded-xl px-3 py-2.5 flex items-start gap-2">
+                    <CheckCircle2 size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+                    <div>
+                      <div className="text-sm font-bold text-[#1a1c1b]">{filename}</div>
+                      <div className="text-sm text-[#57423c]">{fieldCount}개 항목 발견</div>
+                    </div>
                   </div>
+                  <ShareFormButton file={file} filename={filename || ""} fieldCount={fieldCount || 0} />
                 </div>
               )}
             </div>

@@ -47,6 +47,63 @@ function useScrollReveal() {
   return ref;
 }
 
+/* ═══ 인기 양식 (랜딩용) ═══ */
+
+function PopularForms() {
+  const [forms, setForms] = useState<{ id: number; title: string; category: string; likes: number; downloads: number; field_count: number }[]>([]);
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "/api"}/gallery/list?sort=popular&size=6`)
+      .then((r) => r.json())
+      .then((d) => setForms(d.forms || []))
+      .catch(() => {});
+  }, []);
+
+  const COLORS: Record<string, string> = {
+    "사업계획서": "bg-blue-100 text-blue-700",
+    "이력서": "bg-emerald-100 text-emerald-700",
+    "견적서": "bg-amber-100 text-amber-700",
+    "보고서": "bg-purple-100 text-purple-700",
+    "계약서": "bg-red-100 text-red-700",
+    "공문": "bg-gray-100 text-gray-700",
+  };
+
+  if (forms.length === 0) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {["사업계획서", "이력서", "견적서", "보고서", "계약서", "공문"].map((name) => (
+          <div key={name} className="bg-[#f9f9f6] rounded-2xl border border-dashed border-[#93C5FD]/40 p-5 text-center">
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${COLORS[name] || "bg-gray-100 text-gray-600"}`}>{name}</span>
+            <p className="text-xs text-[#57423c]/40 mt-3">아직 공유된 양식이 없습니다</p>
+            <Link href="/tool" className="text-[11px] text-[#2563EB] mt-1 inline-block">첫 번째 양식 공유하기</Link>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {forms.map((f, i) => (
+        <div key={f.id} className="scroll-fade bg-[#f9f9f6] rounded-2xl border border-[#93C5FD]/30 p-5 hover:border-[#2563EB]/40 hover:shadow-md transition-all group" data-delay={i * 80}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${COLORS[f.category] || "bg-gray-100 text-gray-600"}`}>{f.category}</span>
+          <h3 className="text-sm font-bold text-[#1a1c1b] mt-2 mb-1 line-clamp-1 group-hover:text-[#2563EB] transition-colors">{f.title}</h3>
+          <p className="text-xs text-[#57423c]/50 mb-3">{f.field_count}개 필드</p>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-[#57423c]/40">{f.likes} 좋아요 · {f.downloads}명 사용</span>
+            <Link
+              href={`/tool?gallery_id=${f.id}`}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white text-xs font-bold hover:opacity-90 transition-opacity"
+            >
+              바로 사용
+            </Link>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ═══ 페이지 ═══ */
 
 export default function LandingPage() {
@@ -558,6 +615,37 @@ export default function LandingPage() {
                 );
               })}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          섹션 2.5: 인기 양식 갤러리
+      ══════════════════════════════════════════ */}
+      <section className="w-full py-20 bg-white border-t border-gray-100">
+        <div className="max-w-screen-2xl mx-auto px-8 lg:px-12">
+          <div className="flex items-center justify-between mb-8 scroll-fade">
+            <div>
+              <h2 className="text-xl lg:text-2xl font-extrabold text-[#1a1c1b] mb-1">
+                다른 사람들이 쓰는 양식, 바로 사용하세요
+              </h2>
+              <p className="text-sm text-[#57423c]">양식 구하러 돌아다닐 필요 없이, 여기서 선택하면 AI가 채워드립니다</p>
+            </div>
+            <Link
+              href="/gallery"
+              className="hidden sm:flex items-center gap-1 text-sm font-semibold text-[#2563EB] hover:text-[#1E40AF] transition-colors"
+            >
+              전체 보기 <ChevronRight size={14} />
+            </Link>
+          </div>
+          <PopularForms />
+          <div className="sm:hidden mt-4 text-center">
+            <Link
+              href="/gallery"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-[#2563EB]"
+            >
+              전체 보기 <ChevronRight size={14} />
+            </Link>
           </div>
         </div>
       </section>
