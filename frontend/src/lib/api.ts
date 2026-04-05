@@ -75,9 +75,20 @@ export async function aiMap(fileId: string, text: string, contentFile?: File) {
   const token = await _getToken();
   const headers: Record<string, string> = { "X-Fingerprint": _fingerprint() };
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  const res = await fetch(`${API}/ai/map`, { method: "POST", body: fd, headers });
-  if (!res.ok) await handleError(res, "매핑 실패");
-  return res.json();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 120000); // 2분 타임아웃
+  try {
+    const res = await fetch(`${API}/ai/map`, { method: "POST", body: fd, headers, signal: controller.signal });
+    if (!res.ok) await handleError(res, "매핑 실패");
+    return res.json();
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new Error("AI 처리 시간이 초과되었습니다. 더 작은 양식으로 시도하거나, 잠시 후 다시 시도해주세요.");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function generateDoc(fileId: string, replacements: Record<string, string>, stripImages = false, outputFormat = "hwpx") {

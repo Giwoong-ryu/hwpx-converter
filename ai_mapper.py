@@ -217,21 +217,24 @@ def map_content(form_texts, user_content, content_file=None):
     is_gen = _is_generation_request(combined_content)
 
     # 양식 필드 필터링
-    _SKIP = {"□", "☑", "※", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "☐", "○", "●"}
+    _SKIP = {"□", "☑", "※", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩",
+             "☐", "○", "●", "-", ":", "(", ")", "·", "•", "*", "/", ",", ".",
+             "(필수)", "(해당 시)", "(선택)", "시", "필요"}
     if is_gen:
         filtered_fields = [t for t in form_texts if len(t) > 4 and t.strip() not in _SKIP]
         filtered_fields = [t[:200] if len(t) > 200 else t for t in filtered_fields]
     else:
-        filtered_fields = [t for t in form_texts if 1 < len(t) <= 120 and t.strip() not in _SKIP]
+        # 매핑 모드: 3자 이상만 (2자 이하 = 라벨/기호, 치환 시 다른 곳에 영향)
+        filtered_fields = [t for t in form_texts if len(t) > 2 and len(t) <= 120 and t.strip() not in _SKIP]
 
-    # 필드 상한: 3000개 (약 100장 분량)
-    MAX_FIELDS = 3000
+    # 필드 상한: 500개 (Railway 타임아웃 대응, 배치 3회 이내)
+    MAX_FIELDS = 500
     if len(filtered_fields) > MAX_FIELDS:
         print(f"[ai/map] 필드 {len(filtered_fields)}개 → {MAX_FIELDS}개로 제한")
         filtered_fields = filtered_fields[:MAX_FIELDS]
 
-    # 배치 분할 호출 (150개씩 나눠서 전체 커버)
-    BATCH_SIZE = 150
+    # 배치 분할 호출 (200개씩, 최대 3배치 = 60초 이내)
+    BATCH_SIZE = 200
     if is_gen:
         system_prompt = SYSTEM_PROMPT_GEN
         model_name = MODELS["generation"]
@@ -294,7 +297,8 @@ def map_content(form_texts, user_content, content_file=None):
                     if not isinstance(v, str):
                         continue
                     v = v.strip()
-                    if v:
+                    # 짧은 키 제거 (2자 이하 → 다중 section에서 중복 치환 위험)
+                    if v and len(k) > 2 and k not in _SKIP:
                         all_results[k] = v
 
         if not all_results:
@@ -329,12 +333,17 @@ def map_content(form_texts, user_content, content_file=None):
                 matched = _norm_index.get(k_no_space)
 
             # 3단계: 접두사 매칭 (AI가 "- " 같은 접두사를 빼먹은 경우)
+            # 최장 매칭 우선 + 유사도 90% 이상만
             if not matched:
+                best_t = None
+                best_len = 0
                 for t in form_texts:
                     if t.endswith(k) or k.endswith(t):
-                        if min(len(k), len(t)) / max(len(k), len(t)) > 0.8:
-                            matched = t
-                            break
+                        ratio = min(len(k), len(t)) / max(len(k), len(t))
+                        if ratio > 0.9 and len(t) > best_len:
+                            best_t = t
+                            best_len = len(t)
+                matched = best_t
 
             normalized[matched or k] = v
 
