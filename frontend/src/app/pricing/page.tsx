@@ -153,10 +153,10 @@ export default function PricingPage() {
         </div>
 
         {/* 스크롤 힌트 */}
-        <div className="text-center mb-20">
+        <div className="text-center mt-8 mb-16">
           <button onClick={() => document.getElementById("rewards")?.scrollIntoView({ behavior: "smooth" })}
-            className="inline-flex flex-col items-center gap-1 text-xs text-[#57423c]/30 hover:text-[#57423c]/50 transition-colors">
-            <span>쓸수록 보상이 쌓입니다</span>
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#93C5FD]/50 text-sm font-semibold text-[#2563EB] hover:bg-[#EFF6FF] transition-colors">
+            <span>보상 시스템 · 단계 · 비교표 · FAQ</span>
             <ChevronDown size={16} className="animate-bounce" />
           </button>
         </div>
