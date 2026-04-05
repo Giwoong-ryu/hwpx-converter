@@ -1,7 +1,8 @@
 """AI 자동 매핑 API"""
 
+import os
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Header
-from typing import Optional
+from typing import Optional, List
 
 from api.services.file_manager import file_manager
 from api.services.metrics import log as mlog, Timer
@@ -16,6 +17,7 @@ async def ai_map(
     file_id: str = Form(...),
     text: Optional[str] = Form(None),
     content_file: Optional[UploadFile] = File(None),
+    content_files: Optional[List[UploadFile]] = File(None),
     authorization: Optional[str] = Header(None),
     x_fingerprint: Optional[str] = Header(None),
 ):
@@ -75,20 +77,64 @@ async def ai_map(
         mlog("ai_map", success=False, error=f"양식 분석: {e}")
         raise HTTPException(status_code=500, detail=f"양식 파일을 분석할 수 없습니다: {e}")
 
-    content_path = None
-    if content_file and content_file.filename:
+    # 복수 파일 처리 (content_files 우선, 없으면 content_file 단일)
+    all_files = []
+    if content_files:
+        all_files = [f for f in content_files if f and f.filename]
+    elif content_file and content_file.filename:
+        all_files = [content_file]
+
+    # 무료 사용자: 파일 1개 제한
+    if len(all_files) > 1 and user_id:
         try:
-            cid = await file_manager.save_upload(content_file)
-            content_path = file_manager.get_path(cid)
+            status = await credit_service.get_user_status(user_id)
+            plan = status.get("plan", "free") if status else "free"
+            if plan == "free":
+                raise HTTPException(status_code=429, detail={
+                    "detail": "무료 플랜은 파일 1개만 업로드할 수 있습니다. Plus로 업그레이드하면 여러 파일을 한번에 처리할 수 있습니다.",
+                    "error_code": "FILE_LIMIT",
+                })
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+    elif len(all_files) > 1 and not user_id:
+        raise HTTPException(status_code=401, detail={
+            "detail": "여러 파일을 업로드하려면 로그인이 필요합니다.",
+            "error_code": "LOGIN_REQUIRED",
+        })
+
+    # 파일 합산 크기 체크 (5MB)
+    content_paths = []
+    total_size = 0
+    warnings = []
+    for i, f in enumerate(all_files[:5]):  # 최대 5개
+        try:
+            cid = await file_manager.save_upload(f)
+            cp = file_manager.get_path(cid)
+            if cp:
+                content_paths.append(cp)
+                total_size += os.path.getsize(cp)
         except Exception as e:
-            mlog("ai_map", success=False, error=f"파일 업로드: {e}")
-            raise HTTPException(status_code=500, detail="파일 업로드에 실패했습니다. 다시 시도해주세요.")
+            warnings.append(f"파일 '{f.filename}' 읽기 실패")
+            print(f"[ai/map] 파일 {i+1} 업로드 실패: {e}")
+
+    if total_size > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="파일 총 크기가 5MB를 초과합니다. 파일을 줄여주세요.")
+
+    # 하위 호환: 단일 content_path 또는 복수 content_paths
+    content_path = content_paths[0] if len(content_paths) == 1 else None
+    extra_paths = content_paths[1:] if len(content_paths) > 1 else []
 
     mode = "generate" if action == "generation" else "mapping"
     with Timer() as t:
         try:
-            print(f"[ai/map] fields={len(fields)}, text_len={len(text or '')}, content_path={content_path}")
-            result, error = map_content(fields, text or "", content_path, structured=structured)
+            print(f"[ai/map] fields={len(fields)}, text_len={len(text or '')}, files={len(content_paths)}")
+            result, error = map_content(
+                fields, text or "", content_path,
+                structured=structured,
+                extra_content_files=extra_paths if extra_paths else None,
+            )
             print(f"[ai/map] result={'OK' if result else 'None'}, error={error}")
         except Exception as e:
             import traceback as tb

@@ -285,7 +285,7 @@ def _read_content_file(file_path):
         return f"[파일 읽기 실패: {file_path}]"
 
 
-def map_content(form_texts, user_content, content_file=None, structured=None):
+def map_content(form_texts, user_content, content_file=None, structured=None, extra_content_files=None):
     """양식 필드와 사용자 내용을 AI로 매핑한다.
 
     Args:
@@ -293,6 +293,7 @@ def map_content(form_texts, user_content, content_file=None, structured=None):
         user_content: 사용자가 입력한 텍스트
         content_file: 내용이 담긴 파일 경로 (선택)
         structured: extract_structured_fields()의 결과 (테이블 구조, 선택)
+        extra_content_files: 추가 내용 파일 경로 리스트 (선택, 복수 파일)
 
     Returns:
         dict: {원본텍스트: 새텍스트} 또는 에러 시 None
@@ -302,18 +303,26 @@ def map_content(form_texts, user_content, content_file=None, structured=None):
     if not api_key:
         return None, "GEMINI_API_KEY가 설정되지 않았습니다. 환경변수 또는 .env 파일에 설정해주세요."
 
-    # 내용 조합
+    # 내용 조합 (텍스트 + 파일 1개 + 추가 파일들)
     content_parts = []
     if user_content and user_content.strip():
         content_parts.append(user_content.strip())
     if content_file:
         file_text = _read_content_file(content_file)
         content_parts.append(file_text)
+    if extra_content_files:
+        for fp in extra_content_files:
+            try:
+                extra_text = _read_content_file(fp)
+                content_parts.append(extra_text)
+            except Exception as e:
+                print(f"[ai/map] 추가 파일 읽기 실패: {e}")
 
     if not content_parts:
         return None, "내용을 입력하거나 파일을 업로드해주세요."
 
     combined_content = "\n\n".join(content_parts)
+    print(f"[ai/map] 콘텐츠 합산: {len(content_parts)}개 소스, {len(combined_content):,}자")
 
     # 생성 요청 vs 매핑 요청 판단
     is_gen = _is_generation_request(combined_content)
