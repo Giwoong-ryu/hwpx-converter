@@ -58,21 +58,17 @@ export default function PricingPage() {
         </div>
       </nav>
 
-      <main className="pt-32 pb-20 max-w-screen-xl mx-auto px-8 lg:px-12">
+      <main className="pt-20 pb-20 max-w-screen-xl mx-auto px-8 lg:px-12">
 
         {/* ── 헤드라인 ── */}
-        <div className="text-center mb-16">
-          <h1 className="text-[2.2rem] lg:text-[2.8rem] font-extrabold leading-[1.15] tracking-tight mb-4">
+        <div className="text-center mb-8">
+          <h1 className="text-[2rem] lg:text-[2.4rem] font-extrabold leading-[1.15] tracking-tight mb-2">
             문서 변환/추출은 <span className="text-[#2563EB]">무료</span>.<br />
             AI 자동 작성만 유료입니다.
           </h1>
-          <p className="text-base text-[#57423c]/60 max-w-lg mx-auto mb-6">
+          <p className="text-sm text-[#57423c]/60 max-w-lg mx-auto">
             광고 없음. 파일은 처리 후 즉시 삭제. 로그인 없이도 사용 가능.
           </p>
-          <button onClick={() => document.getElementById("plans")?.scrollIntoView({ behavior: "smooth" })}
-            className="inline-flex items-center gap-1 text-sm text-[#2563EB] hover:underline">
-            요금제 비교 보기 <ArrowDown size={14} />
-          </button>
         </div>
 
         {/* ── 가격 카드 3열 ── */}
