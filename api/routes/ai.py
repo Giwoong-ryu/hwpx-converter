@@ -62,12 +62,18 @@ async def ai_map(
         raise HTTPException(status_code=404, detail="양식 파일을 찾을 수 없습니다. 다시 분석해주세요.")
 
     try:
-        from clone_form import extract_texts, detect_labels
+        from clone_form import extract_texts
         fields = extract_texts(path)
-        labels = detect_labels(path)
     except Exception as e:
         mlog("ai_map", success=False, error=f"양식 분석: {e}")
-        raise HTTPException(status_code=500, detail="양식 파일을 분석할 수 없습니다. 파일이 손상되었을 수 있습니다.")
+        raise HTTPException(status_code=500, detail=f"양식 파일을 분석할 수 없습니다: {e}")
+
+    labels = set()
+    try:
+        from clone_form import detect_labels
+        labels = detect_labels(path)
+    except Exception:
+        pass  # detect_labels 실패해도 AI 매핑은 진행
 
     content_path = None
     if content_file and content_file.filename:
