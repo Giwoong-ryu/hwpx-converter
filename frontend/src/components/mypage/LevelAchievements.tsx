@@ -97,17 +97,17 @@ export default function LevelAchievements() {
               {done ? (
                 <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
               ) : (
-                <Circle size={16} className="text-[#57423c]/20 shrink-0" />
+                <Circle size={16} className="text-[#57423c]/40 shrink-0" />
               )}
               <div className="flex-1 min-w-0">
-                <span className={`text-sm ${done ? "text-[#1a1c1b] font-semibold" : "text-[#57423c]/60"}`}>
+                <span className={`text-sm ${done ? "text-[#1a1c1b] font-semibold" : "text-[#57423c]"}`}>
                   {def.label}
                 </span>
-                <span className={`text-xs ml-2 ${done ? "text-emerald-600" : "text-[#57423c]/30"}`}>
+                <span className={`text-xs ml-2 ${done ? "text-emerald-600" : "text-[#57423c]/60"}`}>
                   +{def.reward}%
                 </span>
               </div>
-              <span className="text-[10px] text-[#57423c]/40 shrink-0">
+              <span className={`text-[11px] shrink-0 ${done ? "text-[#57423c]/50" : "text-[#2563EB]/70"}`}>
                 {done && record
                   ? new Date(record.created_at).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })
                   : remaining}

@@ -430,55 +430,11 @@ function Main() {
               )}
             </div>
 
-            {/* 사용 흐름 — 기본 열림, 토글 가능 */}
-            <div className="mt-6 pt-5 border-t border-[#93C5FD]/20">
-              <button
-                onClick={() => setShowSteps(!showSteps)}
-                className="w-full flex items-center justify-between mb-2 hover:opacity-70 transition-opacity"
-              >
-                <p className="text-[10px] text-[#57423c]/70 font-bold tracking-wider uppercase">사용 흐름</p>
-                {showSteps
-                  ? <ChevronUp size={12} className="text-[#57423c]" />
-                  : <ChevronDown size={12} className="text-[#57423c]" />
-                }
-              </button>
-              {showSteps && (
-                <div className="space-y-5">
-                  <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 bg-gradient-to-br from-[#2563EB] to-[#1E40AF] text-white rounded-md flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
-                    <div>
-                      <p className="text-sm font-bold text-[#1a1c1b] mb-1">양식 업로드</p>
-                      <p className="text-sm text-[#57423c] leading-relaxed">
-                        완성하고 싶은 문서를 올리고<br />
-                        &quot;양식 분석&quot;을 누릅니다.<br />
-                        AI가 채울 항목을 자동으로 찾습니다.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 bg-gradient-to-br from-[#2563EB] to-[#1E40AF] text-white rounded-md flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
-                    <div>
-                      <p className="text-sm font-bold text-[#1a1c1b] mb-1">내용 채우기</p>
-                      <p className="text-sm text-[#57423c] leading-relaxed">
-                        &quot;사업계획서 써줘&quot;라고 입력하면<br />
-                        AI가 작성합니다.<br />
-                        다른 파일(엑셀, 워드)을 올려도 됩니다.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 bg-gradient-to-br from-[#2563EB] to-[#1E40AF] text-white rounded-md flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
-                    <div>
-                      <p className="text-sm font-bold text-[#1a1c1b] mb-1">완성 다운로드</p>
-                      <p className="text-sm text-[#57423c] leading-relaxed">
-                        결과를 확인하고 수정할 수 있습니다.<br />
-                        &quot;문서 만들기&quot;를 누르면<br />
-                        HWPX, HWP, DOCX로 받습니다.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+            {/* 갤러리 링크 */}
+            <div className="mt-4 pt-4 border-t border-[#93C5FD]/20">
+              <Link href="/gallery" className="flex items-center justify-center gap-1.5 text-xs text-[#2563EB] hover:text-[#1E40AF] transition-colors">
+                <Globe size={12} /> 양식 갤러리에서 양식 찾기
+              </Link>
             </div>
 
           </div>

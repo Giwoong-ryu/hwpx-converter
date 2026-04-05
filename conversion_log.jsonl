@@ -1,0 +1,10 @@
+{"ts": "2026-03-31T20:17:18", "op": "analyze", "ok": true, "in_fmt": "hwpx", "out_fmt": "", "fields": 1340, "ms": 42, "err": "", "detail": ""}
+{"ts": "2026-03-31T20:17:20", "op": "generate", "ok": true, "in_fmt": "", "out_fmt": "hwpx", "fields": 1340, "ms": 708, "err": "", "detail": "coverage=100.0%, replaced=1888/1888, remaining=0"}
+{"ts": "2026-04-04T12:20:25", "op": "extract", "ok": true, "in_fmt": "", "out_fmt": "", "fields": 9, "ms": 163, "err": "", "detail": "files=1"}
+{"ts": "2026-04-04T12:20:46", "op": "extract", "ok": true, "in_fmt": "", "out_fmt": "", "fields": 9, "ms": 67, "err": "", "detail": "files=1"}
+{"ts": "2026-04-04T12:21:07", "op": "merge", "ok": true, "in_fmt": "", "out_fmt": "", "fields": 2, "ms": 74, "err": "", "detail": "files=2"}
+{"ts": "2026-04-04T12:21:39", "op": "extract", "ok": true, "in_fmt": "", "out_fmt": "", "fields": 1340, "ms": 115, "err": "", "detail": "files=1"}
+{"ts": "2026-04-05T17:24:22", "op": "analyze", "ok": true, "in_fmt": "hwpx", "out_fmt": "", "fields": 1340, "ms": 62, "err": "", "detail": ""}
+{"ts": "2026-04-05T17:26:14", "op": "ai_map", "ok": true, "in_fmt": "", "out_fmt": "", "fields": 1340, "ms": 110651, "err": "", "detail": "mapping, mapped=1, matched=1, coverage=0.1%"}
+{"ts": "2026-04-05T18:28:12", "op": "analyze", "ok": true, "in_fmt": "hwpx", "out_fmt": "", "fields": 1340, "ms": 34, "err": "", "detail": ""}
+{"ts": "2026-04-05T18:29:22", "op": "ai_map", "ok": false, "in_fmt": "", "out_fmt": "", "fields": 1340, "ms": 67822, "err": "매핑할 항목을 찾지 못했습니다. 내용을 더 구체적으로 입력해주세요.", "detail": "mapping"}

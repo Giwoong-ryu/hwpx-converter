@@ -1,0 +1,54 @@
+[
+  {
+    "test": "1. Health Check",
+    "status": "OK",
+    "detail": {
+      "status": "ok"
+    }
+  },
+  {
+    "test": "2. 양식 분석 (/form/analyze)",
+    "status": "OK",
+    "detail": "file_id=f087ed40adff, fields=409개"
+  },
+  {
+    "test": "3. AI 자동 매핑 (/ai/map)",
+    "status": "OK",
+    "detail": "2개 매핑"
+  },
+  {
+    "test": "4. 문서 생성 (/form/generate)",
+    "status": "OK",
+    "detail": "3,781,149 bytes"
+  },
+  {
+    "test": "5. 내용 뽑기 (/extract/)",
+    "status": "OK",
+    "detail": "27,088 bytes xlsx"
+  },
+  {
+    "test": "6. 도장 삽입 (/stamp/insert)",
+    "status": "OK",
+    "detail": "SKIP - 양식에 (인) 텍스트 없음"
+  },
+  {
+    "test": "7. 문서 합치기 (/merge/)",
+    "status": "OK",
+    "detail": "3,806,910 bytes"
+  },
+  {
+    "test": "8. 정기 문서 (/periodic/generate)",
+    "status": "OK",
+    "detail": "11,263,497 bytes zip"
+  },
+  {
+    "test": "9. 대량 생성 기존 (/batch/generate)",
+    "status": "OK",
+    "detail": "7,508,982 bytes zip"
+  },
+  {
+    "test": "10. 대량 생성 AI 매핑 (/batch/map-headers)",
+    "status": "OK",
+    "detail": "3개 헤더 매핑, 2행"
+  }
+]
