@@ -16,7 +16,7 @@ ACHIEVEMENT_DEFS = {
     "streak_7": {"label": "7일 연속 사용", "reward": 25, "condition": "7일 연속 사용"},
     "streak_14": {"label": "14일 연속 사용", "reward": 25, "condition": "14일 연속 사용"},
     "streak_30": {"label": "30일 연속 사용", "reward": 50, "condition": "30일 연속 사용"},
-    "level_2": {"label": "복붙 탈출 달성", "reward": 25, "condition": "문서 5건 완성"},
+    "level_2": {"label": "자동화 입문 달성", "reward": 25, "condition": "문서 5건 완성"},
     "level_3": {"label": "칼퇴 요정 달성", "reward": 50, "condition": "문서 20건 완성"},
     "level_4": {"label": "팀 에이스 달성", "reward": 50, "condition": "문서 50건 완성"},
     "level_5": {"label": "자동화의 신 달성", "reward": 50, "condition": "문서 100건 완성"},

@@ -34,8 +34,8 @@ ACHIEVEMENTS = {
 
 # ═══ 단계 정의 ═══
 LEVELS = [
-    {"level": 1, "title": "AI 입문자", "docs": 0, "reward": 0},
-    {"level": 2, "title": "복붙 탈출", "docs": 5, "reward": 25.0},
+    {"level": 1, "title": "복붙 탈출", "docs": 0, "reward": 0},
+    {"level": 2, "title": "자동화 입문", "docs": 5, "reward": 25.0},
     {"level": 3, "title": "칼퇴 요정", "docs": 20, "reward": 50.0},
     {"level": 4, "title": "팀 에이스", "docs": 50, "reward": 50.0},
     {"level": 5, "title": "자동화의 신", "docs": 100, "reward": 50.0},

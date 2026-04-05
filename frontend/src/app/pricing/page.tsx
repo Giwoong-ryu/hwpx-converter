@@ -199,19 +199,18 @@ export default function PricingPage() {
           <h2 className="text-xl font-extrabold tracking-tight text-center mb-8">쓸수록 단계가 올라요</h2>
           <div className="flex items-center justify-between gap-2">
             {[
-              { lv: 1, title: "AI 입문자", docs: "0건" },
-              { lv: 2, title: "복붙 탈출", docs: "5건" },
-              { lv: 3, title: "칼퇴 요정", docs: "20건" },
-              { lv: 4, title: "팀 에이스", docs: "50건" },
-              { lv: 5, title: "자동화의 신", docs: "100건" },
+              { lv: 1, title: "복붙 탈출", medal: "참가", docs: "0건", color: "text-gray-400", bg: "bg-gray-100" },
+              { lv: 2, title: "자동화 입문", medal: "동메달", docs: "5건", color: "text-amber-700", bg: "bg-amber-50" },
+              { lv: 3, title: "칼퇴 요정", medal: "은메달", docs: "20건", color: "text-slate-400", bg: "bg-slate-50" },
+              { lv: 4, title: "팀 에이스", medal: "금메달", docs: "50건", color: "text-yellow-500", bg: "bg-yellow-50" },
+              { lv: 5, title: "자동화의 신", medal: "트로피", docs: "100건", color: "text-amber-500", bg: "bg-amber-50" },
             ].map((l, i) => (
               <div key={l.lv} className="flex flex-col items-center gap-1.5 flex-1">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black ${
-                  i === 0 ? "bg-emerald-50 text-emerald-500" : i === 1 ? "bg-sky-50 text-sky-500" : i === 2 ? "bg-violet-50 text-violet-500" : i === 3 ? "bg-amber-50 text-amber-500" : "bg-rose-50 text-rose-500"
-                }`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${l.bg} ${l.color}`}>
                   {l.lv}
                 </div>
                 <span className="text-xs font-bold text-[#1a1c1b]">{l.title}</span>
+                <span className={`text-[9px] ${l.color}`}>{l.medal}</span>
                 <span className="text-[10px] text-[#57423c]/30">{l.docs}</span>
                 {i < 4 && l.lv > 1 && <span className="text-[10px] text-[#2563EB]">+{l.lv === 2 ? "25" : "50"}%</span>}
               </div>

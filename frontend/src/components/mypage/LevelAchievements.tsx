@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { listAchievements } from "@/lib/api";
-import { Trophy, CheckCircle2, Circle, Sprout, Scissors, Wand2, Star, Crown } from "lucide-react";
+import { Trophy, CheckCircle2, Circle, Award } from "lucide-react";
 
 const LEVELS = [
-  { level: 1, title: "AI 입문자", docs: 0, icon: Sprout, color: "text-emerald-500", bg: "bg-emerald-50" },
-  { level: 2, title: "복붙 탈출", docs: 5, icon: Scissors, color: "text-sky-500", bg: "bg-sky-50" },
-  { level: 3, title: "칼퇴 요정", docs: 20, icon: Wand2, color: "text-violet-500", bg: "bg-violet-50" },
-  { level: 4, title: "팀 에이스", docs: 50, icon: Star, color: "text-amber-500", bg: "bg-amber-50" },
-  { level: 5, title: "자동화의 신", docs: 100, icon: Crown, color: "text-rose-500", bg: "bg-rose-50" },
+  { level: 1, title: "복붙 탈출", docs: 0, medal: "참가", color: "text-gray-400", bg: "bg-gray-100", ring: "ring-gray-300" },
+  { level: 2, title: "자동화 입문", docs: 5, medal: "동메달", color: "text-amber-700", bg: "bg-amber-50", ring: "ring-amber-300" },
+  { level: 3, title: "칼퇴 요정", docs: 20, medal: "은메달", color: "text-slate-400", bg: "bg-slate-50", ring: "ring-slate-300" },
+  { level: 4, title: "팀 에이스", docs: 50, medal: "금메달", color: "text-yellow-500", bg: "bg-yellow-50", ring: "ring-yellow-300" },
+  { level: 5, title: "자동화의 신", docs: 100, medal: "트로피", color: "text-amber-500", bg: "bg-amber-50", ring: "ring-amber-400" },
 ];
 
 interface AchDef { label: string; reward: number; condition?: string }
@@ -56,22 +56,29 @@ export default function LevelAchievements() {
       <div className="mb-6">
         <div className="flex items-center gap-1 mb-2">
           {LEVELS.map((l) => {
-            const Icon = l.icon;
             const isCurrent = l.level === level;
             const isPast = l.level < level;
+            const isLast = l.level === 5;
             return (
               <div key={l.level} className="flex-1 flex flex-col items-center gap-1.5">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                   isCurrent
-                    ? `${l.bg} ring-2 ring-offset-2 ring-current ${l.color}`
+                    ? `${l.bg} ring-2 ring-offset-2 ${l.ring} ${l.color}`
                     : isPast
                     ? `${l.bg} ${l.color}`
-                    : "bg-gray-100 text-[#57423c]/25"
+                    : "bg-gray-50 text-[#57423c]/20"
                 }`}>
-                  <Icon size={20} strokeWidth={isCurrent ? 2.5 : 1.8} />
+                  {isLast ? (
+                    <Trophy size={18} strokeWidth={isCurrent ? 2.5 : 1.8} />
+                  ) : (
+                    <Award size={18} strokeWidth={isCurrent ? 2.5 : 1.8} />
+                  )}
                 </div>
                 <span className={`text-[10px] leading-tight text-center ${isCurrent ? "font-bold text-[#1a1c1b]" : isPast ? "font-medium text-[#57423c]/70" : "text-[#57423c]/35"}`}>
                   {l.title}
+                </span>
+                <span className={`text-[9px] ${isCurrent ? "font-semibold " + l.color : "text-[#57423c]/25"}`}>
+                  {l.medal}
                 </span>
               </div>
             );

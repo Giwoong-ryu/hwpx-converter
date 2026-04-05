@@ -33,7 +33,7 @@ export default function ProfileHeader() {
   const gauge = user.gauge_pct || 0;
   const streak = user.streak_days || 0;
   const level = user.level || 1;
-  const levelTitle = user.level_title || "AI 입문자";
+  const levelTitle = user.level_title || "복붙 탈출";
   const totalDocs = user.total_docs || 0;
 
   const barColor = gauge > 100 ? "bg-emerald-500" : gauge > 30 ? "bg-[#2563EB]" : gauge > 10 ? "bg-amber-500" : "bg-red-500";
