@@ -286,3 +286,32 @@ export async function deleteMapping(id: number) {
   if (!res.ok) await handleError(res, "매핑 삭제 실패");
   return res.json();
 }
+
+export async function listPublicMappings(page = 1) {
+  const res = await fetch(`${API}/mapping/public/list?page=${page}&size=20`);
+  if (!res.ok) return { mappings: [], page: 1, size: 20 };
+  return res.json();
+}
+
+export async function toggleLike(mappingId: number) {
+  const token = await _getToken();
+  if (!token) throw new Error("로그인이 필요합니다.");
+  const res = await fetch(`${API}/mapping/${mappingId}/like`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) await handleError(res, "좋아요 실패");
+  return res.json();
+}
+
+export async function updateMappingPublic(id: number, isPublic: boolean) {
+  const token = await _getToken();
+  if (!token) throw new Error("로그인이 필요합니다.");
+  const res = await fetch(`${API}/mapping/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ is_public: isPublic }),
+  });
+  if (!res.ok) await handleError(res, "공개 설정 실패");
+  return res.json();
+}

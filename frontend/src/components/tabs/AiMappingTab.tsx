@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "@/context/FormContext";
 import { useAuth } from "@/context/AuthContext";
-import { aiMap, generateDoc, downloadBlob, GaugeEmptyError, saveMapping, listMyMappings, loadMapping, deleteMapping } from "@/lib/api";
+import { aiMap, generateDoc, downloadBlob, GaugeEmptyError, saveMapping, listMyMappings, loadMapping, deleteMapping, listPublicMappings, toggleLike, updateMappingPublic } from "@/lib/api";
 import FileUpload from "@/components/ui/FileUpload";
-import { Wand2, Download, Loader2, CheckCircle2, ChevronDown, ChevronUp, ImageOff, Sparkles, PenLine, Save, FolderOpen, Trash2, X } from "lucide-react";
+import { Wand2, Download, Loader2, CheckCircle2, ChevronDown, ChevronUp, ImageOff, Sparkles, PenLine, Save, FolderOpen, Trash2, X, Heart, Globe, Lock } from "lucide-react";
 
 interface AiMappingTabProps {
   onGaugeEmpty?: (data: { errorCode: string; plan: string; gaugePct: number }) => void;
@@ -17,7 +17,41 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
   const [text, setText] = useState("");
   const [contentFile, setContentFile] = useState<File | null>(null);
   const [smartValues, setSmartValues] = useState<Record<string, string>>({});
+  const [remember, setRemember] = useState(false);
   const [mode, setMode] = useState<"smart" | "free">("smart");
+
+  // localStorage에서 기억된 값 불러오기
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("eazyhwpx_smart_remember");
+      if (saved === "true") {
+        setRemember(true);
+        const vals = localStorage.getItem("eazyhwpx_smart_values");
+        if (vals) setSmartValues(JSON.parse(vals));
+      }
+    } catch { /* localStorage 접근 불가 시 무시 */ }
+  }, []);
+
+  // 기억하기 ON일 때 값 변경 시 자동 저장
+  useEffect(() => {
+    if (!remember) return;
+    try {
+      localStorage.setItem("eazyhwpx_smart_values", JSON.stringify(smartValues));
+    } catch { /* 무시 */ }
+  }, [smartValues, remember]);
+
+  const handleRememberToggle = (checked: boolean) => {
+    setRemember(checked);
+    try {
+      if (checked) {
+        localStorage.setItem("eazyhwpx_smart_remember", "true");
+        localStorage.setItem("eazyhwpx_smart_values", JSON.stringify(smartValues));
+      } else {
+        localStorage.removeItem("eazyhwpx_smart_remember");
+        localStorage.removeItem("eazyhwpx_smart_values");
+      }
+    } catch { /* 무시 */ }
+  };
   const [mappings, setMappings] = useState<[string, string][]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -30,7 +64,9 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showLoadModal, setShowLoadModal] = useState(false);
+  const [loadTab, setLoadTab] = useState<"my" | "public">("my");
   const [savedList, setSavedList] = useState<{ id: number; form_name: string; form_field_count: number; created_at: string }[]>([]);
+  const [publicList, setPublicList] = useState<{ id: number; form_name: string; form_field_count: number; likes: number; created_at: string; liked?: boolean }[]>([]);
 
   const buildSmartPrompt = (): string => {
     const parts = smartFields
@@ -65,13 +101,16 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
     }
   };
 
-  const doSaveMapping = async () => {
+  const doSaveMapping = async (makePublic = false) => {
     if (!user || mappings.length === 0) return;
     setSaving(true);
     try {
       const obj: Record<string, string> = {};
       mappings.forEach(([k, v]) => { if (v.trim()) obj[k] = v; });
-      await saveMapping(filename || "양식", obj, fieldCount || 0);
+      const saved = await saveMapping(filename || "양식", obj, fieldCount || 0);
+      if (makePublic && saved?.mapping?.id) {
+        await updateMappingPublic(saved.mapping.id, true);
+      }
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (e: unknown) {
@@ -85,9 +124,33 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
     try {
       const list = await listMyMappings();
       setSavedList(list);
+      setLoadTab("my");
       setShowLoadModal(true);
     } catch {
       setError("저장된 매핑 목록을 불러올 수 없습니다.");
+    }
+  };
+
+  const doLoadPublicMappings = async () => {
+    try {
+      const res = await listPublicMappings();
+      setPublicList(res.mappings || []);
+      setLoadTab("public");
+      setShowLoadModal(true);
+    } catch {
+      setError("공개 매핑 목록을 불러올 수 없습니다.");
+    }
+  };
+
+  const doToggleLike = async (id: number) => {
+    if (!user) return;
+    try {
+      const res = await toggleLike(id);
+      setPublicList((prev) =>
+        prev.map((m) => m.id === id ? { ...m, likes: res.likes, liked: res.liked } : m)
+      );
+    } catch {
+      // 무시
     }
   };
 
@@ -161,6 +224,8 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
                 <label className="text-xs text-[#57423c] w-24 shrink-0 text-right font-medium">{f.label}</label>
                 <input
                   type="text"
+                  name={`smart_${f.key}`}
+                  autoComplete="on"
                   placeholder={f.placeholder}
                   value={smartValues[f.key] || ""}
                   onChange={(e) => setSmartValues((p) => ({ ...p, [f.key]: e.target.value }))}
@@ -169,6 +234,22 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
               </div>
             ))}
           </div>
+          <label className="flex items-center gap-2 cursor-pointer select-none group">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => handleRememberToggle(e.target.checked)}
+              className="rounded accent-[#2563EB] w-3.5 h-3.5"
+            />
+            <span className="text-[11px] text-[#57423c]/60 group-hover:text-[#57423c] transition-colors">
+              이 기기에서 내 정보 기억하기
+            </span>
+            {remember && (
+              <span className="text-[10px] text-[#57423c]/40">
+                서버에 전송되지 않습니다
+              </span>
+            )}
+          </label>
           <button
             onClick={doMap}
             disabled={loading || !isAnalyzed || !hasSmartInput}
@@ -294,7 +375,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
             <div className="flex gap-2">
               {user && (
                 <button
-                  onClick={doSaveMapping}
+                  onClick={() => doSaveMapping(false)}
                   disabled={saving || mappings.length === 0}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border border-[#93C5FD]/50 text-[#1E40AF] hover:bg-[#EFF6FF] disabled:opacity-40 transition-all"
                 >
