@@ -9,6 +9,15 @@ from pathlib import Path
 # 프로젝트 루트 기준 경로 (hwpx-converter/)
 SKILL_DIR = str(Path(__file__).resolve().parent.parent)
 
+# ═══ 색상 단일 소스 ═══
+COLORS = {
+    "header_bg": ("#D6DCE4", "#D9DEE4", "#DAE0E7"),  # 밝은 회색 헤더
+    "dark_header": ("#2B4C7E", "#2D4F82", "#1F3864", "#333399"),  # 어두운 파란 헤더
+    "light_gray": ("#F2F2F2", "#EDEDED", "#E8E8E8", "#D9D9D9"),  # 밝은 배경
+    "white": ("#FFFFFF",),
+    "black": ("#000000",),
+}
+
 # === ID 생성기 (스레드 안전) ===
 _id_local = threading.local()
 _ID_START = 2000000000
@@ -39,7 +48,7 @@ def esc(text):
 
 def color_to_charpr(color, bold=False, size_pt=10):
     """색상/스타일 -> charPr ID 매핑 (report 템플릿 기준)"""
-    if color and color.upper() not in ("#000000", "#FFFFFF", ""):
+    if color and color.upper() not in (*COLORS["black"], *COLORS["white"], ""):
         return 10
     if bold and size_pt >= 18:
         return 7
@@ -54,16 +63,16 @@ def color_to_charpr(color, bold=False, size_pt=10):
 
 def style_to_bf(bg_color, is_header=False):
     """배경색 -> borderFill ID 매핑"""
-    if not bg_color or bg_color.upper() in ("#FFFFFF", ""):
+    if not bg_color or bg_color.upper() in (*COLORS["white"], ""):
         if is_header:
             return 7
         return 3
     bg = bg_color.upper()
-    if bg in ("#D6DCE4", "#D9DEE4", "#DAE0E7"):
+    if bg in COLORS["header_bg"]:
         return 7
-    if bg in ("#2B4C7E", "#2D4F82", "#1F3864", "#333399"):
+    if bg in COLORS["dark_header"]:
         return 8
-    if bg in ("#F2F2F2", "#EDEDED", "#E8E8E8", "#D9D9D9"):
+    if bg in COLORS["light_gray"]:
         return 6
     return 6
 

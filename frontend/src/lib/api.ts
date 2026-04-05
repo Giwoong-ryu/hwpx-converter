@@ -76,7 +76,7 @@ export async function aiMap(fileId: string, text: string, contentFile?: File) {
   const headers: Record<string, string> = { "X-Fingerprint": _fingerprint() };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 120000); // 2분 타임아웃
+  const timer = setTimeout(() => controller.abort(), 300000); // 5분 타임아웃
   try {
     const res = await fetch(`${API}/ai/map`, { method: "POST", body: fd, headers, signal: controller.signal });
     if (!res.ok) await handleError(res, "매핑 실패");
@@ -209,4 +209,80 @@ export function downloadBlob(blob: Blob, filename: string) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ═══ 프리셋 API ═══
+
+export async function listPresets() {
+  const token = await _getToken();
+  if (!token) return [];
+  const res = await fetch(`${API}/preset/list`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.presets || [];
+}
+
+export async function createPreset(name: string, data: Record<string, string>) {
+  const token = await _getToken();
+  if (!token) throw new Error("로그인이 필요합니다.");
+  const res = await fetch(`${API}/preset/create`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ name, data }),
+  });
+  if (!res.ok) await handleError(res, "프리셋 저장 실패");
+  return res.json();
+}
+
+export async function deletePreset(id: number) {
+  const token = await _getToken();
+  if (!token) throw new Error("로그인이 필요합니다.");
+  const res = await fetch(`${API}/preset/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) await handleError(res, "프리셋 삭제 실패");
+  return res.json();
+}
+
+// ═══ 매핑 저장 API ═══
+
+export async function listMyMappings() {
+  const token = await _getToken();
+  if (!token) return [];
+  const res = await fetch(`${API}/mapping/list`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.mappings || [];
+}
+
+export async function saveMapping(formName: string, mappings: Record<string, string>, fieldCount: number) {
+  const token = await _getToken();
+  if (!token) throw new Error("로그인이 필요합니다.");
+  const res = await fetch(`${API}/mapping/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ form_name: formName, mappings, form_field_count: fieldCount }),
+  });
+  if (!res.ok) await handleError(res, "매핑 저장 실패");
+  return res.json();
+}
+
+export async function loadMapping(id: number) {
+  const token = await _getToken();
+  if (!token) throw new Error("로그인이 필요합니다.");
+  const res = await fetch(`${API}/mapping/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) await handleError(res, "매핑 불러오기 실패");
+  return res.json();
+}
+
+export async function deleteMapping(id: number) {
+  const token = await _getToken();
+  if (!token) throw new Error("로그인이 필요합니다.");
+  const res = await fetch(`${API}/mapping/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) await handleError(res, "매핑 삭제 실패");
+  return res.json();
 }

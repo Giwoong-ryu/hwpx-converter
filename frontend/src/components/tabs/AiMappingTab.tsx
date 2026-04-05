@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { useForm } from "@/context/FormContext";
-import { aiMap, generateDoc, downloadBlob, GaugeEmptyError } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { aiMap, generateDoc, downloadBlob, GaugeEmptyError, saveMapping, listMyMappings, loadMapping, deleteMapping } from "@/lib/api";
 import FileUpload from "@/components/ui/FileUpload";
-import { Wand2, Download, Loader2, CheckCircle2, ChevronDown, ChevronUp, ImageOff, Sparkles, PenLine } from "lucide-react";
+import { Wand2, Download, Loader2, CheckCircle2, ChevronDown, ChevronUp, ImageOff, Sparkles, PenLine, Save, FolderOpen, Trash2, X } from "lucide-react";
 
 interface AiMappingTabProps {
   onGaugeEmpty?: (data: { errorCode: string; plan: string; gaugePct: number }) => void;
 }
 
 export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
-  const { fileId, isAnalyzed, docType, smartFields } = useForm();
+  const { fileId, isAnalyzed, filename, fieldCount, docType, smartFields } = useForm();
+  const { user } = useAuth();
   const [text, setText] = useState("");
   const [contentFile, setContentFile] = useState<File | null>(null);
   const [smartValues, setSmartValues] = useState<Record<string, string>>({});
@@ -25,6 +27,10 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
   const [outputFormat, setOutputFormat] = useState<"hwpx" | "hwp" | "docx">("hwpx");
   const [isGeneration, setIsGeneration] = useState(false);
   const [coverage, setCoverage] = useState<{ total_fields: number; mapped: number; coverage_pct: number } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [showLoadModal, setShowLoadModal] = useState(false);
+  const [savedList, setSavedList] = useState<{ id: number; form_name: string; form_field_count: number; created_at: string }[]>([]);
 
   const buildSmartPrompt = (): string => {
     const parts = smartFields
@@ -56,6 +62,55 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
       setError(e instanceof Error ? e.message : "매핑 실패");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const doSaveMapping = async () => {
+    if (!user || mappings.length === 0) return;
+    setSaving(true);
+    try {
+      const obj: Record<string, string> = {};
+      mappings.forEach(([k, v]) => { if (v.trim()) obj[k] = v; });
+      await saveMapping(filename || "양식", obj, fieldCount || 0);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "매핑 저장 실패");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const doLoadMappings = async () => {
+    try {
+      const list = await listMyMappings();
+      setSavedList(list);
+      setShowLoadModal(true);
+    } catch {
+      setError("저장된 매핑 목록을 불러올 수 없습니다.");
+    }
+  };
+
+  const doApplyMapping = async (id: number) => {
+    try {
+      const res = await loadMapping(id);
+      const m = res.mapping;
+      if (m?.mappings) {
+        setMappings(Object.entries(m.mappings));
+        setShowLoadModal(false);
+        setShowDetail(false);
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "매핑 불러오기 실패");
+    }
+  };
+
+  const doDeleteMapping = async (id: number) => {
+    try {
+      await deleteMapping(id);
+      setSavedList((prev) => prev.filter((m) => m.id !== id));
+    } catch {
+      setError("매핑 삭제 실패");
     }
   };
 
@@ -230,6 +285,28 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
               {generating ? "생성 중..." : "문서 만들기"}
             </button>
 
+            {/* 매핑 저장/불러오기 */}
+            <div className="flex gap-2">
+              {user && (
+                <button
+                  onClick={doSaveMapping}
+                  disabled={saving || mappings.length === 0}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border border-[#93C5FD]/50 text-[#1E40AF] hover:bg-[#EFF6FF] disabled:opacity-40 transition-all"
+                >
+                  {saving ? <Loader2 size={12} className="animate-spin" /> : saveSuccess ? <CheckCircle2 size={12} className="text-emerald-600" /> : <Save size={12} />}
+                  {saveSuccess ? "저장됨" : "매핑 저장"}
+                </button>
+              )}
+              {user && (
+                <button
+                  onClick={doLoadMappings}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border border-[#93C5FD]/50 text-[#57423c] hover:bg-[#f4f4f1] transition-all"
+                >
+                  <FolderOpen size={12} /> 저장된 매핑
+                </button>
+              )}
+            </div>
+
             <button
               onClick={() => setShowDetail(!showDetail)}
               className="w-full text-xs text-[#57423c]/80 hover:text-[#1E40AF] flex items-center justify-center gap-1 py-1 transition-colors"
@@ -267,6 +344,33 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {/* 매핑 불러오기 모달 */}
+      {showLoadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowLoadModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 max-h-[60vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h3 className="font-bold text-[#1a1c1b]">저장된 매핑</h3>
+              <button onClick={() => setShowLoadModal(false)} className="text-[#57423c]/50 hover:text-[#1a1c1b]"><X size={18} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {savedList.length === 0 ? (
+                <p className="text-sm text-[#57423c]/60 text-center py-8">저장된 매핑이 없습니다.</p>
+              ) : (
+                savedList.map((m) => (
+                  <div key={m.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-[#93C5FD]/50 transition-colors">
+                    <button onClick={() => doApplyMapping(m.id)} className="flex-1 text-left">
+                      <p className="text-sm font-semibold text-[#1a1c1b] truncate">{m.form_name}</p>
+                      <p className="text-[11px] text-[#57423c]/50">{m.form_field_count}개 필드 · {new Date(m.created_at).toLocaleDateString("ko-KR")}</p>
+                    </button>
+                    <button onClick={() => doDeleteMapping(m.id)} className="p-1.5 text-[#57423c]/30 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

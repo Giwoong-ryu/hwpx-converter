@@ -16,7 +16,20 @@ import os
 import sys
 
 
-Y_TOLERANCE = 5.0  # mm - Y좌표 행 그룹핑 허용 오차
+Y_TOLERANCE_DEFAULT = 5.0  # mm - Y좌표 행 그룹핑 기본 오차
+
+
+def _calc_y_tolerance(elements):
+    """폰트 크기 비례 Y_TOLERANCE 동적 계산.
+
+    큰 폰트(제목)는 행 간격이 넓어 고정 5mm로는 같은 행을 분리할 수 있고,
+    작은 폰트(각주)는 행 간격이 좁아 다른 행을 병합할 수 있다.
+    """
+    sizes = [e.get("style", {}).get("font_size_pt", 10) for e in elements]
+    if not sizes:
+        return Y_TOLERANCE_DEFAULT
+    avg = sum(sizes) / len(sizes)
+    return max(3.0, avg * 0.4)
 
 
 def layout_to_structure(layout):
@@ -24,6 +37,8 @@ def layout_to_structure(layout):
     elements = layout.get("elements", [])
     if not elements:
         return {"document": {"title": "문서", "page_width_hu": 42520}, "sections": []}
+
+    Y_TOLERANCE = _calc_y_tolerance(elements)
 
     page_w = layout.get("page", {}).get("width_mm", 210)
     elem_map = {e["id"]: e for e in elements}
