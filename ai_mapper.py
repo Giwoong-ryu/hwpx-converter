@@ -113,12 +113,6 @@ def _detect_labels(form_texts):
         if t_stripped in _LABEL_EXACT:
             labels.append(t_stripped)
             continue
-        # 8자 이하 + 공백/괄호 없는 순수 명사 (조사나 서술어 없음)
-        if len(t_stripped) <= 8 and not any(c in t_stripped for c in "은는이가을를의에서로다요습니까"):
-            # 숫자만인 경우는 라벨이 아님
-            if not t_stripped.replace(",", "").replace(".", "").isdigit():
-                labels.append(t_stripped)
-
     return labels
 
 
@@ -351,9 +345,9 @@ def map_content(form_texts, user_content, content_file=None):
                     k = k.strip()
                     if not k:
                         continue
-                    # 라벨 보호: AI가 라벨을 교체했으면 무시
+                    # 라벨 보호: AI가 라벨을 교체했으면 로그만 남김 (하드 필터 X)
                     if is_gen and k in label_set:
-                        continue
+                        print(f"[ai/map] 경고: 라벨 '{k[:20]}' 교체 감지 (제거 안 함, 프롬프트 가이드만 사용)")
                     if isinstance(v, (int, float)):
                         v = str(v)
                     if not isinstance(v, str):
