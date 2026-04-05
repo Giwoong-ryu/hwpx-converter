@@ -27,6 +27,174 @@ import sys
 import xml.sax.saxutils as saxutils
 import zipfile
 
+from lxml import etree
+
+_NS = {
+    'hp': 'http://www.hancom.co.kr/hwpml/2011/paragraph',
+    'hs': 'http://www.hancom.co.kr/hwpml/2011/section',
+    'hc': 'http://www.hancom.co.kr/hwpml/2011/core',
+    'hh': 'http://www.hancom.co.kr/hwpml/2011/head',
+}
+
+
+def _parse_header_styles(header_bytes):
+    """header.xml에서 borderFill 배경색과 charPr bold 정보를 파싱한다."""
+    root = etree.fromstring(header_bytes)
+    bf_colors = {}
+    for bf in root.findall('.//hh:borderFill', _NS):
+        bid = bf.get('id', '')
+        fill = bf.find('.//hc:winBrush', _NS)
+        fc = fill.get('faceColor', 'none') if fill is not None else 'none'
+        bf_colors[bid] = fc not in ('none', '#FFFFFF', 'rgb(255, 255, 255)')
+
+    cp_bold = {}
+    for cp in root.findall('.//hh:charPr', _NS):
+        cid = cp.get('id', '')
+        cp_bold[cid] = cp.find('hh:bold', _NS) is not None
+
+    return bf_colors, cp_bold
+
+
+def _get_cell_text(tc):
+    """hp:tc 요소에서 텍스트를 추출한다. 여러 run을 합친다."""
+    texts = []
+    for t in tc.findall('.//hp:t', _NS):
+        txt = re.sub(r'<[^>]+>', '', etree.tostring(t, encoding='unicode', method='text') or '').strip()
+        if txt:
+            texts.append(txt)
+    return ' '.join(texts).strip()
+
+
+def _build_table_data(tbl, bf_colors, cp_bold):
+    """hp:tbl 요소에서 테이블 그리드를 구축한다. 병합 셀 처리 포함."""
+    row_cnt = int(tbl.get('rowCnt', '0'))
+    col_cnt = int(tbl.get('colCnt', '0'))
+    if row_cnt == 0 or col_cnt == 0:
+        return None
+
+    # 그리드 초기화
+    grid = [[None] * col_cnt for _ in range(row_cnt)]
+
+    # 직접 자식 tc만 (중첩 테이블의 tc 제외)
+    for tc in tbl.findall('hp:tr/hp:tc', _NS):
+        addr = tc.find('hp:cellAddr', _NS)
+        if addr is None:
+            continue
+        r = int(addr.get('rowAddr', '0'))
+        c = int(addr.get('colAddr', '0'))
+        rs = int(addr.get('rowSpan', '1'))
+        cs = int(addr.get('colSpan', '1'))
+
+        text = _get_cell_text(tc)
+        bf_id = tc.get('borderFillIDRef', '')
+        has_bg = bf_colors.get(bf_id, False)
+
+        run = tc.find('.//hp:run', _NS)
+        is_bold = False
+        if run is not None:
+            cp_id = run.get('charPrIDRef', '')
+            is_bold = cp_bold.get(cp_id, False)
+
+        cell = {"text": text, "bold": is_bold, "bg": has_bg}
+
+        # 병합 영역 채우기 (같은 셀 참조)
+        for dr in range(rs):
+            for dc in range(cs):
+                nr, nc = r + dr, c + dc
+                if nr < row_cnt and nc < col_cnt:
+                    grid[nr][nc] = cell
+
+    return grid
+
+
+def extract_structured_fields(hwpx_path):
+    """HWPX에서 테이블 구조를 보존하여 필드를 추출한다.
+
+    Returns:
+        dict: {
+            "tables": [{
+                "rows": [[{"text", "bold", "bg"}, ...], ...]
+            }, ...],
+            "paragraphs": [str, ...],
+            "flat_texts": [str, ...]  # 기존 extract_texts 호환
+        }
+    """
+    with zipfile.ZipFile(hwpx_path, 'r') as zf:
+        # header.xml에서 스타일 정보 파싱
+        bf_colors, cp_bold = {}, {}
+        if 'Contents/header.xml' in zf.namelist():
+            try:
+                bf_colors, cp_bold = _parse_header_styles(zf.read('Contents/header.xml'))
+            except Exception:
+                pass  # 스타일 파싱 실패해도 텍스트 추출은 계속
+
+        tables = []
+        table_texts = set()  # 테이블 내 텍스트 (문단과 구분용)
+        flat_texts = []
+        seen = set()
+
+        for name in sorted(zf.namelist()):
+            if not (name.startswith('Contents/') and name.endswith('.xml')):
+                continue
+            if name == 'Contents/header.xml':
+                continue
+
+            try:
+                root = etree.fromstring(zf.read(name))
+            except Exception:
+                continue
+
+            # 테이블 추출 (최상위만 - 중첩 테이블은 부모 테이블 안에서 처리)
+            for tbl in root.findall('.//hp:tbl', _NS):
+                # 이 테이블이 다른 테이블의 셀 안에 있는지 체크
+                parent = tbl.getparent()
+                in_nested = False
+                while parent is not None:
+                    if parent.tag == '{http://www.hancom.co.kr/hwpml/2011/paragraph}tc':
+                        in_nested = True
+                        break
+                    parent = parent.getparent()
+                if in_nested:
+                    continue  # 중첩 테이블은 스킵 (부모에서 처리됨)
+
+                grid = _build_table_data(tbl, bf_colors, cp_bold)
+                if grid is None:
+                    continue
+
+                table_rows = []
+                for row in grid:
+                    row_cells = []
+                    for cell in row:
+                        if cell is None:
+                            row_cells.append({"text": "", "bold": False, "bg": False})
+                        else:
+                            row_cells.append(cell)
+                            if cell["text"] and cell["text"] not in seen:
+                                seen.add(cell["text"])
+                                flat_texts.append(cell["text"])
+                            table_texts.add(cell["text"])
+                    table_rows.append(row_cells)
+                tables.append({"rows": table_rows})
+
+        # 문단 텍스트 (테이블 밖)
+        paragraphs = []
+        for name in sorted(zf.namelist()):
+            if not (name.startswith('Contents/') and name.endswith('.xml')):
+                continue
+            if name == 'Contents/header.xml':
+                continue
+
+            data = zf.read(name).decode('utf-8')
+            for m in re.finditer(r'<hp:t>(.*?)</hp:t>', data, re.DOTALL):
+                raw = m.group(1)
+                clean = re.sub(r'<[^>]+>', '', raw).strip()
+                if clean and clean not in seen and clean not in table_texts:
+                    seen.add(clean)
+                    flat_texts.append(clean)
+                    paragraphs.append(clean)
+
+    return {"tables": tables, "paragraphs": paragraphs, "flat_texts": flat_texts}
+
 
 def extract_texts(hwpx_path):
     """HWPX에서 <hp:t> 태그의 텍스트를 모두 추출한다.

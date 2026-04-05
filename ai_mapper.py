@@ -15,57 +15,54 @@ MODEL_NAME = os.environ.get("DOCFLOW_MODEL", MODELS["mapping"])
 
 SYSTEM_PROMPT_MAP = """\
 당신은 한글 문서 양식 작성 도우미입니다.
-사용자가 양식(HWP/HWPX)과 내용을 제공하면, 양식의 텍스트 필드에 적절한 내용을 매핑합니다.
+사용자가 양식(HWP/HWPX)의 테이블 구조와 내용을 제공하면, 값 필드에 적절한 내용을 매핑합니다.
+
+양식은 테이블 구조로 제공됩니다. 각 행에서:
+- **굵은 글씨** 또는 [H] 표시가 있는 셀 = 라벨/헤더 (절대 교체 금지)
+- 일반 글씨 셀 = 값 (교체 대상)
 
 규칙:
-1. 양식 필드의 원본 텍스트를 사용자 내용으로 교체할 매핑을 만드세요.
-2. 변경할 필요 없는 필드(제목, 고정 라벨 등)는 포함하지 마세요.
+1. 라벨/헤더 셀은 절대 교체하지 마세요.
+2. 값 셀만 사용자 내용에서 찾아 매핑하세요.
 3. 사용자 내용에 없는 정보는 추측하지 마세요.
-4. 날짜, 이름, 회사명 같은 필드는 사용자 내용에서 찾아 매핑하세요.
-5. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이."""
+4. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이."""
 
 SYSTEM_PROMPT_GEN = """\
 당신은 한글 문서 양식 작성 도우미입니다.
-사용자가 양식(HWP/HWPX)과 간단한 지시를 제공하면, 양식의 내용을 직접 작성하여 채워줍니다.
+사용자가 양식(HWP/HWPX)의 테이블 구조와 간단한 지시를 제공하면, 값 필드를 새로 작성합니다.
+
+양식은 테이블 구조로 제공됩니다. 각 행에서:
+- **굵은 글씨** 또는 [H] 표시가 있는 셀 = 라벨/헤더 (절대 교체 금지)
+- 일반 글씨 셀 = 값 (교체 대상)
 
 규칙:
-1. 양식의 내용 필드만 사용자 요청 주제에 맞게 새로 작성하세요.
-2. 아래에 해당하는 필드는 절대 교체하지 마세요 (원본 유지):
-   - 표의 헤더/라벨: "사업자 구분", "대표자 유형", "기업명", "대표자명", "사업 내용", "매출계획", "자금계획" 등 표의 행/열 제목
-   - 구조 기호: □, ☑, ※, ①②③, ○, ●
-   - 문서 제목/서식명: "사업계획서", "별첨", "붙임" 등
-   - 고정 안내문: "아래와 같이", "상기 내용을", "위와 같이 제출합니다" 등
-3. 교체 대상: 실제 데이터가 들어가는 칸 (회사명 값, 날짜 값, 금액 값, 설명문 등)
-4. 판단 기준: 해당 텍스트가 "무엇을 적어야 하는지 알려주는 이름"이면 라벨(건너뛰기), "실제 적힌 내용"이면 교체 대상
-5. 현실적이고 구체적인 내용을 작성하세요.
-6. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
-7. 가능한 한 많은 내용 필드를 교체하세요. 빠뜨리지 마세요."""
+1. 라벨/헤더 셀은 절대 교체하지 마세요. 테이블 구조를 보고 판단하세요.
+2. 값 셀만 사용자 요청 주제에 맞게 새로 작성하세요.
+3. 현실적이고 구체적인 내용을 작성하세요.
+4. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
+5. 가능한 한 많은 값 필드를 교체하세요. 빠뜨리지 마세요."""
 
 USER_PROMPT_MAP = """\
-[양식 필드 목록]
+[양식 구조]
 {fields}
 
 [사용자 제공 내용]
 {content}
 
-위 양식 필드 중 사용자 내용으로 교체해야 할 항목을 JSON으로 반환하세요.
+위 양식에서 **굵은 글씨**나 [H]가 아닌 값 셀 중, 사용자 내용으로 교체해야 할 항목을 JSON으로 반환하세요.
 형식: {{"원본 텍스트": "새 텍스트", ...}}
-변경 불필요한 필드는 제외하세요."""
+라벨/헤더는 절대 포함하지 마세요."""
 
 USER_PROMPT_GEN = """\
-[양식 필드 목록]
+[양식 구조]
 {fields}
-
-[라벨 필드 - 절대 교체 금지]
-{labels}
 
 [사용자 요청]
 {content}
 
-위 양식의 내용을 사용자 요청 주제로 작성하세요.
-- [라벨 필드]에 나열된 항목은 표의 헤더/제목이므로 절대 교체하지 마세요.
-- 라벨이 아닌 실제 데이터(회사명 값, 날짜, 금액, 설명문 등)만 새 주제에 맞게 작성하세요.
-- 가능한 한 빠짐없이 교체하세요.
+위 양식에서 **굵은 글씨**나 [H]가 아닌 값 셀을 사용자 요청 주제로 새로 작성하세요.
+라벨/헤더 셀은 절대 교체하지 마세요. 값 셀만 교체하세요.
+가능한 한 빠짐없이 교체하세요.
 
 형식: {{"원본 텍스트": "새로 작성한 텍스트", ...}}"""
 
@@ -77,43 +74,40 @@ _GEN_KEYWORDS = [
 ]
 
 
-def _detect_labels(form_texts):
-    """양식 필드에서 라벨(헤더)로 보이는 항목을 식별한다.
+def _format_structured_fields(structured):
+    """구조화된 필드 데이터를 AI 프롬프트용 텍스트로 변환한다.
 
-    라벨 특징: 짧고(~15자), 조사/서술어 없이 명사로 끝남.
-    예: "사업자 구분", "대표자명", "매출계획", "기업명"
+    테이블은 마크다운 테이블 형태, bold/bg 셀은 **강조** 또는 [H] 태그로 표시.
     """
-    # 라벨에 자주 쓰이는 접미어
-    _LABEL_SUFFIXES = (
-        "명", "번호", "일자", "일", "금액", "액", "내용", "사항", "구분",
-        "유형", "종류", "항목", "계획", "현황", "실적", "목적", "개요",
-        "기간", "주소", "연락처", "전화", "이메일", "비고", "비율",
-        "수량", "단가", "합계", "소계", "총계", "인원", "담당",
-        "직위", "직급", "부서", "성명", "생년월일", "학력", "경력",
-    )
-    # 라벨과 완전 일치하는 키워드
-    _LABEL_EXACT = {
-        "성명", "주소", "연락처", "전화번호", "이메일", "비고", "합계",
-        "소계", "총계", "수신", "발신", "제목", "일시", "장소", "참석자",
-        "안건", "결정사항", "순번", "번호", "날짜", "기간", "금액",
-        "수량", "단가", "품명", "규격", "단위", "갑", "을", "직인",
-    }
+    lines = []
+    _SKIP = {"□", "☑", "※", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "☐", "○", "●"}
 
-    labels = []
-    for t in form_texts:
-        t_stripped = t.strip()
-        # 빈 문자열 스킵
-        if not t_stripped:
-            continue
-        # 15자 이하 + 라벨 접미어로 끝남
-        if len(t_stripped) <= 15 and any(t_stripped.endswith(s) for s in _LABEL_SUFFIXES):
-            labels.append(t_stripped)
-            continue
-        # 완전 일치
-        if t_stripped in _LABEL_EXACT:
-            labels.append(t_stripped)
-            continue
-    return labels
+    for ti, table in enumerate(structured["tables"]):
+        lines.append(f"[표{ti+1}]")
+        for row in table["rows"]:
+            cells = []
+            for cell in row:
+                text = cell["text"].strip()
+                if not text or text in _SKIP:
+                    cells.append("")
+                    continue
+                # bold 또는 배경색 → 라벨 힌트 표시
+                if cell["bold"] or cell["bg"]:
+                    cells.append(f"**{text}**")
+                else:
+                    cells.append(text)
+            # 빈 행 스킵
+            if any(c for c in cells):
+                lines.append("| " + " | ".join(cells) + " |")
+
+    if structured.get("paragraphs"):
+        lines.append("\n[본문]")
+        for p in structured["paragraphs"]:
+            p = p.strip()
+            if p and p not in _SKIP:
+                lines.append(f"- {p}")
+
+    return "\n".join(lines)
 
 
 def _is_generation_request(text):
@@ -231,13 +225,14 @@ def _read_content_file(file_path):
         return f"[파일 읽기 실패: {file_path}]"
 
 
-def map_content(form_texts, user_content, content_file=None):
+def map_content(form_texts, user_content, content_file=None, structured=None):
     """양식 필드와 사용자 내용을 AI로 매핑한다.
 
     Args:
-        form_texts: 양식에서 추출된 텍스트 목록
+        form_texts: 양식에서 추출된 텍스트 목록 (평면 리스트)
         user_content: 사용자가 입력한 텍스트
         content_file: 내용이 담긴 파일 경로 (선택)
+        structured: extract_structured_fields()의 결과 (테이블 구조, 선택)
 
     Returns:
         dict: {원본텍스트: 새텍스트} 또는 에러 시 None
@@ -263,7 +258,13 @@ def map_content(form_texts, user_content, content_file=None):
     # 생성 요청 vs 매핑 요청 판단
     is_gen = _is_generation_request(combined_content)
 
-    # 양식 필드 필터링
+    # 구조화된 필드가 있으면 테이블 형식 프롬프트 사용
+    use_structured = structured is not None and len(structured.get("tables", [])) > 0
+    if use_structured:
+        structured_text = _format_structured_fields(structured)
+        print(f"[ai/map] 구조화 모드: 표 {len(structured['tables'])}개, 본문 {len(structured.get('paragraphs', []))}개")
+
+    # 양식 필드 필터링 (평면 리스트 - 구조화 미사용 시 폴백)
     _SKIP = {"□", "☑", "※", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "☐", "○", "●"}
     if is_gen:
         filtered_fields = [t for t in form_texts if len(t) > 4 and t.strip() not in _SKIP]
@@ -276,12 +277,6 @@ def map_content(form_texts, user_content, content_file=None):
     if len(filtered_fields) > MAX_FIELDS:
         print(f"[ai/map] 필드 {len(filtered_fields)}개 → {MAX_FIELDS}개로 제한")
         filtered_fields = filtered_fields[:MAX_FIELDS]
-
-    # 라벨 감지 (생성 모드에서 라벨 보호용)
-    detected_labels = _detect_labels(form_texts) if is_gen else []
-    label_set = set(detected_labels)
-    if detected_labels:
-        print(f"[ai/map] 라벨 감지: {len(detected_labels)}개")
 
     # 배치 분할 호출 (150개씩 나눠서 전체 커버)
     BATCH_SIZE = 150
@@ -301,60 +296,96 @@ def map_content(form_texts, user_content, content_file=None):
         )
 
         all_results = {}
-        total_batches = (len(filtered_fields) + BATCH_SIZE - 1) // BATCH_SIZE
 
-        for batch_idx in range(total_batches):
-            start = batch_idx * BATCH_SIZE
-            batch = filtered_fields[start:start + BATCH_SIZE]
-            fields_text = "\n".join(f"- {t}" for t in batch)
+        if use_structured:
+            # 구조화 모드: 테이블 구조를 그대로 프롬프트에 전달
+            # 구조 텍스트가 길면 배치 분할
+            struct_lines = structured_text.split("\n")
+            STRUCT_BATCH_LINES = 200  # 약 200줄씩 분할
+            batches = []
+            for i in range(0, len(struct_lines), STRUCT_BATCH_LINES):
+                batches.append("\n".join(struct_lines[i:i + STRUCT_BATCH_LINES]))
+            total_batches = len(batches)
 
-            if is_gen:
-                # 이 배치에 포함된 라벨만 추출
-                batch_labels = [t for t in batch if t.strip() in label_set]
-                labels_text = "\n".join(f"- {t}" for t in batch_labels) if batch_labels else "(이 배치에 라벨 없음)"
-                prompt = USER_PROMPT_GEN.format(fields=fields_text, labels=labels_text, content=combined_content)
-            else:
-                prompt = USER_PROMPT_MAP.format(fields=fields_text, content=combined_content)
+            for batch_idx, batch_text in enumerate(batches):
+                if is_gen:
+                    prompt = USER_PROMPT_GEN.format(fields=batch_text, content=combined_content)
+                else:
+                    prompt = USER_PROMPT_MAP.format(fields=batch_text, content=combined_content)
 
-            print(f"[ai/map] batch {batch_idx+1}/{total_batches}: {len(batch)} fields")
+                print(f"[ai/map] structured batch {batch_idx+1}/{total_batches}")
 
-            # 배치 간 간격 + 429 재시도
-            if batch_idx > 0:
-                import time
-                time.sleep(0.5)
+                if batch_idx > 0:
+                    import time
+                    time.sleep(0.5)
 
-            for attempt in range(2):
-                try:
-                    response = model.generate_content(prompt, generation_config=gen_config)
-                    break
-                except Exception as retry_err:
-                    if "429" in str(retry_err) and attempt == 0:
-                        import time
-                        print(f"[ai/map] 429 rate limit, 3초 대기 후 재시도")
-                        time.sleep(3)
-                    else:
-                        raise
+                for attempt in range(2):
+                    try:
+                        response = model.generate_content(prompt, generation_config=gen_config)
+                        break
+                    except Exception as retry_err:
+                        if "429" in str(retry_err) and attempt == 0:
+                            import time
+                            print(f"[ai/map] 429 rate limit, 3초 대기 후 재시도")
+                            time.sleep(3)
+                        else:
+                            raise
 
-            parsed = _parse_json_response(response.text)
+                parsed = _parse_json_response(response.text)
+                if parsed:
+                    for k, v in parsed.items():
+                        if not isinstance(k, str) or not k.strip():
+                            continue
+                        k = k.strip()
+                        if isinstance(v, (int, float)):
+                            v = str(v)
+                        if not isinstance(v, str) or not v.strip():
+                            continue
+                        all_results[k] = v.strip()
 
-            if parsed:
-                # 빈 값 제거 + 비-문자열 안전 처리
-                for k, v in parsed.items():
-                    if not isinstance(k, str):
-                        continue
-                    k = k.strip()
-                    if not k:
-                        continue
-                    # 라벨 보호: AI가 라벨을 교체했으면 로그만 남김 (하드 필터 X)
-                    if is_gen and k in label_set:
-                        print(f"[ai/map] 경고: 라벨 '{k[:20]}' 교체 감지 (제거 안 함, 프롬프트 가이드만 사용)")
-                    if isinstance(v, (int, float)):
-                        v = str(v)
-                    if not isinstance(v, str):
-                        continue
-                    v = v.strip()
-                    if v:
-                        all_results[k] = v
+        else:
+            # 폴백: 평면 리스트 모드 (구조화 데이터 없을 때)
+            total_batches = (len(filtered_fields) + BATCH_SIZE - 1) // BATCH_SIZE
+
+            for batch_idx in range(total_batches):
+                start = batch_idx * BATCH_SIZE
+                batch = filtered_fields[start:start + BATCH_SIZE]
+                fields_text = "\n".join(f"- {t}" for t in batch)
+
+                if is_gen:
+                    prompt = USER_PROMPT_GEN.format(fields=fields_text, content=combined_content)
+                else:
+                    prompt = USER_PROMPT_MAP.format(fields=fields_text, content=combined_content)
+
+                print(f"[ai/map] flat batch {batch_idx+1}/{total_batches}: {len(batch)} fields")
+
+                if batch_idx > 0:
+                    import time
+                    time.sleep(0.5)
+
+                for attempt in range(2):
+                    try:
+                        response = model.generate_content(prompt, generation_config=gen_config)
+                        break
+                    except Exception as retry_err:
+                        if "429" in str(retry_err) and attempt == 0:
+                            import time
+                            print(f"[ai/map] 429 rate limit, 3초 대기 후 재시도")
+                            time.sleep(3)
+                        else:
+                            raise
+
+                parsed = _parse_json_response(response.text)
+                if parsed:
+                    for k, v in parsed.items():
+                        if not isinstance(k, str) or not k.strip():
+                            continue
+                        k = k.strip()
+                        if isinstance(v, (int, float)):
+                            v = str(v)
+                        if not isinstance(v, str) or not v.strip():
+                            continue
+                        all_results[k] = v.strip()
 
         if not all_results:
             return None, "매핑할 항목을 찾지 못했습니다. 내용을 더 구체적으로 입력해주세요."

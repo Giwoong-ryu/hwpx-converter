@@ -62,8 +62,15 @@ async def ai_map(
         raise HTTPException(status_code=404, detail="양식 파일을 찾을 수 없습니다. 다시 분석해주세요.")
 
     try:
-        from clone_form import extract_texts
+        from clone_form import extract_texts, extract_structured_fields
         fields = extract_texts(path)
+        # 테이블 구조 추출 (실패 시 None → 평면 리스트로 폴백)
+        structured = None
+        try:
+            structured = extract_structured_fields(path)
+            print(f"[ai/map] 구조 추출: 표 {len(structured.get('tables', []))}개, 본문 {len(structured.get('paragraphs', []))}개")
+        except Exception as se:
+            print(f"[ai/map] 구조 추출 실패, 평면 모드로 폴백: {se}")
     except Exception as e:
         mlog("ai_map", success=False, error=f"양식 분석: {e}")
         raise HTTPException(status_code=500, detail=f"양식 파일을 분석할 수 없습니다: {e}")
@@ -81,7 +88,7 @@ async def ai_map(
     with Timer() as t:
         try:
             print(f"[ai/map] fields={len(fields)}, text_len={len(text or '')}, content_path={content_path}")
-            result, error = map_content(fields, text or "", content_path)
+            result, error = map_content(fields, text or "", content_path, structured=structured)
             print(f"[ai/map] result={'OK' if result else 'None'}, error={error}")
         except Exception as e:
             import traceback as tb
