@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
-import { FileText, ArrowDown, Check, Shield, Zap, Crown, ChevronDown, Gift, Flame, Trophy, Star } from "lucide-react";
+import { FileText, Check, Shield, Zap, Crown, ChevronDown, Gift, Flame, Trophy, Star } from "lucide-react";
 
 const PLUS_ID = "307b2685-27de-4b96-ac7d-670a669c85d8";
 const PRO_ID = "fe4b5d80-c912-403b-b940-58b4c50bb6b8";
@@ -85,7 +85,7 @@ export default function PricingPage() {
               <Li text="문서 합치기 / 도장 무제한" />
               <Li text="AI 매핑 하루 3회" />
               <Li text="AI 작성 하루 1회 (+재시도)" />
-              <Li text="내 정보 프리셋 1개" />
+              <Li text="내 정보 미리 저장 1개" />
             </ul>
             <Link href="/tool" className="block text-center py-3 rounded-xl border-2 border-gray-200 text-[#1a1c1b] font-bold text-sm hover:border-[#1a1c1b] transition-colors">
               무료로 시작하기
@@ -105,12 +105,12 @@ export default function PricingPage() {
             <p className="text-sm text-[#57423c]/40 mb-6">한번 결제, 기간 만료 없이 사용. 부족하면 추가 구매.</p>
             <ul className="space-y-3 mb-8 flex-1 text-sm">
               <Li text="무료 기능 전부 포함" />
-              <Li text="AI 사용량 게이지 충전" highlight />
+              <Li text="AI 사용량 충전" highlight />
               <Li text="첫 구매 2배 충전 (200%)" highlight />
               <Li text="대량 생성 30건" highlight />
-              <Li text="내 정보 프리셋 3개" highlight />
-              <Li text="양식 매핑 10개 저장" highlight />
-              <Li text="기간 만료 없음" highlight />
+              <Li text="내 정보 미리 저장 3개" highlight />
+              <Li text="자주 쓰는 양식 10개 저장" highlight />
+              <Li text="다 쓸 때까지 사라지지 않아요" highlight />
             </ul>
             <button
               onClick={() => handlePurchase(PLUS_ID)}
@@ -134,9 +134,9 @@ export default function PricingPage() {
               <Li text="AI 매핑/작성 무제한" highlight />
               <Li text="매주 게이지 자동 리셋" highlight />
               <Li text="대량 생성 200건" highlight />
-              <Li text="내 정보 프리셋 무제한" highlight />
-              <Li text="양식 매핑 무제한 저장" highlight />
-              <Li text="스트릭 프리즈 주 2회" highlight />
+              <Li text="내 정보 미리 저장 무제한" highlight />
+              <Li text="자주 쓰는 양식 무제한 저장" highlight />
+              <Li text="며칠 못 써도 연속 기록 유지 (주 2회)" highlight />
             </ul>
             <button
               onClick={() => handlePurchase(PRO_ID)}
@@ -148,106 +148,16 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* 스크롤 힌트 */}
-        <div className="text-center mt-8 mb-16">
-          <button onClick={() => document.getElementById("rewards")?.scrollIntoView({ behavior: "smooth" })}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#93C5FD]/50 text-sm font-semibold text-[#2563EB] hover:bg-[#EFF6FF] transition-colors">
-            <span>보상 시스템 · 단계 · 비교표 · FAQ</span>
-            <ChevronDown size={16} className="animate-bounce" />
-          </button>
-        </div>
+        {/* ── 쓸수록 혜택이 쌓여요 ── */}
+        <div className="mb-20 max-w-2xl mx-auto mt-12">
+          <h2 className="text-xl font-extrabold tracking-tight text-center mb-2">쓸수록 혜택이 쌓여요</h2>
+          <p className="text-sm text-[#57423c]/50 text-center mb-8">문서를 만들 때마다 보너스 사용량이 자동으로 충전돼요</p>
 
-        {/* ── 보상 체계 ── */}
-        <div id="rewards" className="mb-24">
-          <h2 className="text-xl font-extrabold tracking-tight text-center mb-2">쓸수록 돌아오는 보상</h2>
-          <p className="text-base text-[#57423c]/40 text-center mb-10">문서를 완성할 때마다 보너스 사용량이 충전됩니다</p>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-4xl mx-auto">
-            <RewardCard
-              icon={<Trophy size={20} />}
-              title="업적 보상"
-              desc="첫 문서 +25%, 5건 +50%, 10건 +50%"
-              color="blue"
-            />
-            <RewardCard
-              icon={<Flame size={20} />}
-              title="연속 사용 보너스"
-              desc="3일 +10%, 7일 +25%, 30일 +50%"
-              color="orange"
-            />
-            <RewardCard
-              icon={<Star size={20} />}
-              title="럭키 보너스"
-              desc="문서 완성마다 랜덤 보상 찬스"
-              color="yellow"
-            />
-            <RewardCard
-              icon={<Gift size={20} />}
-              title="추천 보상"
-              desc="친구 초대 시 서로 +50%"
-              color="green"
-            />
-          </div>
-        </div>
-
-        {/* ── 단계 ── */}
-        <div className="mb-24 max-w-3xl mx-auto">
-          <h2 className="text-xl font-extrabold tracking-tight text-center mb-8">쓸수록 단계가 올라요</h2>
-          <div className="flex items-center justify-between gap-2">
-            {[
-              { lv: 1, title: "복붙 탈출", medal: "참가", docs: "0건", color: "text-gray-400", bg: "bg-gray-100" },
-              { lv: 2, title: "자동화 입문", medal: "동메달", docs: "5건", color: "text-amber-700", bg: "bg-amber-50" },
-              { lv: 3, title: "칼퇴 요정", medal: "은메달", docs: "20건", color: "text-slate-400", bg: "bg-slate-50" },
-              { lv: 4, title: "팀 에이스", medal: "금메달", docs: "50건", color: "text-yellow-500", bg: "bg-yellow-50" },
-              { lv: 5, title: "자동화의 신", medal: "트로피", docs: "100건", color: "text-amber-500", bg: "bg-amber-50" },
-            ].map((l, i) => (
-              <div key={l.lv} className="flex flex-col items-center gap-1.5 flex-1">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${l.bg} ${l.color}`}>
-                  {l.lv}
-                </div>
-                <span className="text-xs font-bold text-[#1a1c1b]">{l.title}</span>
-                <span className={`text-xs ${l.color}`}>{l.medal}</span>
-                <span className="text-xs text-[#57423c]/30">{l.docs}</span>
-                {i < 4 && l.lv > 1 && <span className="text-xs text-[#2563EB]">+{l.lv === 2 ? "25" : "50"}%</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── 시간 환산 ── */}
-        <div className="mb-24">
-          <h2 className="text-xl font-extrabold tracking-tight text-center mb-2">같은 서류, 이만큼 차이납니다</h2>
-          <p className="text-base text-[#57423c]/40 text-center mb-8">사업계획서 1건 기준</p>
-          <div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
-            <TimeCard label="직접 작성" time="3~5시간" sub="시급 환산 약 45,000원" />
-            <TimeCard label="외주 대행" time="3~7일" sub="30~100만원" />
-            <TimeCard label="Eazy HWPX" time="3분" sub="4,900원이면 여러 건 가능" highlight />
-          </div>
-        </div>
-
-        {/* ── 경쟁사 비교 ── */}
-        <div className="mb-24">
-          <h2 className="text-xl font-extrabold tracking-tight text-center mb-2">다른 서비스와 비교</h2>
-          <p className="text-sm text-[#57423c]/30 text-center mb-8">2026년 4월 각 서비스 공식 가격 기준</p>
-          <div className="bg-white rounded-2xl border border-gray-200/80 overflow-hidden max-w-3xl mx-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left p-5 font-normal text-[#57423c]/30"></th>
-                  <th className="p-5 font-extrabold text-[#2563EB]">Eazy HWPX</th>
-                  <th className="p-5 font-normal text-[#57423c]/30">AI 문서 서비스 A</th>
-                  <th className="p-5 font-normal text-[#57423c]/30">전자서식 서비스 B</th>
-                </tr>
-              </thead>
-              <tbody>
-                <CRow label="AI 작성 가격" v1="4,900원 (1회 결제)" v2="29,900원 (매달)" v3="~24,000원 (매달)" />
-                <CRow label="한글 프로그램 설치" v1="필요 없음" v2="필수 (별도 구매)" v3="필요 없음" />
-                <CRow label="Mac / 모바일" v1="가능" v2="Windows만" v3="가능" />
-                <CRow label="대량 문서 생성" v1="포함" v2="미지원" v3="건당 과금" />
-                <CRow label="문서 → 엑셀 추출" v1="무료" v2="미지원" v3="미지원" />
-                <CRow label="기간 만료" v1="만료 없음" v2="해지 시 소멸" v3="해지 시 소멸" />
-              </tbody>
-            </table>
+          <div className="space-y-4">
+            <Step emoji={<Trophy size={18} className="text-[#2563EB]" />} title="첫 문서를 완성하면" desc="보너스 +25%가 바로 충전돼요." />
+            <Step emoji={<Flame size={18} className="text-orange-500" />} title="매일 사용하면" desc="3일째부터 연속 사용 보너스가 쌓여요. 7일, 30일까지 보너스가 커져요." />
+            <Step emoji={<Star size={18} className="text-amber-500" />} title="문서 5건, 10건 달성하면" desc="업적 보너스 +50%가 충전돼요. 단계도 올라가요." />
+            <Step emoji={<Gift size={18} className="text-violet-500" />} title="가끔은 깜짝 보너스도" desc="문서를 완성할 때마다 랜덤으로 추가 보너스가 나올 수 있어요." />
           </div>
         </div>
 
@@ -255,13 +165,13 @@ export default function PricingPage() {
         <div className="mb-16">
           <h2 className="text-xl font-extrabold tracking-tight text-center mb-8">자주 묻는 질문</h2>
           <div className="max-w-2xl mx-auto space-y-3">
-            <FAQ q="한글 프로그램 없어도 사용할 수 있나요?" a="네. 브라우저만 있으면 됩니다. Mac, 태블릿, 모바일에서도 사용 가능합니다." />
-            <FAQ q="Plus 사용량이 만료되나요?" a="만료되지 않습니다. 구매한 사용량은 모두 사용할 때까지 유지됩니다." />
-            <FAQ q="첫 구매 2배는 처음만 적용되나요?" a="네. 첫 구매에만 200% 충전되고, 이후 구매는 100% 충전됩니다." />
-            <FAQ q="Pro를 해지하면?" a="다음 결제일까지 사용 가능합니다. 이후 무료로 자동 전환됩니다." />
-            <FAQ q="내 파일이 저장되나요?" a="파일 자체는 처리 후 30분 내 자동 삭제됩니다. 내 정보 프리셋과 매핑 기록만 안전하게 저장됩니다." />
-            <FAQ q="환불 가능한가요?" a="구매 후 7일 내 미사용 시 전액 환불 가능합니다." />
-            <FAQ q="보상은 어떻게 받나요?" a="문서를 완성하면 자동으로 적용됩니다. 업적, 연속 사용, 럭키 보너스가 게이지에 추가됩니다." />
+            <FAQ q="한글 프로그램이 없어도 되나요?" a="네. 브라우저만 있으면 됩니다. Mac, 태블릿, 스마트폰에서도 사용할 수 있어요." />
+            <FAQ q="한번 구매하면 사용량이 사라지나요?" a="아니요. 다 쓸 때까지 유지됩니다. 유효기간이 없어요." />
+            <FAQ q="첫 구매 2배 충전은 언제까지 적용되나요?" a="처음 구매할 때 한 번만 적용돼요. 이후 추가 구매는 1배(100%)로 충전됩니다." />
+            <FAQ q="Pro를 해지하면 어떻게 되나요?" a="다음 결제일까지는 Pro로 사용할 수 있어요. 이후 자동으로 무료 플랜으로 전환됩니다." />
+            <FAQ q="내 파일이 서버에 남나요?" a="파일은 처리 후 30분 안에 자동 삭제돼요. 서버에 남는 건 내 정보 프리셋과 매핑 기록뿐이에요." />
+            <FAQ q="환불할 수 있나요?" a="구매 후 7일 안에 사용하지 않았다면 전액 환불 가능해요." />
+            <FAQ q="다른 AI 문서 서비스랑 뭐가 다른가요?" a="한글 프로그램 없이 사용할 수 있고, Mac에서도 돼요. 한번 결제하면 매달 돈이 나가지 않아요." />
           </div>
         </div>
 
@@ -289,40 +199,15 @@ function Li({ text, highlight }: { text: string; highlight?: boolean }) {
   );
 }
 
-function RewardCard({ icon, title, desc, color }: { icon: React.ReactNode; title: string; desc: string; color: string }) {
-  const colors: Record<string, string> = {
-    blue: "bg-[#DBEAFE] text-[#1E40AF]",
-    orange: "bg-orange-50 text-orange-600",
-    yellow: "bg-amber-50 text-amber-600",
-    green: "bg-emerald-50 text-emerald-600",
-  };
+function Step({ emoji, title, desc }: { emoji: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200/80 p-5">
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${colors[color]}`}>{icon}</div>
-      <p className="font-bold text-sm text-[#1a1c1b] mb-1">{title}</p>
-      <p className="text-sm text-[#57423c]/50 leading-relaxed">{desc}</p>
+    <div className="flex items-start gap-4 bg-white rounded-xl border border-gray-200/80 p-4">
+      <div className="w-9 h-9 rounded-lg bg-[#f4f4f1] flex items-center justify-center shrink-0 mt-0.5">{emoji}</div>
+      <div>
+        <p className="font-bold text-sm text-[#1a1c1b] mb-0.5">{title}</p>
+        <p className="text-sm text-[#57423c]/60 leading-relaxed">{desc}</p>
+      </div>
     </div>
-  );
-}
-
-function TimeCard({ label, time, sub, highlight }: { label: string; time: string; sub: string; highlight?: boolean }) {
-  return (
-    <div className={`rounded-2xl p-6 text-center ${highlight ? "bg-[#2563EB] text-white" : "bg-white border border-gray-200/80"}`}>
-      <p className={`text-sm mb-3 ${highlight ? "text-white/70" : "text-[#57423c]/40"}`}>{label}</p>
-      <p className="text-2xl font-black tracking-tight mb-1">{time}</p>
-      <p className={`text-sm ${highlight ? "text-white/50" : "text-[#57423c]/30"}`}>{sub}</p>
-    </div>
-  );
-}
-
-function CRow({ label, v1, v2, v3 }: { label: string; v1: string; v2: string; v3: string }) {
-  return (
-    <tr className="border-t border-gray-50">
-      <td className="p-5 text-[#57423c]/50">{label}</td>
-      <td className="p-5 text-center font-bold text-[#1a1c1b]">{v1}</td>
-      <td className="p-5 text-center text-[#57423c]/25">{v2}</td>
-      <td className="p-5 text-center text-[#57423c]/25">{v3}</td>
-    </tr>
   );
 }
 
