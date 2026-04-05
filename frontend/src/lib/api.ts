@@ -1,8 +1,22 @@
 const API = process.env.NEXT_PUBLIC_API_URL || "/api";
 
-// 인증 토큰 주입용 (AuthContext에서 설정)
+// 인증 토큰 주입용 (AuthContext에서 설정 + Supabase 폴백)
 let _accessToken: string | null = null;
 export function setApiToken(token: string | null) { _accessToken = token; }
+
+async function _getToken(): Promise<string | null> {
+  if (_accessToken) return _accessToken;
+  // 폴백: Supabase에서 직접 세션 조회
+  try {
+    const { createClient } = await import("@supabase/supabase-js");
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+    );
+    const { data } = await sb.auth.getSession();
+    return data.session?.access_token || null;
+  } catch { return null; }
+}
 
 function _authHeaders(): Record<string, string> {
   if (_accessToken) return { Authorization: `Bearer ${_accessToken}` };
@@ -58,11 +72,10 @@ export async function aiMap(fileId: string, text: string, contentFile?: File) {
   fd.append("file_id", fileId);
   fd.append("text", text);
   if (contentFile) fd.append("content_file", contentFile);
-  const res = await fetch(`${API}/ai/map`, {
-    method: "POST",
-    body: fd,
-    headers: { ..._authHeaders(), "X-Fingerprint": _fingerprint() },
-  });
+  const token = await _getToken();
+  const headers: Record<string, string> = { "X-Fingerprint": _fingerprint() };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${API}/ai/map`, { method: "POST", body: fd, headers });
   if (!res.ok) await handleError(res, "매핑 실패");
   return res.json();
 }

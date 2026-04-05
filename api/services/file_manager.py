@@ -21,6 +21,21 @@ _hwp_instance = None
 _hwp_com_initialized = False
 
 
+def _cleanup_hwp():
+    """서버 종료 시 한글 인스턴스 정리"""
+    global _hwp_instance
+    if _hwp_instance is not None:
+        try:
+            _hwp_instance.quit()
+        except Exception:
+            pass
+        _hwp_instance = None
+
+
+import atexit
+atexit.register(_cleanup_hwp)
+
+
 class FileManager:
     def __init__(self, ttl_seconds=10800):  # 3시간
         self._files: dict[str, dict] = {}
@@ -81,7 +96,10 @@ class FileManager:
             hwp = _hwp_instance
             if hwp is not None:
                 try:
+                    hwp.clear()  # 이전 문서 상태 정리
                     hwp.open(src_path)
+                    import time as _t
+                    _t.sleep(0.3)  # 파일 로드 완료 대기
                     hwp.save_as(dst_path, dst_format)
                     hwp.clear()
                     return
@@ -97,6 +115,8 @@ class FileManager:
             from pyhwpx import Hwp
             hwp = Hwp(visible=False, register_module=True)
             hwp.open(src_path)
+            import time as _t
+            _t.sleep(0.5)  # 파일 로드 완료 대기
             hwp.save_as(dst_path, dst_format)
             hwp.clear()
             _hwp_instance = hwp  # 재사용을 위해 종료하지 않고 유지
@@ -150,7 +170,11 @@ class FileManager:
                     "HWP 변환 서버가 일시적으로 점검 중입니다. "
                     "한글에서 '다른 이름으로 저장 > HWPX'로 저장 후 다시 업로드해주세요."
                 )
-            raise RuntimeError(f"HWP 변환 실패: {e}")
+            raise RuntimeError(
+                "HWP 파일을 변환할 수 없습니다. "
+                "비밀번호가 설정된 문서이거나 파일이 손상되었을 수 있습니다. "
+                "한글에서 직접 '다른 이름으로 저장 > HWPX'로 저장 후 업로드해주세요."
+            )
 
     def convert_to_hwp(self, file_id: str) -> str:
         """HWPX -> HWP 변환. HWP_CONVERT_URL 설정 시 원격, 아니면 로컬 COM."""
@@ -176,7 +200,11 @@ class FileManager:
                     "HWP 변환 서버가 일시적으로 점검 중입니다. "
                     "한글에서 '다른 이름으로 저장 > HWPX'로 저장 후 다시 업로드해주세요."
                 )
-            raise RuntimeError(f"HWP 변환 실패: {e}")
+            raise RuntimeError(
+                "HWP 파일을 변환할 수 없습니다. "
+                "비밀번호가 설정된 문서이거나 파일이 손상되었을 수 있습니다. "
+                "한글에서 직접 '다른 이름으로 저장 > HWPX'로 저장 후 업로드해주세요."
+            )
 
     def convert_to_docx(self, file_id: str) -> str:
         """HWPX → DOCX 변환 (python-docx, COM 불필요)"""
@@ -194,24 +222,15 @@ class FileManager:
             raise RuntimeError(f"DOCX 변환 실패: {e}")
 
     def convert_docx(self, file_id: str) -> str:
-        """DOCX → HWPX 변환 (python-docx + build_hwpx, COM 불필요)"""
-        path = self.get_path(file_id)
-        if not path or not path.lower().endswith(".docx"):
-            return file_id
-        try:
-            from docx_converter import parse_docx
-            from core.build_hwpx import build_hwpx
-
-            doc_json = parse_docx(path)
-            hwpx_path = os.path.join(tempfile.mkdtemp(), "converted.hwpx")
-            build_hwpx(doc_json, hwpx_path)
-            name = self.get_name(file_id).replace(".docx", ".hwpx")
-            new_id = self.save(hwpx_path, name)
-            return new_id
-        except Exception as e:
-            raise RuntimeError(f"DOCX 변환 실패: {e}")
+        """DOCX → HWPX 변환. 현재 미지원 — HWP/HWPX 업로드 안내."""
+        raise RuntimeError(
+            "DOCX 파일은 양식으로 사용할 수 없습니다. "
+            "HWP 또는 HWPX 파일을 업로드해주세요. "
+            "DOCX 안의 내용을 양식에 넣으려면 AI 자동 작성에서 파일을 첨부하세요."
+        )
 
     def cleanup_expired(self):
+        """등록된 파일 TTL 정리 + orphan 임시 디렉토리 정리"""
         now = time.time()
         expired = []
         with self._lock:
@@ -225,6 +244,22 @@ class FileManager:
                     shutil.rmtree(d, ignore_errors=True)
                 except Exception:
                     pass
+
+        # orphan 임시 디렉토리 정리 (clone 등에서 만든 미등록 tmp)
+        try:
+            tmp_root = tempfile.gettempdir()
+            for d in os.listdir(tmp_root):
+                full = os.path.join(tmp_root, d)
+                if not os.path.isdir(full) or not d.startswith("tmp"):
+                    continue
+                try:
+                    age = now - os.path.getmtime(full)
+                    if age > 3600:  # 1시간 이상
+                        shutil.rmtree(full, ignore_errors=True)
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
 
 file_manager = FileManager()
