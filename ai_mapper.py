@@ -29,12 +29,17 @@ SYSTEM_PROMPT_GEN = """\
 사용자가 양식(HWP/HWPX)과 간단한 지시를 제공하면, 양식의 내용을 직접 작성하여 채워줍니다.
 
 규칙:
-1. 양식의 모든 내용 필드를 사용자 요청 주제에 맞게 새로 작성하세요.
-2. 라벨/헤더(기업명, 대표자, 순번 등 1~4글자 짧은 항목)와 구조 기호(□, ☑, ※, ①②③)만 건너뛰세요.
-3. 기존에 채워진 회사명, 날짜, 금액, 설명 등 실제 내용은 모두 새 주제에 맞게 교체하세요.
-4. 현실적이고 구체적인 내용을 작성하세요.
-5. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
-6. 가능한 한 많은 필드를 교체하세요. 빠뜨리지 마세요."""
+1. 양식의 내용 필드만 사용자 요청 주제에 맞게 새로 작성하세요.
+2. 아래에 해당하는 필드는 절대 교체하지 마세요 (원본 유지):
+   - 표의 헤더/라벨: "사업자 구분", "대표자 유형", "기업명", "대표자명", "사업 내용", "매출계획", "자금계획" 등 표의 행/열 제목
+   - 구조 기호: □, ☑, ※, ①②③, ○, ●
+   - 문서 제목/서식명: "사업계획서", "별첨", "붙임" 등
+   - 고정 안내문: "아래와 같이", "상기 내용을", "위와 같이 제출합니다" 등
+3. 교체 대상: 실제 데이터가 들어가는 칸 (회사명 값, 날짜 값, 금액 값, 설명문 등)
+4. 판단 기준: 해당 텍스트가 "무엇을 적어야 하는지 알려주는 이름"이면 라벨(건너뛰기), "실제 적힌 내용"이면 교체 대상
+5. 현실적이고 구체적인 내용을 작성하세요.
+6. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
+7. 가능한 한 많은 내용 필드를 교체하세요. 빠뜨리지 마세요."""
 
 USER_PROMPT_MAP = """\
 [양식 필드 목록]
@@ -51,12 +56,15 @@ USER_PROMPT_GEN = """\
 [양식 필드 목록]
 {fields}
 
+[라벨 필드 - 절대 교체 금지]
+{labels}
+
 [사용자 요청]
 {content}
 
-위 양식의 내용을 사용자 요청 주제로 전면 교체하세요.
-- 1~4글자 라벨(기업명, 대표자 등)과 구조 기호만 건너뛰세요.
-- 회사명, 날짜, 금액, 설명문 등 실제 내용은 모두 새 주제에 맞게 작성하세요.
+위 양식의 내용을 사용자 요청 주제로 작성하세요.
+- [라벨 필드]에 나열된 항목은 표의 헤더/제목이므로 절대 교체하지 마세요.
+- 라벨이 아닌 실제 데이터(회사명 값, 날짜, 금액, 설명문 등)만 새 주제에 맞게 작성하세요.
 - 가능한 한 빠짐없이 교체하세요.
 
 형식: {{"원본 텍스트": "새로 작성한 텍스트", ...}}"""
@@ -67,6 +75,51 @@ _GEN_KEYWORDS = [
     "만들어", "채워", "생성해", "써", "작성", "통합으로", "간략히",
     "쓰게끔", "으로 써", "으로 작성", "내용을 넣어", "정리해줘",
 ]
+
+
+def _detect_labels(form_texts):
+    """양식 필드에서 라벨(헤더)로 보이는 항목을 식별한다.
+
+    라벨 특징: 짧고(~15자), 조사/서술어 없이 명사로 끝남.
+    예: "사업자 구분", "대표자명", "매출계획", "기업명"
+    """
+    # 라벨에 자주 쓰이는 접미어
+    _LABEL_SUFFIXES = (
+        "명", "번호", "일자", "일", "금액", "액", "내용", "사항", "구분",
+        "유형", "종류", "항목", "계획", "현황", "실적", "목적", "개요",
+        "기간", "주소", "연락처", "전화", "이메일", "비고", "비율",
+        "수량", "단가", "합계", "소계", "총계", "인원", "담당",
+        "직위", "직급", "부서", "성명", "생년월일", "학력", "경력",
+    )
+    # 라벨과 완전 일치하는 키워드
+    _LABEL_EXACT = {
+        "성명", "주소", "연락처", "전화번호", "이메일", "비고", "합계",
+        "소계", "총계", "수신", "발신", "제목", "일시", "장소", "참석자",
+        "안건", "결정사항", "순번", "번호", "날짜", "기간", "금액",
+        "수량", "단가", "품명", "규격", "단위", "갑", "을", "직인",
+    }
+
+    labels = []
+    for t in form_texts:
+        t_stripped = t.strip()
+        # 빈 문자열 스킵
+        if not t_stripped:
+            continue
+        # 15자 이하 + 라벨 접미어로 끝남
+        if len(t_stripped) <= 15 and any(t_stripped.endswith(s) for s in _LABEL_SUFFIXES):
+            labels.append(t_stripped)
+            continue
+        # 완전 일치
+        if t_stripped in _LABEL_EXACT:
+            labels.append(t_stripped)
+            continue
+        # 8자 이하 + 공백/괄호 없는 순수 명사 (조사나 서술어 없음)
+        if len(t_stripped) <= 8 and not any(c in t_stripped for c in "은는이가을를의에서로다요습니까"):
+            # 숫자만인 경우는 라벨이 아님
+            if not t_stripped.replace(",", "").replace(".", "").isdigit():
+                labels.append(t_stripped)
+
+    return labels
 
 
 def _is_generation_request(text):
@@ -230,6 +283,12 @@ def map_content(form_texts, user_content, content_file=None):
         print(f"[ai/map] 필드 {len(filtered_fields)}개 → {MAX_FIELDS}개로 제한")
         filtered_fields = filtered_fields[:MAX_FIELDS]
 
+    # 라벨 감지 (생성 모드에서 라벨 보호용)
+    detected_labels = _detect_labels(form_texts) if is_gen else []
+    label_set = set(detected_labels)
+    if detected_labels:
+        print(f"[ai/map] 라벨 감지: {len(detected_labels)}개")
+
     # 배치 분할 호출 (150개씩 나눠서 전체 커버)
     BATCH_SIZE = 150
     if is_gen:
@@ -256,7 +315,10 @@ def map_content(form_texts, user_content, content_file=None):
             fields_text = "\n".join(f"- {t}" for t in batch)
 
             if is_gen:
-                prompt = USER_PROMPT_GEN.format(fields=fields_text, content=combined_content)
+                # 이 배치에 포함된 라벨만 추출
+                batch_labels = [t for t in batch if t.strip() in label_set]
+                labels_text = "\n".join(f"- {t}" for t in batch_labels) if batch_labels else "(이 배치에 라벨 없음)"
+                prompt = USER_PROMPT_GEN.format(fields=fields_text, labels=labels_text, content=combined_content)
             else:
                 prompt = USER_PROMPT_MAP.format(fields=fields_text, content=combined_content)
 
@@ -288,6 +350,9 @@ def map_content(form_texts, user_content, content_file=None):
                         continue
                     k = k.strip()
                     if not k:
+                        continue
+                    # 라벨 보호: AI가 라벨을 교체했으면 무시
+                    if is_gen and k in label_set:
                         continue
                     if isinstance(v, (int, float)):
                         v = str(v)
