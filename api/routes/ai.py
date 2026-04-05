@@ -23,12 +23,17 @@ async def ai_map(
     user_id = None
     if authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ", 1)[1]
-        user = await auth_service.get_user_from_token(token)
-        if user:
-            user_id = user.id
+        try:
+            user = await auth_service.get_user_from_token(token)
+            if user:
+                user_id = user.id
+        except Exception:
+            pass  # 만료/유효하지 않은 토큰 → 비로그인으로 처리
 
-    action = "generation" if text and any(kw in text for kw in ["써줘", "작성해", "만들어", "채워"]) else "mapping"
+    from ai_mapper import _is_generation_request
+    action = "generation" if _is_generation_request(text) else "mapping"
 
+    gauge_cost = 0.0
     if user_id:
         credit_result = await credit_service.use_gauge(user_id, action)
         if not credit_result["ok"]:
@@ -40,6 +45,7 @@ async def ai_map(
                 "plan": credit_result.get("plan", ""),
                 "gauge_pct": credit_result.get("gauge_pct", 0),
             })
+        gauge_cost = credit_result.get("cost", 0.0)
     else:
         # 비로그인: 핑거프린트 기반 맛보기
         fp = x_fingerprint or "unknown"
@@ -56,11 +62,12 @@ async def ai_map(
         raise HTTPException(status_code=404, detail="양식 파일을 찾을 수 없습니다. 다시 분석해주세요.")
 
     try:
-        from clone_form import extract_texts
+        from clone_form import extract_texts, detect_labels
         fields = extract_texts(path)
+        labels = detect_labels(path)
     except Exception as e:
         mlog("ai_map", success=False, error=f"양식 분석: {e}")
-        raise HTTPException(status_code=500, detail=f"양식 분석 실패: {e}")
+        raise HTTPException(status_code=500, detail="양식 파일을 분석할 수 없습니다. 파일이 손상되었을 수 있습니다.")
 
     content_path = None
     if content_file and content_file.filename:
@@ -69,13 +76,13 @@ async def ai_map(
             content_path = file_manager.get_path(cid)
         except Exception as e:
             mlog("ai_map", success=False, error=f"파일 업로드: {e}")
-            raise HTTPException(status_code=500, detail=f"파일 업로드 실패: {e}")
+            raise HTTPException(status_code=500, detail="파일 업로드에 실패했습니다. 다시 시도해주세요.")
 
-    mode = "generate" if text and "써줘" in text else "mapping"
+    mode = "generate" if action == "generation" else "mapping"
     with Timer() as t:
         try:
             print(f"[ai/map] fields={len(fields)}, text_len={len(text or '')}, content_path={content_path}")
-            result, error = map_content(fields, text or "", content_path)
+            result, error = map_content(fields, text or "", content_path, label_set=labels)
             print(f"[ai/map] result={'OK' if result else 'None'}, error={error}")
         except Exception as e:
             import traceback as tb
@@ -84,7 +91,13 @@ async def ai_map(
             with open("ai_error.log", "a", encoding="utf-8") as f:
                 f.write(f"\n{'='*50}\n{err_msg}\n")
             mlog("ai_map", success=False, field_count=len(fields), duration_ms=0, error=str(e), detail=mode)
-            raise HTTPException(status_code=500, detail=f"AI 처리 중 오류: {e}")
+            # AI 실패 시 차감된 게이지 복구
+            if user_id and gauge_cost > 0:
+                try:
+                    await credit_service.refund_gauge(user_id, gauge_cost)
+                except Exception:
+                    pass
+            raise HTTPException(status_code=500, detail="AI 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
     if error:
         mlog("ai_map", success=False, field_count=len(fields), duration_ms=t.ms, error=error, detail=mode)
