@@ -68,13 +68,6 @@ async def ai_map(
         mlog("ai_map", success=False, error=f"양식 분석: {e}")
         raise HTTPException(status_code=500, detail=f"양식 파일을 분석할 수 없습니다: {e}")
 
-    labels = set()
-    try:
-        from clone_form import detect_labels
-        labels = detect_labels(path)
-    except Exception:
-        pass  # detect_labels 실패해도 AI 매핑은 진행
-
     content_path = None
     if content_file and content_file.filename:
         try:
@@ -88,7 +81,7 @@ async def ai_map(
     with Timer() as t:
         try:
             print(f"[ai/map] fields={len(fields)}, text_len={len(text or '')}, content_path={content_path}")
-            result, error = map_content(fields, text or "", content_path, label_set=labels)
+            result, error = map_content(fields, text or "", content_path)
             print(f"[ai/map] result={'OK' if result else 'None'}, error={error}")
         except Exception as e:
             import traceback as tb

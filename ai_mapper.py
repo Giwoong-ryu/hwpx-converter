@@ -19,33 +19,22 @@ SYSTEM_PROMPT_MAP = """\
 
 규칙:
 1. 양식 필드의 원본 텍스트를 사용자 내용으로 교체할 매핑을 만드세요.
-2. 아래 항목은 절대 교체하지 마세요 (양식의 구조를 유지해야 합니다):
-   - 표의 헤더/라벨: "성명", "학교명", "회사명", "창업아이템명", "산출물", "자격명" 등 항목 이름
-   - 행/열 제목: "학력사항", "경력사항", "자격사항" 등 섹션 제목
-   - 구조 기호: □, ☑, ※, ①②③, /, ~
-   - 안내 문구: "예시", "작성방법", "유의사항" 등 도움말
-   - 선택지 텍스트: "졸업 / 중퇴 / 재학", "상/중/하" 등
+2. 변경할 필요 없는 필드(제목, 고정 라벨 등)는 포함하지 마세요.
 3. 사용자 내용에 없는 정보는 추측하지 마세요.
 4. 날짜, 이름, 회사명 같은 필드는 사용자 내용에서 찾아 매핑하세요.
-5. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
-6. 핵심: "이 텍스트가 양식의 구조(라벨)인가, 채워야 할 내용인가?"를 판단하세요. 구조면 건너뛰세요."""
+5. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이."""
 
 SYSTEM_PROMPT_GEN = """\
 당신은 한글 문서 양식 작성 도우미입니다.
 사용자가 양식(HWP/HWPX)과 간단한 지시를 제공하면, 양식의 내용을 직접 작성하여 채워줍니다.
 
 규칙:
-1. 양식의 내용 필드를 사용자 요청 주제에 맞게 새로 작성하세요.
-2. 아래 항목은 절대 교체하지 마세요 (양식의 구조가 깨집니다):
-   - 표의 헤더/라벨: "성명", "학교명", "회사명", "창업아이템명", "산출물" 등 항목 이름
-   - 행/열 제목: "학력사항", "경력사항", "자격사항" 등 섹션 제목
-   - 구조 기호: □, ☑, ※, ①②③, /, ~
-   - 안내 문구: "예시", "작성방법", "유의사항" 등 도움말
-   - 선택지 텍스트: "졸업 / 중퇴 / 재학", "상/중/하" 등
+1. 양식의 모든 내용 필드를 사용자 요청 주제에 맞게 새로 작성하세요.
+2. 라벨/헤더(기업명, 대표자, 순번 등 1~4글자 짧은 항목)와 구조 기호(□, ☑, ※, ①②③)만 건너뛰세요.
 3. 기존에 채워진 회사명, 날짜, 금액, 설명 등 실제 내용은 모두 새 주제에 맞게 교체하세요.
 4. 현실적이고 구체적인 내용을 작성하세요.
 5. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
-6. 핵심: "이 텍스트가 양식의 구조(라벨)인가, 채워야 할 내용인가?"를 판단하세요. 구조면 건너뛰세요."""
+6. 가능한 한 많은 필드를 교체하세요. 빠뜨리지 마세요."""
 
 USER_PROMPT_MAP = """\
 [양식 필드 목록]
@@ -65,11 +54,10 @@ USER_PROMPT_GEN = """\
 [사용자 요청]
 {content}
 
-위 양식의 내용을 사용자 요청 주제로 교체하세요.
-- 표의 항목 이름(라벨/헤더)은 절대 교체하지 마세요. 예: "창업아이템명", "산출물", "학교명" 등
-- OOO, XXXX 같은 플레이스홀더는 반드시 교체하세요.
-- 예시 문구("OO기술이 적용된..." 등)는 실제 내용으로 교체하세요.
-- 사용자 내용에 없는 항목은 빈 문자열로 두지 말고, 주제에 맞게 작성하세요.
+위 양식의 내용을 사용자 요청 주제로 전면 교체하세요.
+- 1~4글자 라벨(기업명, 대표자 등)과 구조 기호만 건너뛰세요.
+- 회사명, 날짜, 금액, 설명문 등 실제 내용은 모두 새 주제에 맞게 작성하세요.
+- 가능한 한 빠짐없이 교체하세요.
 
 형식: {{"원본 텍스트": "새로 작성한 텍스트", ...}}"""
 
@@ -196,20 +184,18 @@ def _read_content_file(file_path):
         return f"[파일 읽기 실패: {file_path}]"
 
 
-def map_content(form_texts, user_content, content_file=None, label_set=None):
+def map_content(form_texts, user_content, content_file=None):
     """양식 필드와 사용자 내용을 AI로 매핑한다.
 
     Args:
         form_texts: 양식에서 추출된 텍스트 목록
         user_content: 사용자가 입력한 텍스트
         content_file: 내용이 담긴 파일 경로 (선택)
-        label_set: 라벨로 탐지된 텍스트 집합 (치환 제외 대상)
 
     Returns:
         dict: {원본텍스트: 새텍스트} 또는 에러 시 None
         str: 에러 메시지 (성공 시 None)
     """
-    label_set = label_set or set()
     api_key = _get_api_key()
     if not api_key:
         return None, "GEMINI_API_KEY가 설정되지 않았습니다. 환경변수 또는 .env 파일에 설정해주세요."
@@ -230,7 +216,7 @@ def map_content(form_texts, user_content, content_file=None, label_set=None):
     # 생성 요청 vs 매핑 요청 판단
     is_gen = _is_generation_request(combined_content)
 
-    # 양식 필드 필터링 (원래 기호만 제외)
+    # 양식 필드 필터링
     _SKIP = {"□", "☑", "※", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "☐", "○", "●"}
     if is_gen:
         filtered_fields = [t for t in form_texts if len(t) > 4 and t.strip() not in _SKIP]
@@ -238,13 +224,13 @@ def map_content(form_texts, user_content, content_file=None, label_set=None):
     else:
         filtered_fields = [t for t in form_texts if 1 < len(t) <= 120 and t.strip() not in _SKIP]
 
-    # 필드 상한: 1000개 (Railway 타임아웃 vs 매핑 품질 균형)
-    MAX_FIELDS = 1000
+    # 필드 상한: 3000개 (약 100장 분량)
+    MAX_FIELDS = 3000
     if len(filtered_fields) > MAX_FIELDS:
         print(f"[ai/map] 필드 {len(filtered_fields)}개 → {MAX_FIELDS}개로 제한")
         filtered_fields = filtered_fields[:MAX_FIELDS]
 
-    # 배치 분할 호출 (150개씩)
+    # 배치 분할 호출 (150개씩 나눠서 전체 커버)
     BATCH_SIZE = 150
     if is_gen:
         system_prompt = SYSTEM_PROMPT_GEN
@@ -267,14 +253,7 @@ def map_content(form_texts, user_content, content_file=None, label_set=None):
         for batch_idx in range(total_batches):
             start = batch_idx * BATCH_SIZE
             batch = filtered_fields[start:start + BATCH_SIZE]
-            # 라벨 표시: AI가 라벨과 값을 구분할 수 있도록
-            lines = []
-            for t in batch:
-                if t in label_set:
-                    lines.append(f"- [라벨] {t}")
-                else:
-                    lines.append(f"- {t}")
-            fields_text = "\n".join(lines)
+            fields_text = "\n".join(f"- {t}" for t in batch)
 
             if is_gen:
                 prompt = USER_PROMPT_GEN.format(fields=fields_text, content=combined_content)
@@ -315,8 +294,7 @@ def map_content(form_texts, user_content, content_file=None, label_set=None):
                     if not isinstance(v, str):
                         continue
                     v = v.strip()
-                    # 짧은 키 제거 (2자 이하 → 다중 section에서 중복 치환 위험)
-                    if v and len(k) > 2 and k not in _SKIP and k not in label_set:
+                    if v:
                         all_results[k] = v
 
         if not all_results:
@@ -351,17 +329,12 @@ def map_content(form_texts, user_content, content_file=None, label_set=None):
                 matched = _norm_index.get(k_no_space)
 
             # 3단계: 접두사 매칭 (AI가 "- " 같은 접두사를 빼먹은 경우)
-            # 최장 매칭 우선 + 유사도 90% 이상만
             if not matched:
-                best_t = None
-                best_len = 0
                 for t in form_texts:
                     if t.endswith(k) or k.endswith(t):
-                        ratio = min(len(k), len(t)) / max(len(k), len(t))
-                        if ratio > 0.9 and len(t) > best_len:
-                            best_t = t
-                            best_len = len(t)
-                matched = best_t
+                        if min(len(k), len(t)) / max(len(k), len(t)) > 0.8:
+                            matched = t
+                            break
 
             normalized[matched or k] = v
 
@@ -374,13 +347,7 @@ def map_content(form_texts, user_content, content_file=None, label_set=None):
             for rb in range(min(retry_batches, 3)):  # 최대 3배치만 재시도
                 start = rb * BATCH_SIZE
                 batch = unmapped[start:start + BATCH_SIZE]
-                retry_lines = []
-                for t in batch:
-                    if t in label_set:
-                        retry_lines.append(f"- [라벨] {t}")
-                    else:
-                        retry_lines.append(f"- {t}")
-                fields_text = "\n".join(retry_lines)
+                fields_text = "\n".join(f"- {t}" for t in batch)
                 if is_gen:
                     prompt = USER_PROMPT_GEN.format(fields=fields_text, content=combined_content)
                 else:
@@ -400,9 +367,7 @@ def map_content(form_texts, user_content, content_file=None, label_set=None):
                                 v2 = str(v2)
                             if not isinstance(v2, str) or not v2.strip():
                                 continue
-                            # 라벨 필터 + 환각 키 정규화
-                            if k2 in label_set:
-                                continue
+                            # 환각 키 정규화 적용
                             if k2 in field_set:
                                 normalized[k2] = v2.strip()
                             else:
