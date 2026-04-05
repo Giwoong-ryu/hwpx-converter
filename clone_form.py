@@ -51,54 +51,6 @@ def extract_texts(hwpx_path):
     return texts
 
 
-def detect_labels(hwpx_path):
-    """HWPX 표 구조에서 라벨(헤더) 텍스트를 탐지한다.
-
-    표의 첫 열에 있는 짧은 텍스트(20자 이하)를 라벨로 간주.
-    이 목록은 AI에게 "이건 치환하지 마세요"라고 알려주는 용도.
-
-    Returns:
-        set[str]: 라벨로 판별된 텍스트 집합
-    """
-    labels = set()
-
-    with zipfile.ZipFile(hwpx_path, "r") as zf:
-        for name in zf.namelist():
-            if not (name.startswith("Contents/section") and name.endswith(".xml")):
-                continue
-            data = zf.read(name).decode("utf-8")
-
-            for tbl in re.finditer(r"<hp:tbl\b[^>]*>(.*?)</hp:tbl>", data, re.DOTALL):
-                for row in re.finditer(r"<hp:tr\b[^>]*>(.*?)</hp:tr>", tbl.group(1), re.DOTALL):
-                    cells = list(re.finditer(
-                        r"<hp:tc\b[^>]*>(.*?)</hp:tc>", row.group(1), re.DOTALL
-                    ))
-                    if len(cells) < 2:
-                        continue
-
-                    # 첫 셀 텍스트 추출
-                    first_cell = cells[0].group(1)
-                    hpts = re.findall(r"<hp:t>(.*?)</hp:t>", first_cell, re.DOTALL)
-                    first_text = "".join(
-                        re.sub(r"<[^>]+>", "", h).strip() for h in hpts
-                    ).strip()
-
-                    # 라벨 조건: 2~20자, 두 번째 셀보다 짧음
-                    if not first_text or len(first_text) > 20:
-                        continue
-
-                    second_cell = cells[1].group(1) if len(cells) > 1 else ""
-                    second_hpts = re.findall(r"<hp:t>(.*?)</hp:t>", second_cell, re.DOTALL)
-                    second_text = "".join(
-                        re.sub(r"<[^>]+>", "", h).strip() for h in second_hpts
-                    ).strip()
-
-                    if len(first_text) <= len(second_text) or not second_text:
-                        labels.add(first_text)
-
-    return labels
-
-
 def analyze(hwpx_path):
     """HWPX 양식을 분석하여 구조 요약과 텍스트 목록을 출력한다."""
     print(f"=== HWPX 양식 분석: {hwpx_path} ===\n")
@@ -347,12 +299,10 @@ def clone(src_path, dst_path, replacements=None, keywords=None,
 
                     # fieldBegin~fieldEnd 영역 보호 (하이퍼링크, 날짜 필드 등)
                     # 치환 전에 마커로 치환하고, 치환 후 복원
-                    import uuid as _uuid
-                    _field_marker = f"__FP_{_uuid.uuid4().hex[:12]}_"
                     _field_regions = []
                     def _protect_field(m):
                         _field_regions.append(m.group(0))
-                        return f"{_field_marker}{len(_field_regions) - 1}__"
+                        return f"__FIELD_PROTECTED_{len(_field_regions) - 1}__"
                     text = re.sub(
                         r"<hp:fieldBegin\b[^>]*>.*?<hp:fieldEnd\b[^>]*/>",
                         _protect_field, text, flags=re.DOTALL,
@@ -388,7 +338,7 @@ def clone(src_path, dst_path, replacements=None, keywords=None,
 
                     # fieldBegin~fieldEnd 영역 복원
                     for idx, region in enumerate(_field_regions):
-                        text = text.replace(f"{_field_marker}{idx}__", region)
+                        text = text.replace(f"__FIELD_PROTECTED_{idx}__", region)
 
                     # 메타데이터 치환 (content.hpf의 제목/작성자)
                     if item.filename == "Contents/content.hpf":
