@@ -1,53 +1,64 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { X, ChevronRight, Upload, Wand2, Download, Sparkles } from "lucide-react";
 
 const STEPS = [
   {
-    target: "upload-area",
+    target: "onboard-upload",
     title: "1. 양식 올리기",
-    desc: "완성하고 싶은 HWP/HWPX 파일을 여기에 올리세요.",
+    desc: "완성하고 싶은 HWP/HWPX 파일을 여기에 드래그하거나 클릭해서 올리세요.",
     icon: Upload,
-    position: "right" as const,
+    align: "right",
   },
   {
-    target: "analyze-btn",
+    target: "onboard-analyze",
     title: "2. 양식 분석",
-    desc: "파일을 올린 뒤 이 버튼을 누르면 AI가 채울 항목을 찾습니다.",
+    desc: "파일을 올린 뒤 이 버튼을 누르면 AI가 채울 항목을 자동으로 찾습니다.",
     icon: Sparkles,
-    position: "right" as const,
+    align: "right",
   },
   {
-    target: "ai-input",
-    title: "3. 내용 입력",
-    desc: "\"사업계획서 써줘\"처럼 입력하면 AI가 자동 작성합니다. 엑셀/워드 파일을 올려도 됩니다.",
+    target: "onboard-tabs",
+    title: "3. 기능 선택",
+    desc: "AI 자동 작성, 엑셀 변환, 도장 삽입 등 원하는 기능을 선택하세요.",
     icon: Wand2,
-    position: "left" as const,
-  },
-  {
-    target: "download-area",
-    title: "4. 결과 다운로드",
-    desc: "매핑 결과를 확인/수정한 뒤 문서를 만들어 다운받습니다.",
-    icon: Download,
-    position: "left" as const,
+    align: "bottom",
   },
 ];
 
 const STORAGE_KEY = "eazyhwpx_onboarding_done";
+const PADDING = 8;
 
 export default function OnboardingGuide() {
   const [step, setStep] = useState(0);
   const [show, setShow] = useState(false);
+  const [rect, setRect] = useState<DOMRect | null>(null);
 
   useEffect(() => {
     const done = localStorage.getItem(STORAGE_KEY);
     if (!done) {
-      // 첫 방문: 1초 후 가이드 시작
-      const timer = setTimeout(() => setShow(true), 1000);
+      const timer = setTimeout(() => setShow(true), 800);
       return () => clearTimeout(timer);
     }
   }, []);
+
+  const updateRect = useCallback(() => {
+    if (!show) return;
+    const el = document.getElementById(STEPS[step]?.target);
+    if (el) {
+      setRect(el.getBoundingClientRect());
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else {
+      setRect(null);
+    }
+  }, [step, show]);
+
+  useEffect(() => {
+    updateRect();
+    window.addEventListener("resize", updateRect);
+    return () => window.removeEventListener("resize", updateRect);
+  }, [updateRect]);
 
   const finish = () => {
     setShow(false);
@@ -67,58 +78,130 @@ export default function OnboardingGuide() {
   const current = STEPS[step];
   const Icon = current.icon;
 
+  // 스포트라이트 위치 (타겟 주변에 구멍 뚫기)
+  const spotlight = rect
+    ? {
+        top: rect.top - PADDING,
+        left: rect.left - PADDING,
+        width: rect.width + PADDING * 2,
+        height: rect.height + PADDING * 2,
+      }
+    : null;
+
+  // 가이드 카드 위치 계산
+  const getCardStyle = (): React.CSSProperties => {
+    if (!rect) return { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
+
+    const cardW = 320;
+    const cardH = 200;
+    const gap = 16;
+
+    if (current.align === "right") {
+      const left = rect.right + gap + PADDING;
+      const top = rect.top + rect.height / 2 - cardH / 2;
+      // 화면 밖으로 나가면 아래로
+      if (left + cardW > window.innerWidth) {
+        return { top: rect.bottom + gap + PADDING, left: Math.max(16, rect.left - 40) };
+      }
+      return { top: Math.max(16, top), left };
+    }
+    if (current.align === "bottom") {
+      return { top: rect.bottom + gap + PADDING, left: Math.max(16, rect.left) };
+    }
+    // left
+    const left = rect.left - cardW - gap - PADDING;
+    return { top: Math.max(16, rect.top), left: Math.max(16, left) };
+  };
+
   return (
     <>
-      {/* 배경 오버레이 */}
-      <div className="fixed inset-0 bg-black/40 z-[9998]" onClick={finish} />
+      {/* SVG 오버레이 - 스포트라이트 구멍 */}
+      <svg
+        className="fixed inset-0 z-[9998] pointer-events-none"
+        width="100%" height="100%"
+        style={{ pointerEvents: "auto" }}
+        onClick={finish}
+      >
+        <defs>
+          <mask id="spotlight-mask">
+            <rect width="100%" height="100%" fill="white" />
+            {spotlight && (
+              <rect
+                x={spotlight.left}
+                y={spotlight.top}
+                width={spotlight.width}
+                height={spotlight.height}
+                rx={12}
+                fill="black"
+              />
+            )}
+          </mask>
+        </defs>
+        <rect
+          width="100%" height="100%"
+          fill="rgba(0,0,0,0.5)"
+          mask="url(#spotlight-mask)"
+        />
+      </svg>
+
+      {/* 스포트라이트 테두리 (구멍 주변 강조) */}
+      {spotlight && (
+        <div
+          className="fixed z-[9998] rounded-xl border-2 border-[#2563EB] pointer-events-none"
+          style={{
+            top: spotlight.top,
+            left: spotlight.left,
+            width: spotlight.width,
+            height: spotlight.height,
+            boxShadow: "0 0 0 4px rgba(37, 99, 235, 0.2)",
+            transition: "all 0.3s ease",
+          }}
+        />
+      )}
 
       {/* 가이드 카드 */}
-      <div className="fixed z-[9999] inset-0 flex items-center justify-center pointer-events-none">
-        <div className="pointer-events-auto bg-white rounded-2xl shadow-2xl border border-[#93C5FD] p-6 max-w-sm mx-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          {/* 닫기 */}
-          <button onClick={finish} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600">
-            <X size={18} />
+      <div
+        className="fixed z-[9999] bg-white rounded-2xl shadow-2xl border border-[#93C5FD] p-5 w-[320px]"
+        style={{ ...getCardStyle(), transition: "all 0.3s ease" }}
+      >
+        {/* 스텝 인디케이터 */}
+        <div className="flex gap-1.5 mb-3">
+          {STEPS.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1 rounded-full flex-1 transition-colors ${
+                i <= step ? "bg-[#2563EB]" : "bg-gray-200"
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* 아이콘 + 제목 */}
+        <div className="flex items-center gap-2.5 mb-2">
+          <div className="w-9 h-9 rounded-xl bg-[#DBEAFE] flex items-center justify-center shrink-0">
+            <Icon size={18} className="text-[#1E40AF]" />
+          </div>
+          <h3 className="text-base font-bold text-[#1a1c1b]">{current.title}</h3>
+        </div>
+
+        {/* 설명 */}
+        <p className="text-sm text-[#57423c] leading-relaxed mb-4">{current.desc}</p>
+
+        {/* 버튼 */}
+        <div className="flex items-center justify-between">
+          <button onClick={finish} className="text-xs text-gray-400 hover:text-gray-600">
+            건너뛰기
           </button>
-
-          {/* 스텝 인디케이터 */}
-          <div className="flex gap-1.5 mb-4">
-            {STEPS.map((_, i) => (
-              <div
-                key={i}
-                className={`h-1 rounded-full flex-1 transition-colors ${
-                  i <= step ? "bg-[#2563EB]" : "bg-gray-200"
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* 아이콘 + 제목 */}
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-[#DBEAFE] flex items-center justify-center">
-              <Icon size={20} className="text-[#1E40AF]" />
-            </div>
-            <h3 className="text-lg font-bold text-[#1a1c1b]">{current.title}</h3>
-          </div>
-
-          {/* 설명 */}
-          <p className="text-sm text-[#57423c] leading-relaxed mb-5">{current.desc}</p>
-
-          {/* 버튼 */}
-          <div className="flex items-center justify-between">
-            <button onClick={finish} className="text-xs text-gray-400 hover:text-gray-600">
-              건너뛰기
-            </button>
-            <button
-              onClick={next}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity"
-            >
-              {step < STEPS.length - 1 ? (
-                <>다음 <ChevronRight size={14} /></>
-              ) : (
-                "시작하기"
-              )}
-            </button>
-          </div>
+          <button
+            onClick={next}
+            className="flex items-center gap-1.5 bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white px-4 py-2 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity"
+          >
+            {step < STEPS.length - 1 ? (
+              <>다음 <ChevronRight size={14} /></>
+            ) : (
+              "시작하기"
+            )}
+          </button>
         </div>
       </div>
     </>

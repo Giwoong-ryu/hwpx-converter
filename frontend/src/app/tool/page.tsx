@@ -130,7 +130,7 @@ function GaugeBadge() {
   );
 
   return (
-    <Link href="/pricing" className="flex items-center gap-2 text-[11px] bg-white border border-gray-200/80 px-3 py-1.5 rounded-lg hover:border-[#93C5FD] transition-colors">
+    <Link href="/mypage" className="flex items-center gap-2 text-[11px] bg-white border border-gray-200/80 px-3 py-1.5 rounded-lg hover:border-[#93C5FD] transition-colors">
       {/* 플랜 뱃지 */}
       {plan === "pro" ? (
         <span className="font-bold text-white bg-[#1E40AF] px-1.5 py-0.5 rounded text-[10px]">PRO</span>
@@ -184,6 +184,9 @@ function UserMenu({ onLoginClick }: { onLoginClick: () => void }) {
               <p className="text-xs font-bold text-[#1a1c1b]">Lv.{user.level || 1} {user.level_title || "새내기"}</p>
               <p className="text-[10px] text-[#57423c]/40">문서 {user.total_docs || 0}건 완성</p>
             </div>
+            <Link href="/mypage" className="flex items-center gap-2 px-3 py-2 text-sm text-[#57423c] hover:bg-[#f4f4f1] rounded-lg" onClick={() => setOpen(false)}>
+              <User size={12} /> 마이페이지
+            </Link>
             <Link href="/pricing" className="block px-3 py-2 text-sm text-[#57423c] hover:bg-[#f4f4f1] rounded-lg" onClick={() => setOpen(false)}>
               요금제
             </Link>
@@ -396,11 +399,12 @@ function Main() {
               </div>
               <p className="text-sm text-[#57423c] mb-5">양식 문서를 올리고 분석하세요.</p>
 
-              <div className="min-h-[100px]">
+              <div id="onboard-upload" className="min-h-[100px]">
                 <FileUpload accept=".hwp,.hwpx,.docx" label="HWP / HWPX / DOCX 파일" onFiles={(f) => setFile(f[0])} />
               </div>
 
               <button
+                id="onboard-analyze"
                 onClick={doAnalyze}
                 disabled={loading || !file}
                 className="w-full mt-3 bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white py-2.5 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
@@ -486,7 +490,7 @@ function Main() {
           {/* 탭 헤더 */}
           <div>
             {/* 메인 탭 */}
-            <div className="flex bg-white border border-[#93C5FD]/50 rounded-2xl shadow-[0_4px_20px_rgba(26,28,27,0.03)] overflow-hidden p-1.5 gap-1">
+            <div id="onboard-tabs" className="flex bg-white border border-[#93C5FD]/50 rounded-2xl shadow-[0_4px_20px_rgba(26,28,27,0.03)] overflow-hidden p-1.5 gap-1">
               {MAIN_TABS.map((mainTab) => {
                 const isActive = mainTab.group.includes(activeTab);
                 const Icon = mainTab.icon;

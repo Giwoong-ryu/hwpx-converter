@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-from api.routes import form, ai, batch, extract, periodic, stamp, merge, excel, auth, payment, preset, mapping, gallery
+from api.routes import form, ai, batch, extract, periodic, stamp, merge, excel, auth, payment, preset, mapping, gallery, achievements, usage
 
 app = FastAPI(title="Eazy HWPX API")
 
@@ -62,6 +62,8 @@ app.include_router(payment.router, prefix="/api/payment", tags=["payment"])
 app.include_router(preset.router, prefix="/api/preset", tags=["preset"])
 app.include_router(mapping.router, prefix="/api/mapping", tags=["mapping"])
 app.include_router(gallery.router, prefix="/api/gallery", tags=["gallery"])
+app.include_router(achievements.router, prefix="/api/achievements", tags=["achievements"])
+app.include_router(usage.router, prefix="/api/usage", tags=["usage"])
 
 
 @app.get("/api/health")
@@ -91,6 +93,11 @@ if os.path.isdir(_FRONTEND_DIR):
     @app.get("/pricing")
     async def serve_pricing():
         html = os.path.join(_FRONTEND_DIR, "pricing.html")
+        return FileResponse(html if os.path.isfile(html) else os.path.join(_FRONTEND_DIR, "index.html"))
+
+    @app.get("/mypage")
+    async def serve_mypage():
+        html = os.path.join(_FRONTEND_DIR, "mypage.html")
         return FileResponse(html if os.path.isfile(html) else os.path.join(_FRONTEND_DIR, "index.html"))
 
     @app.get("/auth/callback")

@@ -395,3 +395,36 @@ export async function deleteGalleryForm(formId: number) {
   if (!res.ok) await handleError(res, "삭제 실패");
   return res.json();
 }
+
+// ═══ 마이페이지 API ═══
+
+export async function listAchievements() {
+  const token = await _getToken();
+  if (!token) return { achievements: [], definitions: {} };
+  const res = await fetch(`${API}/achievements/list`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) return { achievements: [], definitions: {} };
+  return res.json();
+}
+
+export async function getUsageHistory(days = 30) {
+  const token = await _getToken();
+  if (!token) return { history: [], summary: {} };
+  const res = await fetch(`${API}/usage/history?days=${days}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) return { history: [], summary: {} };
+  return res.json();
+}
+
+export async function updatePreset(id: number, name?: string, data?: Record<string, string>) {
+  const token = await _getToken();
+  if (!token) throw new Error("로그인이 필요합니다.");
+  const body: Record<string, unknown> = {};
+  if (name !== undefined) body.name = name;
+  if (data !== undefined) body.data = data;
+  const res = await fetch(`${API}/preset/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await handleError(res, "프리셋 수정 실패");
+  return res.json();
+}
