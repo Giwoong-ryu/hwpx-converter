@@ -234,17 +234,20 @@ export default function LandingPage() {
               <div className="absolute top-[28%] left-[-380px] z-40 hidden 2xl:flex flex-col items-center">
                 <span className="text-[10.5px] font-bold text-gray-800 mb-2 bg-white/80 px-2.5 py-1 rounded-full backdrop-blur-sm border border-gray-100 shadow-sm">내 자료</span>
                 <div className="flex -space-x-2 relative ml-4">
-                  <div className="relative w-11 h-14 bg-white rounded-md flex flex-col items-center justify-center border border-gray-200 shadow-xl transform -rotate-12 transition-transform hover:-translate-y-2 cursor-grab z-30">
+                  <div className="relative w-11 h-14 bg-white rounded-md flex flex-col items-center justify-center border border-emerald-200 shadow-xl transform -rotate-12 transition-transform hover:-translate-y-2 cursor-grab z-30">
                     <div className="absolute top-0 right-0 w-3 h-3 bg-emerald-100 border-b border-l border-emerald-200 rounded-bl-sm" />
-                    <span className="text-[9px] font-black text-emerald-700 mt-1">엑셀</span>
+                    <FileSpreadsheet size={14} className="text-emerald-600" />
+                    <span className="text-[7px] font-black text-emerald-700 mt-0.5">.xlsx</span>
                   </div>
-                  <div className="relative w-11 h-14 bg-white rounded-md flex flex-col items-center justify-center border border-gray-200 shadow-xl transform rotate-0 z-20 -translate-y-3 transition-transform hover:-translate-y-5 cursor-grab">
+                  <div className="relative w-11 h-14 bg-white rounded-md flex flex-col items-center justify-center border border-blue-200 shadow-xl transform rotate-0 z-20 -translate-y-3 transition-transform hover:-translate-y-5 cursor-grab">
                     <div className="absolute top-0 right-0 w-3 h-3 bg-blue-100 border-b border-l border-blue-200 rounded-bl-sm" />
-                    <span className="text-[9px] font-black text-blue-700 mt-1">워드</span>
+                    <FileText size={14} className="text-blue-600" />
+                    <span className="text-[7px] font-black text-blue-700 mt-0.5">.docx</span>
                   </div>
                   <div className="relative w-11 h-14 bg-white rounded-md flex flex-col items-center justify-center border border-gray-200 shadow-xl transform rotate-12 z-10 transition-transform hover:-translate-y-2 cursor-grab">
                     <div className="absolute top-0 right-0 w-3 h-3 bg-gray-100 border-b border-l border-gray-200 rounded-bl-sm" />
-                    <span className="text-[9px] font-black text-gray-600 mt-1">TXT</span>
+                    <FileText size={14} className="text-gray-500" />
+                    <span className="text-[7px] font-black text-gray-600 mt-0.5">.txt</span>
                   </div>
                 </div>
                 
