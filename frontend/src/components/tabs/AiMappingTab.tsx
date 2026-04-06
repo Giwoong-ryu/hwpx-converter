@@ -217,46 +217,79 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
               <PenLine size={10} /> 직접 입력
             </button>
           </div>
-          <p className="text-sm text-[#57423c]/60">아래 정보만 입력하면 AI가 나머지를 채워드립니다.</p>
-          <div className="space-y-2">
-            {smartFields.map((f) => (
-              <div key={f.key} className="flex items-center gap-2">
-                <label className="text-xs text-[#57423c] w-24 shrink-0 text-right font-medium">{f.label}</label>
+          <p className="text-sm text-[#57423c]/60">아래 정보를 입력하거나 파일을 올리면 AI가 양식에 맞춰 채워드립니다.</p>
+
+          {/* 좌우 분리: 입력 필드 | 파일 업로드 */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            {/* 왼쪽: 추천 입력 필드 (3/5) */}
+            <div className="lg:col-span-3 space-y-2.5">
+              {smartFields.map((f) => (
+                <div key={f.key}>
+                  <label className="text-xs text-[#57423c] font-medium mb-1 block">{f.label}</label>
+                  <input
+                    type="text"
+                    name={`smart_${f.key}`}
+                    autoComplete="on"
+                    placeholder={f.placeholder}
+                    value={smartValues[f.key] || ""}
+                    onChange={(e) => setSmartValues((p) => ({ ...p, [f.key]: e.target.value }))}
+                    className="w-full border border-[#93C5FD]/40 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#1E40AF]/40 transition-colors"
+                  />
+                </div>
+              ))}
+              <label className="flex items-center gap-2 cursor-pointer select-none group mt-1">
                 <input
-                  type="text"
-                  name={`smart_${f.key}`}
-                  autoComplete="on"
-                  placeholder={f.placeholder}
-                  value={smartValues[f.key] || ""}
-                  onChange={(e) => setSmartValues((p) => ({ ...p, [f.key]: e.target.value }))}
-                  className="flex-1 border border-[#93C5FD]/40 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#1E40AF]/40 transition-colors"
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => handleRememberToggle(e.target.checked)}
+                  className="rounded accent-[#2563EB] w-3.5 h-3.5"
                 />
+                <span className="text-xs text-[#57423c]/60 group-hover:text-[#57423c] transition-colors">
+                  이 기기에서 내 정보 기억하기
+                </span>
+                {remember && (
+                  <span className="text-xs text-[#57423c]/40">서버에 전송되지 않습니다</span>
+                )}
+              </label>
+            </div>
+
+            {/* 오른쪽: 파일 업로드 (2/5) */}
+            <div className="lg:col-span-2">
+              <p className="text-xs text-[#57423c] font-medium mb-1">또는 파일로 올리기</p>
+              <div className="border-2 border-dashed border-[#93C5FD]/40 rounded-xl p-4 bg-[#FAFBFF] min-h-[120px] flex flex-col">
+                <FileUpload
+                  accept=".txt,.xlsx,.xls,.docx,.csv,.json,.md"
+                  label="엑셀, 워드, 텍스트 등"
+                  multiple
+                  onFiles={(f) => setContentFiles((prev) => [...prev, ...f].slice(0, 5))}
+                />
+                {contentFiles.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {contentFiles.map((f, i) => (
+                      <div key={i} className="flex items-center justify-between bg-white rounded-lg px-2.5 py-1.5 border border-gray-100">
+                        <span className="text-xs text-[#57423c] truncate">{f.name}</span>
+                        <button
+                          onClick={() => setContentFiles((prev) => prev.filter((_, j) => j !== i))}
+                          className="text-[#57423c]/40 hover:text-red-500 ml-2"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
+              <p className="text-xs text-[#57423c]/40 mt-1.5">입력 + 파일을 함께 사용할 수 있어요</p>
+            </div>
           </div>
-          <label className="flex items-center gap-2 cursor-pointer select-none group">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => handleRememberToggle(e.target.checked)}
-              className="rounded accent-[#2563EB] w-3.5 h-3.5"
-            />
-            <span className="text-xs text-[#57423c]/60 group-hover:text-[#57423c] transition-colors">
-              이 기기에서 내 정보 기억하기
-            </span>
-            {remember && (
-              <span className="text-xs text-[#57423c]/40">
-                서버에 전송되지 않습니다
-              </span>
-            )}
-          </label>
+
           <button
             onClick={doMap}
-            disabled={loading || !isAnalyzed || !hasSmartInput}
+            disabled={loading || !isAnalyzed || (!hasSmartInput && contentFiles.length === 0)}
             className="w-full bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
           >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-            {loading ? "AI 작성 중..." : "스마트 작성하기"}
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+            {loading ? "채우는 중..." : "AI 자동 채우기"}
           </button>
         </div>
       ) : (
@@ -264,57 +297,67 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
           <div className="flex items-center justify-between">
             <div className="text-base text-[#57423c] space-y-1">
               <p className="font-semibold text-[#1a1c1b]">내 자료를 붙여넣거나 파일을 올리세요.</p>
-              <p className="text-base">자료가 없으면 &quot;써줘&quot;로 <span className="text-[#2563EB] font-medium">AI 초안</span>을 만들 수도 있어요. <span className="text-[#57423c]/70">Google AI 사용 · 학습에 미사용</span></p>
+              <p className="text-sm text-[#57423c]/60">양식에 맞춰 AI가 자동으로 채워드립니다. <span className="text-[#57423c]/40">Google AI 사용 · 학습에 미사용</span></p>
             </div>
             {docType && (
               <button
                 onClick={() => setMode("smart")}
                 className="text-xs text-[#57423c]/50 hover:text-[#2563EB] flex items-center gap-1 transition-colors shrink-0"
               >
-                <Sparkles size={10} /> 스마트 입력
+                <Sparkles size={10} /> 추천 입력
               </button>
             )}
           </div>
-          <textarea
-            className="w-full border border-[#93C5FD]/40 rounded-xl p-3 text-sm resize-y focus:outline-none focus:border-[#1E40AF]/40 bg-white transition-colors"
-            rows={2}
-            placeholder={"예: 온라인 교육 플랫폼 사업계획서 써줘\n예: 회사명: 주식회사 OO, 대표자: 홍길동, 설립일: 2025.01.01"}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-          <div>
-            <FileUpload
-              accept=".txt,.xlsx,.xls,.docx,.csv,.json,.md"
-              label="내용이 담긴 파일 업로드 (txt, xlsx, docx, csv) - 여러 개 가능"
-              multiple
-              onFiles={(f) => setContentFiles((prev) => [...prev, ...f].slice(0, 5))}
-            />
-            {contentFiles.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {contentFiles.map((f, i) => (
-                  <div key={i} className="flex items-center justify-between bg-[#f4f4f1] rounded-lg px-3 py-1.5">
-                    <span className="text-xs text-[#57423c] truncate">{f.name} ({(f.size / 1024).toFixed(0)}KB)</span>
-                    <button
-                      onClick={() => setContentFiles((prev) => prev.filter((_, j) => j !== i))}
-                      className="text-[#57423c]/40 hover:text-red-500 text-xs ml-2"
-                    >
-                      <X size={12} />
-                    </button>
+
+          {/* 좌우 분리: 텍스트 입력 | 파일 업로드 */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            {/* 왼쪽: 텍스트 입력 (3/5) */}
+            <div className="lg:col-span-3">
+              <textarea
+                className="w-full border border-[#93C5FD]/40 rounded-xl p-3 text-sm resize-y focus:outline-none focus:border-[#1E40AF]/40 bg-white transition-colors"
+                rows={5}
+                placeholder={"여기에 내 자료를 붙여넣으세요.\n\n예: 회사명 주식회사 이지테크, 대표자 홍길동, 설립일 2024.01.15\n예: 엑셀이나 워드에서 복사해서 붙여넣기 해도 됩니다"}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+              />
+            </div>
+
+            {/* 오른쪽: 파일 업로드 (2/5) */}
+            <div className="lg:col-span-2">
+              <div className="border-2 border-dashed border-[#93C5FD]/40 rounded-xl p-4 bg-[#FAFBFF] h-full flex flex-col">
+                <FileUpload
+                  accept=".txt,.xlsx,.xls,.docx,.csv,.json,.md"
+                  label="엑셀, 워드, 텍스트 등"
+                  multiple
+                  onFiles={(f) => setContentFiles((prev) => [...prev, ...f].slice(0, 5))}
+                />
+                {contentFiles.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {contentFiles.map((f, i) => (
+                      <div key={i} className="flex items-center justify-between bg-white rounded-lg px-2.5 py-1.5 border border-gray-100">
+                        <span className="text-xs text-[#57423c] truncate">{f.name}</span>
+                        <button
+                          onClick={() => setContentFiles((prev) => prev.filter((_, j) => j !== i))}
+                          className="text-[#57423c]/40 hover:text-red-500 ml-2"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-                {!user && contentFiles.length > 1 && (
-                  <p className="text-xs text-amber-600">여러 파일은 Plus 이상에서 사용 가능합니다</p>
                 )}
+                <p className="text-xs text-[#57423c]/40 mt-auto pt-2">텍스트 + 파일을 함께 사용 가능</p>
               </div>
-            )}
+            </div>
           </div>
+
           <button
             onClick={doMap}
             disabled={loading || !isAnalyzed || (!text && contentFiles.length === 0)}
             className="w-full bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-            {loading ? "AI 작성 중..." : "AI 자동 채우기"}
+            {loading ? "채우는 중..." : "AI 자동 채우기"}
           </button>
         </div>
       )}
