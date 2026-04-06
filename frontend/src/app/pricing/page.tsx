@@ -84,37 +84,6 @@ export default function PricingPage() {
 
       <main className="pt-24 pb-20 max-w-screen-xl mx-auto px-8 lg:px-12">
 
-        {/* ── 오픈 행사 배너 ── */}
-        <div className="max-w-2xl mx-auto mb-4 bg-gradient-to-r from-[#2563EB] to-[#1E40AF] rounded-2xl p-5 text-center text-white">
-          <p className="text-lg font-extrabold mb-1">오픈 기념 -- Plus 1개월 무료 체험</p>
-          <p className="text-sm text-white/80 mb-3">쿠폰 코드를 입력하면 Plus 사용량이 무료로 충전됩니다. 카드 등록 없음.</p>
-          <div className="flex items-center gap-2 max-w-sm mx-auto">
-            <div className="relative flex-1">
-              <Ticket size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-              <input
-                type="text"
-                value={couponCode}
-                onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
-                onKeyDown={(e) => e.key === "Enter" && handleCoupon()}
-                placeholder="쿠폰 코드 입력"
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/40 text-sm font-medium focus:outline-none focus:border-white/60 transition-colors"
-              />
-            </div>
-            <button
-              onClick={handleCoupon}
-              disabled={couponLoading || !couponCode.trim()}
-              className="px-5 py-2.5 rounded-xl bg-white text-[#1E40AF] font-bold text-sm hover:bg-white/90 transition-all active:scale-95 disabled:opacity-50 shrink-0"
-            >
-              {couponLoading ? "..." : "적용"}
-            </button>
-          </div>
-          {couponResult && (
-            <p className={`text-sm mt-2 font-medium ${couponResult.ok ? "text-emerald-300" : "text-red-300"}`}>
-              {couponResult.message}
-            </p>
-          )}
-        </div>
-
         {/* ── 헤드라인 ── */}
         <div className="text-center mb-6">
           <h1 className="text-[2.2rem] lg:text-[2.8rem] font-extrabold leading-[1.15] tracking-tight">
@@ -146,9 +115,6 @@ export default function PricingPage() {
 
           {/* Plus */}
           <div className="bg-white rounded-2xl border-2 border-[#2563EB] p-6 flex flex-col relative shadow-[0_4px_32px_rgba(37,99,235,0.08)]">
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#2563EB] text-white text-sm font-bold px-5 py-1.5 rounded-full tracking-wide">
-              오픈 특가
-            </div>
             <div className="text-sm font-bold text-[#2563EB]/60 uppercase tracking-widest mb-3 flex items-center gap-1.5">
               <Zap size={14} /> Plus
             </div>
@@ -180,7 +146,7 @@ export default function PricingPage() {
             </div>
             <div className="text-4xl font-black tracking-tight mb-1">9,900원<span className="text-lg font-normal text-[#57423c]/30">/월</span></div>
             <p className="text-base text-[#57423c]/50 mb-1.5">AI 무제한, 횟수 걱정 없이</p>
-            <p className="text-sm text-[#57423c]/50 mb-4 leading-relaxed">매주 게이지 자동 리셋.<br />오픈 특가 가입 시 영구 적용.</p>
+            <p className="text-sm text-[#57423c]/50 mb-4 leading-relaxed">매주 게이지 자동 리셋.<br />구독 중 요금 인상 없음.</p>
             <ul className="space-y-3 mb-6 flex-1">
               <Li text="무료 기능 전부 포함" />
               <Li text="AI 매핑/작성 무제한" highlight />
