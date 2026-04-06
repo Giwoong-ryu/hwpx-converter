@@ -148,11 +148,18 @@ export default function PricingPage() {
           </div>
         </div>
 
+        {/* ── 스크롤 힌트 ── */}
+        <div className="flex justify-center mb-6 mt-8">
+          <div className="flex flex-col items-center gap-2 animate-bounce text-[#57423c]/40">
+            <span className="text-xs uppercase font-bold tracking-widest">Scroll to explore</span>
+            <ChevronDown size={16} />
+          </div>
+        </div>
+
         {/* ── 쓸수록 혜택이 쌓여요 ── */}
-        <div className="mb-20 max-w-2xl mx-auto mt-12">
+        <div className="mb-20 max-w-2xl mx-auto">
           <h2 className="text-xl font-extrabold tracking-tight text-center mb-2">쓸수록 혜택이 쌓여요</h2>
           <p className="text-sm text-[#57423c]/50 text-center mb-8">문서를 만들 때마다 보너스 사용량이 자동으로 충전돼요</p>
-
           <div className="space-y-4">
             <Step emoji={<Trophy size={18} className="text-[#2563EB]" />} title="첫 문서를 완성하면" desc="보너스 +25%가 바로 충전돼요." />
             <Step emoji={<Flame size={18} className="text-orange-500" />} title="매일 사용하면" desc="3일째부터 연속 사용 보너스가 쌓여요. 7일, 30일까지 보너스가 커져요." />
