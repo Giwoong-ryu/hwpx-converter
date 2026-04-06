@@ -98,6 +98,39 @@ async def redeem_coupon(req: RedeemRequest, authorization: str = Header(None)):
     return {"ok": True, "message": message, "gauge_added": gauge_added}
 
 
+@router.get("/my-coupon")
+async def my_coupon(authorization: str = Header(None)):
+    """현재 사용자의 활성 쿠폰 정보 조회"""
+    user = await _get_user(authorization)
+    sb = get_supabase()
+
+    # 사용자가 사용한 쿠폰 조회
+    uses = sb.table("docflow_coupon_uses").select(
+        "coupon_id, used_at"
+    ).eq("user_id", user.id).order("used_at", desc=True).limit(1).execute()
+
+    if not uses.data:
+        return {"active": False}
+
+    coupon_id = uses.data[0]["coupon_id"]
+    coupon = sb.table("docflow_coupons").select(
+        "code, type, value, expires_at"
+    ).eq("id", coupon_id).single().execute()
+
+    if not coupon.data:
+        return {"active": False}
+
+    c = coupon.data
+    # 만료 체크
+    if c.get("expires_at"):
+        expires = datetime.fromisoformat(c["expires_at"].replace("Z", "+00:00"))
+        if datetime.now(timezone.utc) > expires:
+            return {"active": False}
+
+    coupon_name = "Plus 체험중" if c["type"] == "plus_free" else f"보너스 +{c['value']}%"
+    return {"active": True, "coupon_name": coupon_name, "code": c["code"]}
+
+
 def _get_success_message(coupon_type: str, value: float) -> str:
     """쿠폰 타입별 성공 메시지"""
     if coupon_type == "plus_free":

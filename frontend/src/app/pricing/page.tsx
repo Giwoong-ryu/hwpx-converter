@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { FileText, Check, Shield, Zap, Crown, ChevronDown, Gift, Flame, Trophy, Star, ArrowRight, Ticket } from "lucide-react";
 import { redeemCoupon } from "@/lib/api";
+import CouponBadge from "@/components/ui/CouponBadge";
 
 const PLUS_ID = "307b2685-27de-4b96-ac7d-670a669c85d8";
 const PRO_ID = "fe4b5d80-c912-403b-b940-58b4c50bb6b8";
@@ -69,7 +70,8 @@ export default function PricingPage() {
             </div>
             <span className="text-lg font-extrabold tracking-tighter">Eazy HWPX</span>
           </Link>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            <CouponBadge />
             <Link href="/tool" className="text-base text-[#57423c]/70 hover:text-[#1a1c1b] transition-colors">도구</Link>
             {user ? (
               <span className="text-base text-[#57423c]/50">{user.email}</span>
@@ -163,6 +165,40 @@ export default function PricingPage() {
             >
               {purchasing === PRO_ID ? "처리 중..." : "프로 구독 시작하기"}
             </button>
+          </div>
+        </div>
+
+        {/* ── 쿠폰 입력 + 스크롤 힌트 ── */}
+        <div className="flex items-center justify-center gap-8 max-w-4xl mx-auto mb-10 mt-8">
+          {/* 쿠폰 입력 */}
+          <div className="flex items-center gap-2">
+            <Ticket size={16} className="text-[#57423c]/30 shrink-0" />
+            <input
+              type="text"
+              value={couponCode}
+              onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
+              onKeyDown={(e) => e.key === "Enter" && handleCoupon()}
+              placeholder="쿠폰 코드"
+              className="w-36 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:border-[#2563EB] focus:outline-none"
+            />
+            <button
+              onClick={handleCoupon}
+              disabled={couponLoading || !couponCode.trim()}
+              className="px-4 py-2 rounded-lg bg-[#2563EB] text-white font-bold text-sm hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {couponLoading ? "..." : "적용"}
+            </button>
+            {couponResult && (
+              <span className={`text-sm font-medium ${couponResult.ok ? "text-emerald-600" : "text-red-500"}`}>
+                {couponResult.message}
+              </span>
+            )}
+          </div>
+
+          {/* 스크롤 힌트 */}
+          <div className="flex flex-col items-center gap-1 animate-bounce text-[#57423c]/40">
+            <span className="text-xs uppercase font-bold tracking-widest">Scroll to explore</span>
+            <ChevronDown size={14} />
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FormProvider, useForm } from "@/context/FormContext";
@@ -18,6 +19,7 @@ import LoginModal from "@/components/ui/LoginModal";
 import GaugeEmptyModal from "@/components/ui/GaugeEmptyModal";
 import RewardToast, { type RewardItem } from "@/components/ui/RewardToast";
 import OnboardingGuide from "@/components/ui/OnboardingGuide";
+import CouponBadge from "@/components/ui/CouponBadge";
 import {
   FileText, Loader2, Shield, Wand2, Layers, TableProperties,
   Calendar, Stamp, Merge, CheckCircle2, FileSpreadsheet,
@@ -242,7 +244,7 @@ function ShareFormButton({ file, filename, fieldCount }: { file: File | null; fi
         <Globe size={12} /> 갤러리에 공유하기 <span className="text-xs bg-[#DBEAFE] px-1.5 py-0.5 rounded font-bold">+25%</span>
       </button>
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-bold text-[#1a1c1b] mb-1">양식 갤러리에 공유</h3>
@@ -292,7 +294,8 @@ function ShareFormButton({ file, filename, fieldCount }: { file: File | null; fi
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
@@ -377,6 +380,7 @@ function Main() {
               <span className="text-xs font-bold text-[#57423c]/70 bg-[#e2e3e0]/50 px-2.5 py-1 rounded-md">DOCX</span>
             </div>
             <div className="w-px h-5 bg-gray-200 hidden sm:block" />
+            <CouponBadge />
             <GaugeBadge />
             <UserMenu onLoginClick={() => setShowLoginModal(true)} />
           </div>
