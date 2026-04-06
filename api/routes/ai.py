@@ -159,18 +159,45 @@ async def ai_map(
     field_set = set(fields)
     matched_count = sum(1 for k in result if k in field_set)
     coverage_pct = (matched_count / max(len(fields), 1)) * 100
-    is_generation = mode == "generate"
+
+    # 칸별 출처 판정: 사용자 자료에 값이 포함되어 있으면 "user", 없으면 "ai"
+    user_text = (text or "").strip()
+    for cp in content_paths:
+        try:
+            with open(cp, "r", encoding="utf-8", errors="ignore") as f:
+                user_text += "\n" + f.read()
+        except Exception:
+            pass
+    user_text_lower = user_text.lower().replace(" ", "")
+
+    sources = {}
+    ai_count = 0
+    for k, v in result.items():
+        if not v or not v.strip():
+            sources[k] = "user"
+            continue
+        # 값의 핵심 부분(숫자, 이름 등)이 사용자 자료에 있는지 체크
+        v_check = v.strip().lower().replace(" ", "")
+        if len(v_check) >= 2 and v_check in user_text_lower:
+            sources[k] = "user"
+        elif user_text.strip():
+            sources[k] = "ai"
+            ai_count += 1
+        else:
+            sources[k] = "ai"
+            ai_count += 1
 
     mlog("ai_map", success=True, field_count=len(fields), duration_ms=t.ms,
-         detail=f"{mode}, mapped={len(result)}, matched={matched_count}, coverage={coverage_pct:.1f}%")
+         detail=f"mapped={len(result)}, matched={matched_count}, coverage={coverage_pct:.1f}%, ai_filled={ai_count}")
 
     return {
         "mapping_count": len(result),
         "mappings": result,
+        "sources": sources,
         "coverage": {
             "total_fields": len(fields),
             "mapped": matched_count,
             "coverage_pct": round(coverage_pct, 1),
+            "ai_filled": ai_count,
         },
-        "is_generation": is_generation,
     }

@@ -60,7 +60,8 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
   const [stripImages, setStripImages] = useState(false);
   const [outputFormat, setOutputFormat] = useState<"hwpx" | "hwp" | "docx">("hwpx");
   const [isGeneration, setIsGeneration] = useState(false);
-  const [coverage, setCoverage] = useState<{ total_fields: number; mapped: number; coverage_pct: number } | null>(null);
+  const [coverage, setCoverage] = useState<{ total_fields: number; mapped: number; coverage_pct: number; ai_filled?: number } | null>(null);
+  const [sources, setSources] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showLoadModal, setShowLoadModal] = useState(false);
@@ -89,7 +90,10 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
       setMappings(Object.entries(res.mappings));
       setIsGeneration(res.is_generation || false);
       setCoverage(res.coverage || null);
-      setShowDetail(false);
+      setSources(res.sources || {});
+      // AI 보완 항목이 있으면 상세 보기 자동 펼침
+      const aiCount = res.coverage?.ai_filled || 0;
+      setShowDetail(aiCount > 0);
     } catch (e: unknown) {
       if (e instanceof GaugeEmptyError) {
         onGaugeEmpty?.({ errorCode: e.error_code, plan: e.plan, gaugePct: e.gauge_pct });
@@ -366,29 +370,29 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
 
       {mappings.length > 0 && (
         <div className="border border-[#93C5FD]/50 rounded-xl overflow-hidden">
-          {/* AI 생성 모드 경고 */}
-          {isGeneration && (
-            <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-base text-amber-800">
-              <strong>AI 초안입니다.</strong> 이름, 날짜, 금액 등은 실제와 다를 수 있어요. 반드시 검토 후 사용하세요.
-            </div>
-          )}
-          {/* 커버리지 정보 */}
-          {coverage && (
-            <div className="bg-[#f0fdf4] px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={18} className="text-emerald-600" />
-                <span className="text-base font-semibold text-[#1a1c1b]">{mappings.length}개 항목 매핑 완료</span>
+          {/* 커버리지 + AI 보완 안내 */}
+          {coverage ? (
+            <div className="bg-[#f0fdf4] px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={18} className="text-emerald-600" />
+                  <span className="text-base font-semibold text-[#1a1c1b]">{mappings.length}개 항목 자동 채움 완료</span>
+                </div>
+                <span className="text-sm text-[#57423c]">
+                  {coverage.total_fields}개 필드 중 {coverage.mapped}개 ({coverage.coverage_pct}%)
+                </span>
               </div>
-              <span className="text-sm text-[#57423c]">
-                전체 {coverage.total_fields}개 필드 중 {coverage.mapped}개 매핑 ({coverage.coverage_pct}%)
-              </span>
+              {(coverage.ai_filled || 0) > 0 && (
+                <p className="text-sm text-[#2563EB] mt-1.5">
+                  {coverage.ai_filled}개 항목은 AI가 보완했어요. <span className="text-[#57423c]/50">아래에서 파란 배경 항목을 확인해보세요.</span>
+                </p>
+              )}
             </div>
-          )}
-          {!coverage && (
-          <div className="bg-[#f0fdf4] px-4 py-3 flex items-center gap-2">
-            <CheckCircle2 size={18} className="text-emerald-600" />
-            <span className="text-base font-semibold text-[#1a1c1b]">{mappings.length}개 항목 매핑 완료</span>
-          </div>
+          ) : (
+            <div className="bg-[#f0fdf4] px-4 py-3 flex items-center gap-2">
+              <CheckCircle2 size={18} className="text-emerald-600" />
+              <span className="text-base font-semibold text-[#1a1c1b]">{mappings.length}개 항목 자동 채움 완료</span>
+            </div>
           )}
 
           <div className="p-3 space-y-2">
@@ -469,16 +473,19 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
               <thead>
                 <tr className="border-b border-[#93C5FD]/50">
                   <th className="text-left px-4 py-2 text-[#1a1c1b] font-medium text-xs">원본</th>
-                  <th className="text-left px-4 py-2 text-[#1a1c1b] font-medium text-xs">변경</th>
+                  <th className="text-left px-4 py-2 text-[#1a1c1b] font-medium text-xs">채움 내용</th>
+                  <th className="text-left px-4 py-2 text-[#1a1c1b] font-medium text-xs w-16">출처</th>
                 </tr>
               </thead>
               <tbody>
-                {mappings.map(([old, val], i) => (
-                  <tr key={i} className="border-b border-[#93C5FD]/40 hover:bg-[#f4f4f1]/50">
+                {mappings.map(([old, val], i) => {
+                  const isAi = sources[old] === "ai";
+                  return (
+                  <tr key={i} className={`border-b border-[#93C5FD]/40 ${isAi ? "bg-blue-50/60" : "hover:bg-[#f4f4f1]/50"}`}>
                     <td className="px-4 py-2 text-[#57423c] text-xs">{old.length > 40 ? old.slice(0, 40) + "..." : old}</td>
                     <td className="px-4 py-1">
                       <input
-                        className="w-full border border-[#93C5FD]/400 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-[#1E40AF]/40 bg-white"
+                        className={`w-full border rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-[#1E40AF]/40 ${isAi ? "border-blue-200 bg-blue-50/30" : "border-[#93C5FD]/40 bg-white"}`}
                         value={val}
                         onChange={(e) => {
                           const copy = [...mappings];
@@ -487,8 +494,16 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
                         }}
                       />
                     </td>
+                    <td className="px-4 py-2 text-xs">
+                      {isAi ? (
+                        <span className="text-[#2563EB] font-medium">AI</span>
+                      ) : (
+                        <span className="text-[#57423c]/40">내 자료</span>
+                      )}
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           )}
