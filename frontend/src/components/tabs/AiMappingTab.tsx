@@ -81,7 +81,11 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
 
   const doMap = async () => {
     if (!fileId) return;
-    const prompt = useSmartMode ? buildSmartPrompt() : text;
+    let prompt = useSmartMode ? buildSmartPrompt() : text;
+    // 스마트 모드에서 자유 텍스트도 있으면 합침
+    if (useSmartMode && text.trim()) {
+      prompt += "\n\n추가 정보:\n" + text.trim();
+    }
     if (!prompt && contentFiles.length === 0) return;
     setLoading(true);
     setError("");
@@ -221,12 +225,13 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
               <PenLine size={10} /> 직접 입력
             </button>
           </div>
-          <p className="text-sm text-[#57423c]/60">아래 정보를 입력하거나 파일을 올리면 AI가 양식에 맞춰 채워드립니다.</p>
+          <p className="text-sm text-[#57423c]/60">핵심 정보를 입력하고, 추가 자료가 있으면 파일이나 텍스트로 올려주세요.</p>
 
-          {/* 좌우 분리: 입력 필드 | 파일 업로드 */}
+          {/* 좌우 분리: 입력 | 파일 업로드 */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-            {/* 왼쪽: 추천 입력 필드 (3/5) */}
+            {/* 왼쪽: 핵심 질문 + 자유 입력 (3/5) */}
             <div className="lg:col-span-3 space-y-2.5">
+              {/* 핵심 추천 필드 */}
               {smartFields.map((f) => (
                 <div key={f.key}>
                   <label className="text-xs text-[#57423c] font-medium mb-1 block">{f.label}</label>
@@ -241,6 +246,19 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
                   />
                 </div>
               ))}
+
+              {/* 자유 추가 입력 */}
+              <div>
+                <label className="text-xs text-[#57423c] font-medium mb-1 block">추가 정보 (선택)</label>
+                <textarea
+                  className="w-full border border-[#93C5FD]/40 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#1E40AF]/40 transition-colors resize-y"
+                  rows={3}
+                  placeholder={"위 항목 외에 추가 정보가 있으면 자유롭게 붙여넣으세요.\n예: 주소, 연락처, 사업 내용 등"}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                />
+              </div>
+
               <label className="flex items-center gap-2 cursor-pointer select-none group mt-1">
                 <input
                   type="checkbox"
@@ -289,7 +307,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
 
           <button
             onClick={doMap}
-            disabled={loading || !isAnalyzed || (!hasSmartInput && contentFiles.length === 0)}
+            disabled={loading || !isAnalyzed || (!hasSmartInput && !text.trim() && contentFiles.length === 0)}
             className="w-full bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
@@ -502,8 +520,8 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
                       )}
                     </td>
                   </tr>
-                  );
-                })}
+                );
+              })}
               </tbody>
             </table>
           )}
