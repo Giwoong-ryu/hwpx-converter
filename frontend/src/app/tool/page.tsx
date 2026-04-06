@@ -164,7 +164,7 @@ function GaugeBadge() {
 }
 
 function UserMenu({ onLoginClick }: { onLoginClick: () => void }) {
-  const { user, signOut, loading } = useAuth();
+  const { user, accessToken, signOut, loading } = useAuth();
   const [open, setOpen] = useState(false);
   if (loading) return null;
   if (!user) return (
@@ -192,6 +192,26 @@ function UserMenu({ onLoginClick }: { onLoginClick: () => void }) {
             <Link href="/pricing" className="block px-3 py-2 text-sm text-[#57423c] hover:bg-[#f4f4f1] rounded-lg" onClick={() => setOpen(false)}>
               요금제
             </Link>
+            {user.email && ["eazypick.dev@gmail.com"].includes(user.email) && (
+              <div className="border-t border-gray-100 mt-1 pt-1">
+                <p className="px-3 py-1 text-[10px] text-[#57423c]/30 font-bold">OWNER</p>
+                {(["free", "plus", "pro"] as const).map((p) => (
+                  <button key={p} onClick={async () => {
+                    const API = process.env.NEXT_PUBLIC_API_URL || "/api";
+                    const token = accessToken || "";
+                    await fetch(`${API}/admin/switch-plan`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ plan: p }),
+                    });
+                    setOpen(false);
+                    window.location.reload();
+                  }} className="w-full text-left px-3 py-1.5 text-xs text-[#57423c] hover:bg-[#f4f4f1] rounded-lg">
+                    {p.toUpperCase()}로 전환
+                  </button>
+                ))}
+              </div>
+            )}
             <button onClick={() => { signOut(); setOpen(false); }} className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg flex items-center gap-2">
               <LogOut size={12} /> 로그아웃
             </button>
