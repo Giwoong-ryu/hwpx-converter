@@ -231,23 +231,35 @@ export default function LandingPage() {
             <div style={{ perspective: '1600px' }} className="z-10 ml-8 relative flex items-center">
               
               {/* ── 1. 준비된 문서 파일들 (독립 섹션) ── */}
-              <div className="absolute top-[28%] left-[-380px] z-40 hidden 2xl:flex flex-col items-center">
+              <div className="absolute bottom-[28%] left-[-390px] z-40 hidden 2xl:flex flex-col items-center">
                 <span className="text-[10.5px] font-bold text-gray-800 mb-2 bg-white/80 px-2.5 py-1 rounded-full backdrop-blur-sm border border-gray-100 shadow-sm">내 자료</span>
                 <div className="flex -space-x-2 relative ml-4">
-                  <div className="relative w-11 h-14 bg-white rounded-md flex flex-col items-center justify-center border border-emerald-200 shadow-xl transform -rotate-12 transition-transform hover:-translate-y-2 cursor-grab z-30">
-                    <div className="absolute top-0 right-0 w-3 h-3 bg-emerald-100 border-b border-l border-emerald-200 rounded-bl-sm" />
-                    <FileSpreadsheet size={14} className="text-emerald-600" />
-                    <span className="text-[7px] font-black text-emerald-700 mt-0.5">.xlsx</span>
+                  {/* Excel Icon */}
+                  <div className="relative w-11 h-14 bg-white rounded-md flex flex-col items-center justify-center border border-[#107C41]/30 shadow-xl transform -rotate-12 transition-transform hover:-translate-y-2 cursor-grab z-30 overflow-hidden">
+                    <div className="absolute top-0 right-0 w-3 h-3 bg-[#107C41]/10 border-b border-l border-[#107C41]/20 rounded-bl-sm z-10" />
+                    <div className="w-6 h-6 bg-[#107C41] rounded-[4px] flex items-center justify-center text-white font-black text-[12px] shadow-sm mb-1 z-0 relative">
+                      X
+                      <div className="absolute -left-1 w-2.5 h-full bg-white/20 skew-x-12" />
+                    </div>
+                    <span className="text-[7px] font-black text-[#107C41]">.xlsx</span>
                   </div>
-                  <div className="relative w-11 h-14 bg-white rounded-md flex flex-col items-center justify-center border border-blue-200 shadow-xl transform rotate-0 z-20 -translate-y-3 transition-transform hover:-translate-y-5 cursor-grab">
-                    <div className="absolute top-0 right-0 w-3 h-3 bg-blue-100 border-b border-l border-blue-200 rounded-bl-sm" />
-                    <FileText size={14} className="text-blue-600" />
-                    <span className="text-[7px] font-black text-blue-700 mt-0.5">.docx</span>
+                  {/* Word Icon */}
+                  <div className="relative w-11 h-14 bg-white rounded-md flex flex-col items-center justify-center border border-[#2B579A]/30 shadow-xl transform rotate-0 z-20 -translate-y-3 transition-transform hover:-translate-y-5 cursor-grab overflow-hidden">
+                    <div className="absolute top-0 right-0 w-3 h-3 bg-[#2B579A]/10 border-b border-l border-[#2B579A]/20 rounded-bl-sm z-10" />
+                    <div className="w-6 h-6 bg-[#2B579A] rounded-[4px] flex items-center justify-center text-white font-black text-[12px] shadow-sm mb-1 z-0 relative">
+                      W
+                      <div className="absolute -left-1 w-2.5 h-full bg-white/20 skew-x-12" />
+                    </div>
+                    <span className="text-[7px] font-black text-[#2B579A]">.docx</span>
                   </div>
-                  <div className="relative w-11 h-14 bg-white rounded-md flex flex-col items-center justify-center border border-gray-200 shadow-xl transform rotate-12 z-10 transition-transform hover:-translate-y-2 cursor-grab">
-                    <div className="absolute top-0 right-0 w-3 h-3 bg-gray-100 border-b border-l border-gray-200 rounded-bl-sm" />
-                    <FileText size={14} className="text-gray-500" />
-                    <span className="text-[7px] font-black text-gray-600 mt-0.5">.txt</span>
+                  {/* Txt Icon */}
+                  <div className="relative w-11 h-14 bg-white rounded-md flex flex-col items-center justify-center border border-gray-300 shadow-xl transform rotate-12 z-10 transition-transform hover:-translate-y-2 cursor-grab overflow-hidden">
+                    <div className="absolute top-0 right-0 w-3 h-3 bg-gray-100 border-b border-l border-gray-300 rounded-bl-sm z-10" />
+                    <div className="w-6 h-6 bg-gray-600 rounded-[4px] flex items-center justify-center text-white font-black text-[12px] shadow-sm mb-1 z-0 relative">
+                      T
+                      <div className="absolute -left-1 w-2.5 h-full bg-white/20 skew-x-12" />
+                    </div>
+                    <span className="text-[7px] font-black text-gray-700">.txt</span>
                   </div>
                 </div>
                 
@@ -261,7 +273,7 @@ export default function LandingPage() {
               </div>
 
               {/* ── 2. 기능 이해를 돕는 플로팅 업로드 UI 모형 ── */}
-              <div className="absolute top-[15%] left-[-220px] z-30 w-[240px] bg-white rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.08),_0_0_0_1px_rgba(0,0,0,0.02)] p-5 transform -rotate-3 transition-transform duration-500 hover:rotate-0 hidden xl:block">
+              <div className="absolute top-[2%] left-[-260px] z-30 w-[240px] bg-white rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.08),_0_0_0_1px_rgba(0,0,0,0.02)] p-5 transform -rotate-4 transition-transform duration-500 hover:rotate-0 hidden xl:block">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-6 h-6 rounded-md bg-[#EEF2FF] flex items-center justify-center text-blue-600">
                     <UploadCloud size={14} />
@@ -290,7 +302,7 @@ export default function LandingPage() {
               </div>
 
               {/* ── 3. 내 자료 넣기 플로팅 카드 ── */}
-              <div className="absolute bottom-[5%] left-[-200px] z-30 w-[220px] bg-white rounded-2xl shadow-[0_15px_35px_rgba(0,0,0,0.07),_0_0_0_1px_rgba(0,0,0,0.02)] p-4 transform rotate-2 transition-transform duration-500 hover:rotate-0 hidden xl:block">
+              <div className="absolute bottom-[5%] left-[-230px] z-30 w-[230px] bg-white rounded-2xl shadow-[0_15px_35px_rgba(0,0,0,0.07),_0_0_0_1px_rgba(0,0,0,0.02)] p-4 transform rotate-2 transition-transform duration-500 hover:rotate-0 hidden xl:block">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center text-emerald-600">
                     <FileSpreadsheet size={14} />
@@ -571,13 +583,13 @@ export default function LandingPage() {
           {/* 3가지 핵심 기능 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
-            {/* 1. AI 자동 작성 */}
+            {/* 1. AI 자동 채우기 */}
             <Link href="/tool?tab=ai" className="scroll-fade group text-center p-5 rounded-xl transition-all hover:-translate-y-1 bg-gradient-to-br from-[#2563EB] to-[#1E40AF] text-white shadow-lg shadow-[#1E40AF]/15 flex flex-col justify-center" data-delay="0">
               <div className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-3 bg-white/20 transition-colors">
                 <Wand2 size={24} className="text-white" />
               </div>
-              <div className="text-[17px] font-extrabold mb-1 tracking-tight">AI 자동 작성</div>
-              <div className="text-[13px] leading-relaxed text-white/90">주제만 알려주면 AI가 알아서 기획하고 써줍니다</div>
+              <div className="text-[17px] font-extrabold mb-1 tracking-tight">AI 자동 채우기</div>
+              <div className="text-[13px] leading-relaxed text-white/90">내 자료를 양식에 맞춰 AI가 넣어드립니다</div>
             </Link>
 
             {/* 2. 문서 ⇄ 엑셀 (합친 버튼) */}
@@ -701,7 +713,7 @@ export default function LandingPage() {
               </div>
               <div className="flex items-start gap-3 bg-[#f4f4f1] rounded-lg px-4 py-3">
                 <Lock size={14} className="text-[#57423c]/40 mt-0.5 shrink-0" />
-                <span className="text-base text-[#57423c]">AI 자동 작성만 Google AI를 사용하며, 데이터는 학습에 사용되지 않습니다</span>
+                <span className="text-base text-[#57423c]">AI 자동 채우기만 Google AI를 사용하며, 데이터는 학습에 사용되지 않습니다</span>
               </div>
               <div className="flex items-start gap-3 bg-[#f4f4f1] rounded-lg px-4 py-3">
                 <Trash2 size={14} className="text-[#57423c]/40 mt-0.5 shrink-0" />

@@ -46,11 +46,11 @@ const SUB_TABS: Record<string, { id: string; label: string; icon: any }[]> = {
 
 const TAB_GUIDE: Record<string, { what: string; examples: string[] }> = {
   ai: {
-    what: "내용을 직접 붙여넣거나, AI에게 \"써줘\"라고 하면 문서를 대신 작성합니다.",
+    what: "내 자료를 올리거나 붙여넣으면, AI가 양식에 맞춰 넣어드립니다. 자료가 없으면 AI 초안도 가능해요.",
     examples: [
-      "\"온라인 교육 플랫폼 사업계획서 써줘\" → AI가 양식에 맞춰 17페이지 내용을 채워줌",
-      "내가 가진 텍스트를 복사 붙여넣기 → 양식의 항목에 알아서 넣어줌",
-      "엑셀이나 워드 파일을 올리면 → 그 안의 내용을 양식에 자동으로 넣어줌",
+      "엑셀이나 워드 파일을 올리면 → 양식의 항목에 맞춰 자동으로 넣어줌",
+      "텍스트를 복사 붙여넣기 → 양식 칸에 알아서 매핑해줌",
+      "\"사업계획서 써줘\" → AI가 핵심 질문 기반으로 초안을 만들어줌 (검토 필요)",
     ],
   },
   batch: {
@@ -547,7 +547,7 @@ function Main() {
                     <p>외부 서비스를 거치지 않고, 이 서버 안에서만 처리됩니다. 문서 내용이 외부로 전송되지 않습니다.</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-[#1a1c1b] mb-0.5">AI 자동 작성</p>
+                    <p className="font-semibold text-[#1a1c1b] mb-0.5">AI 자동 채우기</p>
                     <p>이 기능만 Google AI(Gemini)를 사용합니다. Google의 데이터 처리 정책에 따라 사용자 데이터는 AI 학습에 사용되지 않으며, 55일 후 완전 삭제됩니다.</p>
                   </div>
                   <div>

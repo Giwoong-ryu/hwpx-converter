@@ -21,7 +21,7 @@ const STEPS = [
   {
     target: "onboard-tabs",
     title: "3. 기능 선택",
-    desc: "AI 자동 작성, 엑셀 변환, 도장 삽입 등 원하는 기능을 선택하세요.",
+    desc: "AI 자동 채우기, 엑셀 변환, 도장 삽입 등 원하는 기능을 선택하세요.",
     icon: Wand2,
     align: "bottom",
   },

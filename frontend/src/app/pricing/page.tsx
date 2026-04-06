@@ -64,7 +64,7 @@ export default function PricingPage() {
         <div className="text-center mb-8">
           <h1 className="text-[2rem] lg:text-[2.4rem] font-extrabold leading-[1.15] tracking-tight mb-2">
             문서 변환/추출은 <span className="text-[#2563EB]">무료</span>.<br />
-            AI 자동 작성만 유료입니다.
+            AI 자동 채우기만 유료입니다.
           </h1>
           <p className="text-sm text-[#57423c]/60 max-w-lg mx-auto">
             광고 없음. 파일은 처리 후 즉시 삭제. 로그인 없이도 사용 가능.
