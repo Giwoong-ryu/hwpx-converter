@@ -263,8 +263,8 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="text-base text-[#57423c] space-y-1">
-              <p className="font-semibold text-[#1a1c1b]">&quot;써줘&quot;라고 입력하면 AI가 대신 작성합니다.</p>
-              <p className="text-base">또는 채울 내용을 직접 붙여넣을 수도 있습니다. <span className="text-[#57423c]/70">Google AI 사용 · 학습에 미사용</span></p>
+              <p className="font-semibold text-[#1a1c1b]">내 자료를 붙여넣거나 파일을 올리세요.</p>
+              <p className="text-base">자료가 없으면 &quot;써줘&quot;로 <span className="text-[#2563EB] font-medium">AI 초안</span>을 만들 수도 있어요. <span className="text-[#57423c]/70">Google AI 사용 · 학습에 미사용</span></p>
             </div>
             {docType && (
               <button
@@ -326,7 +326,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
           {/* AI 생성 모드 경고 */}
           {isGeneration && (
             <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-base text-amber-800">
-              <strong>AI가 작성한 내용입니다.</strong> 이름, 날짜, 금액, 수치 등은 실제와 다를 수 있습니다. 반드시 확인 후 사용하세요.
+              <strong>AI 초안입니다.</strong> 이름, 날짜, 금액 등은 실제와 다를 수 있어요. 반드시 검토 후 사용하세요.
             </div>
           )}
           {/* 커버리지 정보 */}

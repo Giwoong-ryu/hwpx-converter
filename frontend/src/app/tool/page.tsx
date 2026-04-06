@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 
 const MAIN_TABS = [
-  { id: "ai", group: ["ai"], label: "AI 자동 작성", icon: Wand2 },
+  { id: "ai", group: ["ai"], label: "AI 자동 채우기", icon: Wand2 },
   { id: "excel_doc", group: ["batch", "extract"], label: "문서 ⇄ 엑셀 쌍방향", icon: Layers },
   { id: "excel", group: ["excel"], label: "엑셀 빈칸 채우기", icon: FileSpreadsheet },
   { id: "special", group: ["periodic", "stamp", "merge"], label: "특수 기능 더보기", icon: Settings2 },
@@ -368,7 +368,7 @@ function Main() {
               </div>
               <span className="text-lg font-extrabold tracking-tighter text-[#1a1c1b]">Eazy HWPX</span>
             </Link>
-            <span className="hidden sm:block text-base text-[#57423c]">양식 파일을 올리면 AI가 내용을 채워줍니다</span>
+            <span className="hidden sm:block text-base text-[#57423c]">양식 + 내 자료를 올리면 AI가 넣어드립니다</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2">
