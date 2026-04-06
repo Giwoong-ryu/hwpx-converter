@@ -8,6 +8,14 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Eazy HWPX",
     description: "양식 파일 + 내 자료, AI가 합쳐서 완성합니다",
+    images: [{ url: "https://eazyhwpx.kr/og-image.png", width: 1200, height: 630 }],
+    siteName: "Eazy HWPX",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Eazy HWPX",
+    description: "양식 파일 + 내 자료, AI가 합쳐서 완성합니다",
+    images: ["https://eazyhwpx.kr/og-image.png"],
   },
 };
 
