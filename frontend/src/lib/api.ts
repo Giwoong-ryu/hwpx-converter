@@ -418,6 +418,23 @@ export async function getUsageHistory(days = 30) {
   return res.json();
 }
 
+// ═══ 쿠폰 API ═══
+
+export async function redeemCoupon(code: string) {
+  const token = await _getToken();
+  if (!token) throw new Error("로그인이 필요합니다.");
+  const res = await fetch(`${API}/coupon/redeem`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ code }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ detail: "쿠폰 적용 실패" }));
+    throw new Error(typeof data.detail === "string" ? data.detail : "쿠폰 적용 실패");
+  }
+  return res.json();
+}
+
 export async function updatePreset(id: number, name?: string, data?: Record<string, string>) {
   const token = await _getToken();
   if (!token) throw new Error("로그인이 필요합니다.");

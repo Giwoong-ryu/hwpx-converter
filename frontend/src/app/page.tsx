@@ -192,6 +192,12 @@ export default function LandingPage() {
               <span className="text-sm text-[#57423c]/50">회원가입 없이 바로 사용</span>
             </div>
 
+            {/* 게이지 한줄 요약 */}
+            <p className="text-sm text-[#57423c]/50 mb-4">
+              AI 사용량은 게이지 방식 — 쓸수록 보너스가 차올라요.{" "}
+              <Link href="/pricing" className="text-[#2563EB] font-semibold hover:underline">요금제 보기</Link>
+            </p>
+
             {/* 핵심 수치 */}
             <div className="hero-stagger hero-s4 flex items-center gap-6 text-base text-[#57423c]/60">
               <span><strong className="text-[#1a1c1b]">7가지</strong> 자동화 도구</span>

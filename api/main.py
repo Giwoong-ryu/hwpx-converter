@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-from api.routes import form, ai, batch, extract, periodic, stamp, merge, excel, auth, payment, preset, mapping, gallery, achievements, usage
+from api.routes import form, ai, batch, extract, periodic, stamp, merge, excel, auth, payment, preset, mapping, gallery, achievements, usage, coupon
 
 app = FastAPI(title="Eazy HWPX API")
 
@@ -84,6 +84,7 @@ app.include_router(mapping.router, prefix="/api/mapping", tags=["mapping"])
 app.include_router(gallery.router, prefix="/api/gallery", tags=["gallery"])
 app.include_router(achievements.router, prefix="/api/achievements", tags=["achievements"])
 app.include_router(usage.router, prefix="/api/usage", tags=["usage"])
+app.include_router(coupon.router, prefix="/api/coupon", tags=["coupon"])
 
 
 @app.get("/api/health")
