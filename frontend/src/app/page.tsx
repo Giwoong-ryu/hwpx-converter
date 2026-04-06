@@ -203,7 +203,7 @@ export default function LandingPage() {
           </div>
 
           {/* 오른쪽: 버블 프레임 + Before/After */}
-          <div className="lg:col-span-6 relative hidden lg:flex items-center justify-center h-[460px] scale-[0.85] origin-center">
+          <div className="lg:col-span-6 relative hidden lg:flex items-center justify-center h-[460px] scale-[0.85] origin-center translate-x-8">
 
             {/* ── 입체 버블들 (배경) ── */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
@@ -266,9 +266,9 @@ export default function LandingPage() {
                   <div className="w-6 h-6 rounded-md bg-[#EEF2FF] flex items-center justify-center text-blue-600">
                     <UploadCloud size={14} />
                   </div>
-                  <span className="font-bold text-[14px] text-gray-800 tracking-tight">양식 넣기</span>
+                  <span className="font-bold text-[14px] text-gray-800 tracking-tight">양식 파일</span>
                 </div>
-                <p className="text-[10px] text-gray-500 mb-4 leading-tight">양식 문서를 드래그하여 올리세요.</p>
+                <p className="text-[10px] text-gray-500 mb-4 leading-tight">HWP, HWPX, DOCX 양식을 올리세요.</p>
                 
                 {/* 네모 드롭 존 */}
                 <div className="border-[2px] border-dashed border-[#BFDBFE] rounded-xl py-8 px-4 flex flex-col items-center justify-center bg-[#EFF6FF]/50 mb-4 transition-colors hover:bg-[#EFF6FF]/80">
@@ -285,6 +285,35 @@ export default function LandingPage() {
                 
                 {/* 우측을 향하는 흐름 화살표 */}
                 <div className="absolute top-1/2 -right-4 -translate-y-1/2 bg-white p-1.5 rounded-full shadow-md text-blue-500">
+                  <ArrowRight size={14} />
+                </div>
+              </div>
+
+              {/* ── 3. 내 자료 넣기 플로팅 카드 ── */}
+              <div className="absolute bottom-[5%] left-[-200px] z-30 w-[220px] bg-white rounded-2xl shadow-[0_15px_35px_rgba(0,0,0,0.07),_0_0_0_1px_rgba(0,0,0,0.02)] p-4 transform rotate-2 transition-transform duration-500 hover:rotate-0 hidden xl:block">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <FileSpreadsheet size={14} />
+                  </div>
+                  <span className="font-bold text-[13px] text-gray-800 tracking-tight">내 자료</span>
+                </div>
+                <p className="text-[10px] text-gray-500 mb-3 leading-tight">엑셀, 워드, 텍스트 또는 직접 입력</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-emerald-50/80 border border-emerald-100">
+                    <FileSpreadsheet size={11} className="text-emerald-600" />
+                    <span className="text-[10px] font-semibold text-emerald-700">파일 업로드</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-blue-50/80 border border-blue-100">
+                    <FileText size={11} className="text-blue-600" />
+                    <span className="text-[10px] font-semibold text-blue-700">복사 붙여넣기</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-100">
+                    <Wand2 size={11} className="text-gray-500" />
+                    <span className="text-[10px] font-semibold text-gray-600">직접 입력</span>
+                  </div>
+                </div>
+                {/* 우측 화살표 */}
+                <div className="absolute top-1/2 -right-4 -translate-y-1/2 bg-white p-1.5 rounded-full shadow-md text-emerald-500">
                   <ArrowRight size={14} />
                 </div>
               </div>
