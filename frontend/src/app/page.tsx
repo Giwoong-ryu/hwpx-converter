@@ -178,8 +178,8 @@ export default function LandingPage() {
             </h1>
 
             <p className="hero-stagger hero-s3 text-lg text-[#57423c] leading-relaxed max-w-lg mb-8">
-              내 자료만 올리면 양식에 맞춰 <strong className="text-[#1a1c1b]">AI가 넣어드립니다.</strong><br />
-              엑셀, 워드, 텍스트 — 어떤 자료든.
+              양식 파일 올리고, 내 자료를 넣으면 <strong className="text-[#1a1c1b]">AI가 합쳐서 완성합니다.</strong><br />
+              파일 업로드, 복사 붙여넣기, 직접 입력 — 어떤 방식이든.
             </p>
 
             <div className="hero-stagger hero-s4 flex flex-wrap items-center gap-4 mb-6">
