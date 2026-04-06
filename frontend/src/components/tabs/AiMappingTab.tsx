@@ -31,13 +31,18 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
     } catch { /* localStorage 접근 불가 시 무시 */ }
   }, []);
 
-  // 양식 분석 후 추천 텍스트 자동 채우기 (localStorage 값이 없을 때만)
-  useEffect(() => {
-    if (textInitialized || !isAnalyzed || !smartFields.length || text.trim()) return;
-    const template = smartFields.map((f) => `${f.label}: ${f.placeholder || ""}`).join("\n");
-    setText(template);
-    setTextInitialized(true);
-  }, [isAnalyzed, smartFields, textInitialized, text]);
+  const [showTemplate, setShowTemplate] = useState(false);
+
+  // 예시 양식 채우기 토글
+  const handleTemplateToggle = (checked: boolean) => {
+    setShowTemplate(checked);
+    if (checked && smartFields.length > 0) {
+      const template = smartFields.map((f) => `${f.label}: `).join("\n");
+      setText(template);
+    } else if (!checked) {
+      setText("");
+    }
+  };
 
   // 기억하기 ON일 때 텍스트 변경 시 자동 저장
   useEffect(() => {
@@ -225,17 +230,33 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
             <textarea
               className="w-full border border-[#93C5FD]/40 rounded-xl p-3 text-sm resize-y focus:outline-none focus:border-[#1E40AF]/40 bg-white transition-colors"
               rows={7}
-              placeholder={"여기에 내 자료를 입력하거나 붙여넣으세요.\n\n예:\n회사명: 주식회사 이지테크\n대표자: 홍길동\n설립일: 2024.01.15\n업종: 소프트웨어 개발"}
+              placeholder={smartFields.length > 0
+                ? `여기에 내 자료를 입력하거나 붙여넣으세요.\n\n예:\n${smartFields.map((f) => `${f.label}: ${f.placeholder || ""}`).join("\n")}`
+                : "여기에 내 자료를 입력하거나 붙여넣으세요.\n\n예: 회사명, 대표자, 주소, 연락처 등\n엑셀이나 워드에서 복사해서 붙여넣기 해도 됩니다."}
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
-            <label className="flex items-center gap-2 cursor-pointer select-none group mt-1.5">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => handleRememberToggle(e.target.checked)}
-                className="rounded accent-[#2563EB] w-3.5 h-3.5"
-              />
+            <div className="flex items-center gap-4 mt-1.5 flex-wrap">
+              {smartFields.length > 0 && (
+                <label className="flex items-center gap-2 cursor-pointer select-none group">
+                  <input
+                    type="checkbox"
+                    checked={showTemplate}
+                    onChange={(e) => handleTemplateToggle(e.target.checked)}
+                    className="rounded accent-[#2563EB] w-3.5 h-3.5"
+                  />
+                  <span className="text-xs text-[#2563EB] group-hover:text-[#1E40AF] transition-colors font-medium">
+                    입력 양식 채워보기
+                  </span>
+                </label>
+              )}
+              <label className="flex items-center gap-2 cursor-pointer select-none group">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => handleRememberToggle(e.target.checked)}
+                  className="rounded accent-[#2563EB] w-3.5 h-3.5"
+                />
               <span className="text-xs text-[#57423c]/60 group-hover:text-[#57423c] transition-colors">
                 이 기기에서 입력 내용 기억하기
               </span>
@@ -243,6 +264,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
                 <span className="text-xs text-[#57423c]/40">서버에 전송되지 않습니다</span>
               )}
             </label>
+            </div>
           </div>
 
           {/* 오른쪽: 파일 업로드 (2/5) */}
