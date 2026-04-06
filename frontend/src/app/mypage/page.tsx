@@ -9,11 +9,31 @@ import PresetManager from "@/components/mypage/PresetManager";
 import MappingManager from "@/components/mypage/MappingManager";
 import PlanInfo from "@/components/mypage/PlanInfo";
 import LoginModal from "@/components/ui/LoginModal";
-import { FileText, ChevronLeft, User } from "lucide-react";
+import { FileText, ChevronLeft, User, Ticket } from "lucide-react";
+import { redeemCoupon } from "@/lib/api";
 
 export default function MyPage() {
-  const { user, loading } = useAuth();
+  const { user, accessToken, loading } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponResult, setCouponResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  async function handleCoupon() {
+    if (!couponCode.trim() || !user || !accessToken) return;
+    setCouponLoading(true);
+    setCouponResult(null);
+    try {
+      const data = await redeemCoupon(couponCode.trim());
+      setCouponResult({ ok: true, message: data.message || "쿠폰이 적용되었습니다!" });
+      setCouponCode("");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "쿠폰 적용에 실패했습니다.";
+      setCouponResult({ ok: false, message: msg });
+    } finally {
+      setCouponLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (!loading && !user) setShowLogin(true);
@@ -66,6 +86,36 @@ export default function MyPage() {
             <div className="lg:col-span-1 space-y-6">
               <ProfileHeader />
               <PlanInfo />
+
+              {/* 쿠폰 입력 */}
+              <div className="bg-white rounded-2xl border border-gray-200/80 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Ticket size={16} className="text-[#2563EB]" />
+                  <span className="font-bold text-sm text-[#1a1c1b]">쿠폰 / 프로모션 코드</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
+                    onKeyDown={(e) => e.key === "Enter" && handleCoupon()}
+                    placeholder="코드 입력"
+                    className="flex-1 px-3 py-2.5 rounded-xl border border-gray-200 bg-[#f9f9f6] text-sm focus:border-[#2563EB] focus:outline-none"
+                  />
+                  <button
+                    onClick={handleCoupon}
+                    disabled={couponLoading || !couponCode.trim()}
+                    className="px-4 py-2.5 rounded-xl bg-[#2563EB] text-white font-bold text-sm hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shrink-0"
+                  >
+                    {couponLoading ? "..." : "적용"}
+                  </button>
+                </div>
+                {couponResult && (
+                  <p className={`text-sm mt-2 font-medium ${couponResult.ok ? "text-emerald-600" : "text-red-500"}`}>
+                    {couponResult.message}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* 오른쪽 (업적 + 프리셋 + 매핑) */}
