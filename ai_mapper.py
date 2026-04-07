@@ -655,8 +655,10 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
     combined_content = "\n\n".join(content_parts)
     print(f"[ai/map] 콘텐츠 합산: {len(content_parts)}개 소스, {len(combined_content):,}자")
 
-    # 생성 요청 vs 매핑 요청 판단
-    is_gen = _is_generation_request(combined_content)
+    # 생성 요청 vs 매핑 요청 판단: 반드시 사용자 입력 텍스트만으로 판단
+    # (파일 내용에 "써줘", "채워줘" 등이 포함될 수 있어 오판 방지)
+    is_gen = _is_generation_request(user_content)
+    print(f"[ai/map] is_gen={is_gen} (user_content 기준, len={len(user_content)})")
 
     # 구조화된 필드가 있으면 테이블 형식 프롬프트 사용
     use_structured = structured is not None and len(structured.get("tables", [])) > 0
@@ -724,12 +726,17 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
         if not need_cache:
             prompt_template = USER_PROMPT_GEN if is_gen else USER_PROMPT_MAP
             prompt = prompt_template.format(fields=field_batches[0], content=combined_content)
-            print(f"[ai/map] 1회 호출 (캐시 불필요, 필드 {len(filtered_fields)}개)")
+            print(f"[ai/map] 1회 호출 (캐시 불필요, 필드 {len(filtered_fields)}개, use_structured={use_structured})")
+            # 디버그: 실제 전달 내용 앞부분 확인
+            print(f"[ai/map] fields 앞부분:\n{field_batches[0][:500]}")
+            print(f"[ai/map] content 앞부분:\n{combined_content[:500]}")
 
             response = _call_with_retry(client, model_name, prompt, system_prompt, temperature)
+            print(f"[ai/map] AI 응답 앞부분:\n{response.text[:800]}")
             parsed = _parse_json_response(response.text)
             if parsed:
                 all_results = _collect_results(parsed)
+                print(f"[ai/map] 파싱 결과: {len(all_results)}개 키")
 
         # 대형 문서 (다배치): Explicit Caching 사용
         else:
