@@ -28,11 +28,21 @@ export default function GaugeEmptyModal({ onClose, errorCode, plan, gaugePct }: 
           {isLoginRequired ? (
             <>
               <h3 className="text-lg font-extrabold text-[#1a1c1b] mb-2">
-                무료 체험이 끝났습니다
+                AI 채우기, 무료로 시작하세요
               </h3>
               <p className="text-sm text-[#57423c]/60 mb-6">
-                가입하면 매일 AI 기능을 무료로 사용할 수 있습니다.
+                가입하면 하루 10회 AI 자동 채우기를 무료로 사용할 수 있어요.
                 <br />가입은 10초면 끝나요.
+              </p>
+            </>
+          ) : plan === "free" ? (
+            <>
+              <h3 className="text-lg font-extrabold text-[#1a1c1b] mb-2">
+                오늘의 무료 사용량을 다 쓰셨어요
+              </h3>
+              <p className="text-sm text-[#57423c]/60 mb-6">
+                자정에 자동으로 10회 다시 충전됩니다.
+                <br />저장·자동화가 필요하다면 Plus로 업그레이드하세요.
               </p>
             </>
           ) : (
@@ -44,9 +54,7 @@ export default function GaugeEmptyModal({ onClose, errorCode, plan, gaugePct }: 
                 현재 게이지: <span className="font-bold text-red-500">{Math.round(gaugePct)}%</span>
               </p>
               <p className="text-sm text-[#57423c]/60 mb-6">
-                {plan === "free"
-                  ? "Plus로 업그레이드하면 게이지 100%가 충전됩니다."
-                  : "게이지를 충전하면 계속 사용할 수 있습니다."}
+                게이지를 충전하면 계속 사용할 수 있습니다.
               </p>
             </>
           )}

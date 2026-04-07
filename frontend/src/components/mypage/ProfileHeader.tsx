@@ -5,7 +5,7 @@ import { User, Zap, Flame } from "lucide-react";
 import Link from "next/link";
 
 function gaugeMessage(gauge: number, plan: string): string {
-  if (plan === "free") return "매일 AI 기능을 무료로 사용할 수 있어요.";
+  if (plan === "free") return "하루 10회 AI 채우기 무료 · 매일 자정 자동 충전";
   if (gauge >= 100) return "넉넉하게 남아있어요. 마음껏 사용하세요.";
   if (gauge >= 50) return "아직 여유가 있어요. 자유롭게 문서를 만들어보세요.";
   if (gauge >= 20) return "게이지가 절반 이하에요. 필요하면 충전해두세요.";
@@ -85,7 +85,7 @@ export default function ProfileHeader() {
         <div className="mb-4 bg-[#f4f4f1] rounded-xl p-3">
           <p className="text-base text-[#57423c]">{gaugeMessage(gauge, plan)}</p>
           <Link href="/pricing" className="text-sm text-[#2563EB] font-semibold mt-1 inline-block hover:underline">
-            Plus로 업그레이드하면 AI를 더 많이 사용할 수 있어요 →
+            내 정보·양식을 저장해두면 다음번엔 바로 시작할 수 있어요 →
           </Link>
         </div>
       )}

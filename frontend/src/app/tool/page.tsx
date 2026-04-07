@@ -653,7 +653,7 @@ function Main() {
                   </div>
                   <div>
                     <p className="font-semibold text-[#1a1c1b] mb-0.5">게이지가 부족하면?</p>
-                    <p>내일 자정까지 기다리거나, Plus로 업그레이드하면 더 많은 AI 사용량을 쓸 수 있습니다.</p>
+                    <p>무료 플랜은 내일 자정에 자동 충전됩니다. Plus 구매로 즉시 충전하거나, 저장·대량 생성이 필요하면 Plus로 시작하세요.</p>
                   </div>
                 </div>
               )}

@@ -47,7 +47,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
 
   const SUBTITLES: Record<Mode, string> = {
     login: "계정에 로그인합니다",
-    signup: "가입하면 AI 기능을 매일 무료로 사용할 수 있습니다",
+    signup: "가입하면 하루 10회 AI 자동 채우기를 무료로 사용할 수 있어요",
     forgot: "가입한 이메일로 재설정 링크를 보내드립니다",
   };
 

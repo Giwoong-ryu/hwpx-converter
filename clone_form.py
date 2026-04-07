@@ -722,6 +722,239 @@ def _extract_all_hpt(hwpx_path):
     return texts
 
 
+def build_header_slot_map(hwpx_path):
+    """[H] 헤더 셀의 인접 빈 값 셀 좌표를 구축한다.
+
+    Returns:
+        dict: {
+            header_text: [
+                {"file": "Contents/section0.xml", "tbl": tbl_idx, "row": row_addr, "col": col_addr},
+                ...  # 복수 슬롯 (세로형: 아래로 여러 행)
+            ]
+        }
+    """
+    result = {}
+
+    with zipfile.ZipFile(hwpx_path, 'r') as zf:
+        bf_colors, cp_bold = {}, {}
+        if 'Contents/header.xml' in zf.namelist():
+            try:
+                bf_colors, cp_bold = _parse_header_styles(zf.read('Contents/header.xml'))
+            except Exception:
+                pass
+
+        for fname in sorted(zf.namelist()):
+            if not (fname.startswith('Contents/') and fname.endswith('.xml')
+                    and fname != 'Contents/header.xml'):
+                continue
+
+            try:
+                root = etree.fromstring(zf.read(fname))
+            except Exception:
+                continue
+
+            for tbl_idx, tbl in enumerate(root.findall('.//hp:tbl', _NS)):
+                row_cnt = int(tbl.get('rowCnt', '0'))
+                col_cnt = int(tbl.get('colCnt', '0'))
+                if row_cnt == 0 or col_cnt == 0:
+                    continue
+
+                # 물리 셀 목록: (row, col, text, is_header)
+                phys_cells = []
+                for tc in tbl.findall('hp:tr/hp:tc', _NS):
+                    addr = tc.find('hp:cellAddr', _NS)
+                    if addr is None:
+                        continue
+                    r = int(addr.get('rowAddr', '0'))
+                    c = int(addr.get('colAddr', '0'))
+                    text = _get_cell_text(tc)
+                    bf_id = tc.get('borderFillIDRef', '')
+                    is_h = bf_colors.get(bf_id, False)
+                    phys_cells.append((r, c, text, is_h))
+
+                # 헤더 셀별 슬롯 탐색
+                for hr, hc, ht, is_h in phys_cells:
+                    if not (is_h and ht.strip()):
+                        continue
+
+                    # ─ 방향 1: 같은 행 오른쪽에서 첫 빈 셀 탐색 (가로형)
+                    right = [(c, t) for (r, c, t, h) in phys_cells
+                             if r == hr and c > hc]
+                    right.sort(key=lambda x: x[0])
+
+                    found_right = False
+                    for rc, rt in right:
+                        if not rt.strip():
+                            # 빈 셀: 슬롯 추가 후 계속 (연속 빈칸 전체 수집)
+                            slot = {"file": fname, "tbl": tbl_idx, "row": hr, "col": rc}
+                            result.setdefault(ht, [])
+                            if slot not in result[ht]:
+                                result[ht].append(slot)
+                            found_right = True
+                            # break 제거 → 연속 빈 셀 모두 수집, 헤더 경계에서만 중단
+                        else:
+                            # 헤더든 채워진 셀이든 비어있지 않으면 스캔 중단
+                            # (헤더를 건너뛰어 다른 필드 슬롯을 오염시키지 않음)
+                            break
+
+                    if found_right:
+                        continue
+
+                    # ─ 방향 2: 같은 열 아래에서 빈 셀들 탐색 (세로형)
+                    below = [(r, t) for (r, c, t, h) in phys_cells
+                             if c == hc and r > hr]
+                    below.sort(key=lambda x: x[0])
+
+                    for br, bt in below:
+                        if not bt.strip():
+                            slot = {"file": fname, "tbl": tbl_idx, "row": br, "col": hc}
+                            result.setdefault(ht, [])
+                            if slot not in result[ht]:
+                                result[ht].append(slot)
+                        # 빈 셀이 아닌 행을 만나면 중단 (단, ~, ·, 공백만 있는 셀은 계속)
+                        elif bt.strip() in ('~', '∼', '·', '-', '─'):
+                            continue  # 구분자 셀은 슬롯 아님, 계속
+                        else:
+                            break  # 실제 텍스트 있는 셀 → 세로 탐색 종료
+
+    return result
+
+
+def inject_values_by_slot(src_path, dst_path, slot_assignments):
+    """슬롯 좌표에 지정된 값을 주입하여 새 HWPX를 생성한다.
+
+    slot_assignments: [
+        {"file": "Contents/section0.xml", "tbl": tbl_idx, "row": row_addr, "col": col_addr, "value": "텍스트"},
+        ...
+    ]
+    """
+    # 파일별로 그룹핑
+    by_file = {}
+    for sa in slot_assignments:
+        fn = sa["file"]
+        by_file.setdefault(fn, []).append(sa)
+
+    tmp_path = dst_path + ".inj.tmp"
+
+    with zipfile.ZipFile(src_path, "r") as zin:
+        with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED) as zout:
+            if "mimetype" in zin.namelist():
+                info = zin.getinfo("mimetype")
+                zout.writestr(info, zin.read("mimetype"), compress_type=zipfile.ZIP_STORED)
+
+            for item in zin.infolist():
+                if item.filename == "mimetype":
+                    continue
+                data = zin.read(item.filename)
+
+                if item.filename in by_file:
+                    text = data.decode("utf-8")
+                    assignments = by_file[item.filename]
+
+                    # 테이블 인덱스별로 그룹핑
+                    by_tbl = {}
+                    for sa in assignments:
+                        by_tbl.setdefault(sa["tbl"], []).append(sa)
+
+                    # 테이블 블록을 순서대로 분할하여 처리
+                    tbl_idx_global = [0]  # 전체 tbl 카운터
+
+                    def _process_tbl(m, _by_tbl=by_tbl, _counter=tbl_idx_global):
+                        tbl_text = m.group(0)
+                        ti = _counter[0]
+                        _counter[0] += 1
+
+                        if ti not in _by_tbl:
+                            return tbl_text
+
+                        for sa in _by_tbl[ti]:
+                            tbl_text = _inject_into_cell_xml(
+                                tbl_text, sa["row"], sa["col"], sa["value"]
+                            )
+                        return tbl_text
+
+                    text = re.sub(
+                        r'<hp:tbl\b[^>]*>.*?</hp:tbl>',
+                        _process_tbl,
+                        text,
+                        flags=re.DOTALL,
+                    )
+                    data = text.encode("utf-8")
+
+                zout.writestr(item, data)
+
+    os.replace(tmp_path, dst_path)
+
+
+def _inject_into_cell_xml(tbl_text, row_addr, col_addr, value):
+    """테이블 XML에서 (row_addr, col_addr) 셀을 찾아 텍스트를 주입한다."""
+    if not value:
+        return tbl_text
+
+    escaped = saxutils.escape(value)
+
+    # cellAddr 패턴 (속성 순서 무관)
+    # HWPX는 colAddr 먼저, rowAddr 나중 순서로 생성됨
+    cell_addr_patterns = [
+        rf'<hp:cellAddr\s+colAddr="{col_addr}"\s+rowAddr="{row_addr}"\s*/>',
+        rf'<hp:cellAddr\s+rowAddr="{row_addr}"\s+colAddr="{col_addr}"\s*/>',
+    ]
+
+    for pat in cell_addr_patterns:
+        m = re.search(pat, tbl_text)
+        if not m:
+            continue
+
+        # cellAddr 위치 기준으로 앞쪽 <hp:tc> 시작 찾기
+        tc_start = tbl_text.rfind('<hp:tc ', 0, m.start())
+        if tc_start == -1:
+            continue
+        tc_end = tbl_text.find('</hp:tc>', m.end())
+        if tc_end == -1:
+            continue
+        tc_end += len('</hp:tc>')
+
+        tc_block = tbl_text[tc_start:tc_end]
+
+        # 이미 텍스트가 있으면 스킵 (값칸이 비어있어야만 주입)
+        existing_texts = re.findall(r'<hp:t>(.*?)</hp:t>', tc_block, re.DOTALL)
+        existing = ''.join(re.sub(r'<[^>]+>', '', t) for t in existing_texts).strip()
+        if existing:
+            return tbl_text  # 이미 채워진 셀 → 스킵
+
+        # ① 빈 <hp:t></hp:t> 이 있는 경우: 텍스트 주입
+        if '<hp:t></hp:t>' in tc_block:
+            new_block = tc_block.replace('<hp:t></hp:t>', f'<hp:t>{escaped}</hp:t>', 1)
+            return tbl_text[:tc_start] + new_block + tbl_text[tc_end:]
+
+        # ② self-closing <hp:run ... /> 이 있는 경우: <hp:t> 삽입
+        # 주의: /? 패턴은 open-tag도 매칭하므로 반드시 /> 로 끝나는 것만 (self-closing) 매칭
+        run_sc_pat = r'<hp:run\b[^>]*/>'
+        run_m = re.search(run_sc_pat, tc_block)
+        if run_m:
+            # self-closing run → 열린 태그로 변환 후 hp:t 주입
+            orig_run = run_m.group(0)  # e.g. '<hp:run charPrIDRef="5"/>'
+            open_run = orig_run[:-2] + '>'  # '<hp:run charPrIDRef="5">'
+            new_run = f'{open_run}<hp:t>{escaped}</hp:t></hp:run>'
+            new_block = tc_block[:run_m.start()] + new_run + tc_block[run_m.end():]
+            return tbl_text[:tc_start] + new_block + tbl_text[tc_end:]
+
+        # ③ <hp:run>...</hp:run> 이 있지만 hp:t 없는 경우
+        run_open_pat = r'<hp:run\b[^>]*>((?:(?!</hp:run>).)*)</hp:run>'
+        run_m = re.search(run_open_pat, tc_block, re.DOTALL)
+        if run_m:
+            run_inner = run_m.group(1)
+            new_run = run_m.group(0).replace(
+                '</hp:run>', f'<hp:t>{escaped}</hp:t></hp:run>', 1
+            )
+            new_block = tc_block[:run_m.start()] + new_run + tc_block[run_m.end():]
+            return tbl_text[:tc_start] + new_block + tbl_text[tc_end:]
+
+        break  # cellAddr 찾았지만 주입 패턴 없음 → 중단
+
+    return tbl_text
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="HWPX 양식 복제 도구 (Workflow F)",

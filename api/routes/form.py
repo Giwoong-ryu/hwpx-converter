@@ -1,6 +1,7 @@
 """양식 분석 + 문서 생성 API"""
 
 import os
+import re
 import tempfile
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Header
@@ -11,7 +12,10 @@ from pydantic import BaseModel
 from api.services.file_manager import file_manager
 from api.services.metrics import log as mlog, Timer
 from api.services import credit_service, auth_service
-from clone_form import extract_texts, clone as clone_hwpx, validate_result
+from clone_form import (
+    extract_texts, clone as clone_hwpx, validate_result,
+    build_header_slot_map, inject_values_by_slot,
+)
 
 router = APIRouter()
 
@@ -111,11 +115,58 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
     except Exception:
         pass  # 실패해도 label_counts={} 로 계속 (치환 순서만 약간 어긋날 수 있음)
 
+    # ── 슬롯 맵 빌드: [H] 헤더 → 인접 빈 셀 좌표 (빈칸형 양식 지원) ──
+    slot_map: dict = {}
+    try:
+        slot_map = build_header_slot_map(path)
+        if slot_map:
+            print(f"[generate] 슬롯 맵: {len(slot_map)}개 헤더 탐지")
+    except Exception as slot_e:
+        print(f"[generate] 슬롯 맵 빌드 실패 (폴백): {slot_e}")
+
+    # replacements를 슬롯 주입용 vs 일반 텍스트 치환으로 분리
+    _base_re = re.compile(r'__\d+$')
+    slot_assignments: list = []
+    normal_repl: dict[str, str] = {}
+
+    for key, value in req.replacements.items():
+        base = _base_re.sub('', key)
+        if base in slot_map and slot_map[base]:
+            suffix_m = re.search(r'__(\d+)$', key)
+            slots = slot_map[base]
+            if suffix_m:
+                # __N suffix: 특정 인덱스 슬롯에만 주입
+                slot_idx = int(suffix_m.group(1)) - 1
+                if slot_idx < len(slots):
+                    sa = dict(slots[slot_idx])
+                    sa["value"] = value
+                    slot_assignments.append(sa)
+            else:
+                # suffix 없음: 연속된 모든 슬롯에 동일 값 주입 (합쳐진 빈칸 전체 채우기)
+                for slot in slots:
+                    sa = dict(slot)
+                    sa["value"] = value
+                    slot_assignments.append(sa)
+        else:
+            normal_repl[key] = value
+
+    print(f"[generate] 슬롯 주입={len(slot_assignments)}개, 일반치환={len(normal_repl)}개")
+
     fmt = req.output_format.lower()
     with Timer() as t:
         try:
             out_path = os.path.join(tempfile.mkdtemp(), "EazyHWPX_result.hwpx")
-            clone_hwpx(path, out_path, replacements=req.replacements,
+
+            # Phase 1: 빈 셀에 슬롯 주입 (빈칸형 양식)
+            src_for_clone = path
+            if slot_assignments:
+                injected_path = os.path.join(tempfile.mkdtemp(), "EazyHWPX_injected.hwpx")
+                inject_values_by_slot(path, injected_path, slot_assignments)
+                src_for_clone = injected_path
+                print(f"[generate] 슬롯 주입 완료: {len(slot_assignments)}개 셀")
+
+            # Phase 2: 플레이스홀더형 텍스트 치환
+            clone_hwpx(src_for_clone, out_path, replacements=normal_repl,
                        strip_images=req.strip_images, label_counts=label_counts or None)
         except Exception as e:
             mlog("generate", success=False, output_format=fmt, field_count=len(req.replacements), error=str(e))

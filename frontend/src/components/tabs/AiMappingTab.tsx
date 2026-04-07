@@ -5,7 +5,7 @@ import { useForm } from "@/context/FormContext";
 import { useAuth } from "@/context/AuthContext";
 import { aiMap, generateDoc, downloadBlob, GaugeEmptyError, saveMapping, listMyMappings, loadMapping, deleteMapping, listPublicMappings, toggleLike, updateMappingPublic } from "@/lib/api";
 import FileUpload from "@/components/ui/FileUpload";
-import { Wand2, Download, Loader2, CheckCircle2, ChevronDown, ChevronUp, ImageOff, Sparkles, PenLine, Save, FolderOpen, Trash2, X, Heart, Globe, Lock, FileSearch } from "lucide-react";
+import { Wand2, Download, Loader2, CheckCircle2, ChevronDown, ChevronUp, ImageOff, Sparkles, Save, FolderOpen, Trash2, X, AlertTriangle } from "lucide-react";
 
 interface AiMappingTabProps {
   onGaugeEmpty?: (data: { errorCode: string; plan: string; gaugePct: number }) => void;
@@ -298,27 +298,28 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => doMap(false)}
-            disabled={loading || !isAnalyzed || (!text.trim() && contentFiles.length === 0)}
-            className="flex-1 bg-white border border-gray-300 text-[#1a1c1b] py-3 rounded-xl font-semibold text-sm hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <FileSearch size={16} />}
-            {loading ? "채우는 중..." : "채우기"}
-          </button>
-          <button
-            onClick={() => doMap(true)}
-            disabled={loading || !isAnalyzed || (!text.trim() && contentFiles.length === 0)}
-            className="flex-1 bg-linear-to-r from-[#2563EB] to-[#1E40AF] text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-            {loading ? "채우는 중..." : "AI로 채우기"}
-          </button>
-        </div>
+        <button
+          onClick={() => doMap(true)}
+          disabled={loading || !isAnalyzed || (!text.trim() && contentFiles.length === 0)}
+          className="w-full bg-linear-to-r from-[#2563EB] to-[#1E40AF] text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+        >
+          {loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+          {loading ? "채우는 중..." : "AI로 채우기"}
+        </button>
       </div>
 
       {error && <div className="text-base text-red-600 bg-red-50 p-3 rounded-xl">{error}</div>}
+
+      {/* AI 초안 작성 경고 배너 */}
+      {isGeneration && mappings.length > 0 && (
+        <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <AlertTriangle size={15} className="text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <span className="text-sm font-bold text-amber-800">AI 초안 작성 결과입니다.</span>
+            <span className="text-sm text-amber-700/80 ml-1">중요 문서는 반드시 내용을 검토한 후 사용하세요.</span>
+          </div>
+        </div>
+      )}
 
       {mappings.length > 0 && (
         <div className="border border-[#93C5FD]/50 rounded-xl overflow-hidden">

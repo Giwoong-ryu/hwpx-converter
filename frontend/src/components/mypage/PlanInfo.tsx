@@ -7,7 +7,7 @@ import Link from "next/link";
 const PLAN_FEATURES: Record<string, { label: string; features: string[] }> = {
   free: {
     label: "Free",
-    features: ["AI 매핑 3회/일", "AI 작성 1회/일", "변환/추출/병합 무제한", "프리셋 1개"],
+    features: ["AI 매핑 10회/일 무료", "AI 작성 3회/일 무료", "변환/추출/병합 무제한", "내 정보 저장 1개"],
   },
   plus: {
     label: "Plus",
@@ -51,8 +51,8 @@ export default function PlanInfo() {
 
       {/* 업그레이드 유도 (자연스럽게) */}
       {plan === "free" && (
-        <Link href="/pricing" className="block bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white rounded-xl px-4 py-3 text-center hover:opacity-90 transition-all active:scale-[0.98]">
-          <p className="text-sm font-semibold mb-0.5">Plus로 업그레이드하면 AI를 더 많이 사용할 수 있어요</p>
+        <Link href="/pricing" className="block bg-linear-to-r from-[#2563EB] to-[#1E40AF] text-white rounded-xl px-4 py-3 text-center hover:opacity-90 transition-all active:scale-[0.98]">
+          <p className="text-sm font-semibold mb-0.5">자주 쓰는 정보·양식을 저장해두면 매번 다시 입력하지 않아도 돼요</p>
           <p className="text-xs opacity-80">4,900원 · 첫 구매 2배 충전 · 기간 만료 없음</p>
         </Link>
       )}

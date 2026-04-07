@@ -13,10 +13,10 @@ GAUGE_COST = {
     "pro":   {"mapping": 0.5,  "generation": 1.0,  "batch": 0.5},
 }
 
-# 무료 일일 한도
+# 무료 일일 한도 (v4: AI 충분히 경험 → 저장/대량으로 유료 전환 유도)
 FREE_DAILY = {
-    "mapping": 3,
-    "generation": 1,  # +재시도 1회 = 실제 2회
+    "mapping": 10,
+    "generation": 3,  # +재시도 1회 = 실제 4회
 }
 
 PLAN_DEFAULTS = {
@@ -399,7 +399,7 @@ async def check_anon(fingerprint: str, action: str) -> dict:
 
     if used >= 1:
         return {"ok": False, "error_code": "LOGIN_REQUIRED",
-                "detail": "AI 기능을 사용하려면 로그인이 필요합니다. 무료 가입으로 하루 3회 사용 가능합니다."}
+                "detail": "AI 기능을 사용하려면 로그인이 필요합니다. 무료 가입으로 하루 10회 AI 채우기를 사용할 수 있어요."}
 
     sb.table("docflow_anon_usage").insert({
         "fingerprint": fingerprint, "action": action,

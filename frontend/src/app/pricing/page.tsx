@@ -102,8 +102,8 @@ export default function PricingPage() {
         {/* ── 헤드라인 ── */}
         <div className="text-center mb-6">
           <h1 className="text-[2.2rem] lg:text-[2.8rem] font-extrabold leading-[1.15] tracking-tight">
-            문서 변환/추출은 <span className="text-[#2563EB]">무료</span>.<br />
-            AI 자동 채우기만 유료입니다.
+            AI 채우기 하루 10회, <span className="text-[#2563EB]">무료</span>.<br />
+            저장·자동화·대량 생성은 Plus부터.
           </h1>
         </div>
 
@@ -119,8 +119,8 @@ export default function PricingPage() {
               <Li text="HWP/HWPX/DOCX 변환 무제한" />
               <Li text="문서 → 엑셀 추출 무제한" />
               <Li text="문서 합치기 / 도장 무제한" />
-              <Li text="AI 매핑 하루 3회" />
-              <Li text="AI 작성 하루 1회 (+재시도)" />
+              <Li text="AI 매핑 하루 10회" />
+              <Li text="AI 작성 하루 3회" />
               <Li text="내 정보 미리 저장 1개" />
             </ul>
             <Link href="/tool" className="block text-center py-3.5 rounded-xl border-2 border-gray-200 text-[#1a1c1b] font-bold text-base hover:border-[#1a1c1b] transition-colors">
