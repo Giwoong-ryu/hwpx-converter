@@ -261,14 +261,30 @@ function ShareFormButton({ file, filename, fieldCount }: { file: File | null; fi
         onClick={() => setShowModal(true)}
         className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold border border-dashed border-[#93C5FD]/60 text-[#2563EB] hover:bg-[#EFF6FF] transition-all"
       >
-        <Globe size={12} /> 갤러리에 공유하기 <span className="text-xs bg-[#DBEAFE] px-1.5 py-0.5 rounded font-bold">+25%</span>
+        <Globe size={12} /> 빈 양식 갤러리에 올리기 <span className="text-xs bg-[#DBEAFE] px-1.5 py-0.5 rounded font-bold">+25%</span>
       </button>
 
       {showModal && createPortal(
         <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-bold text-[#1a1c1b] mb-1">양식 갤러리에 공유</h3>
-            <p className="text-sm text-[#57423c]/60 mb-4">빈 양식만 공유됩니다. 입력한 내용은 포함되지 않습니다.</p>
+            <h3 className="text-base font-bold text-[#1a1c1b] mb-2">빈 양식을 갤러리에 올리기</h3>
+
+            {/* 개인정보 안전 안내 */}
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4 space-y-1.5">
+              <p className="text-xs font-bold text-emerald-700">공유되는 것 / 공유되지 않는 것</p>
+              <div className="flex items-start gap-2 text-xs text-emerald-700">
+                <span className="mt-0.5 font-bold shrink-0">공유 O</span>
+                <span>업로드한 <strong>빈 양식 파일 자체</strong> (서식·구조만)</span>
+              </div>
+              <div className="flex items-start gap-2 text-xs text-red-600">
+                <span className="mt-0.5 font-bold shrink-0">공유 X</span>
+                <span>AI가 채운 내용, 내가 입력한 데이터, 이름·연락처 등 <strong>개인정보 일절 없음</strong></span>
+              </div>
+              <div className="flex items-start gap-2 text-xs text-red-600">
+                <span className="mt-0.5 font-bold shrink-0">공유 X</span>
+                <span>업로드한 사람의 이름이나 계정 정보</span>
+              </div>
+            </div>
 
             <div className="space-y-3 mb-4">
               <div>
@@ -310,7 +326,7 @@ function ShareFormButton({ file, filename, fieldCount }: { file: File | null; fi
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 {sharing ? <Loader2 size={14} className="animate-spin" /> : <Gift size={14} />}
-                {sharing ? "공유 중..." : "공유하기 (+25%)"}
+                {sharing ? "올리는 중..." : "올리기 (+25%)"}
               </button>
             </div>
           </div>
