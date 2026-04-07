@@ -414,6 +414,68 @@ def _replace_across_runs(xml_text, replacements):
     return re.sub(r"<hp:p\b[^>]*>.*?</hp:p>", _replace_para, xml_text, flags=re.DOTALL)
 
 
+def _split_ordered_replacements(replacements):
+    """__N 접미사 키를 일반 치환과 순서 기반 치환으로 분리한다.
+
+    반환:
+        normal: {원본텍스트: 새텍스트} (기존 방식)
+        ordered: {원본텍스트: [val1, val2, val3, ...]} (N번째 occurrence 치환)
+    """
+    normal = {}
+    ordered_raw = {}
+
+    for k, v in replacements.items():
+        m = re.match(r"^(.*?)__(\d+)$", k)
+        if m and int(m.group(2)) >= 1:
+            base = m.group(1)
+            idx = int(m.group(2)) - 1  # 1-based → 0-based
+            if base not in ordered_raw:
+                ordered_raw[base] = {}
+            ordered_raw[base][idx] = v
+        else:
+            normal[k] = v
+
+    ordered = {}
+    for base, idx_map in ordered_raw.items():
+        max_idx = max(idx_map.keys())
+        ordered[base] = [idx_map.get(i, "") for i in range(max_idx + 1)]
+
+    return normal, ordered
+
+
+def _apply_ordered_in_xml(xml_text, ordered_map):
+    """base_text의 N번째 <hp:t> 내 occurrence를 values[N]으로 순서대로 치환한다.
+
+    ordered_map: {base_text: [val1, val2, val3, ...]}
+    """
+    for base_text, values in ordered_map.items():
+        if not base_text or not values:
+            continue
+
+        occurrence_count = [0]  # mutable closure
+
+        def _replace_nth(match, _base=base_text, _vals=values, _cnt=occurrence_count):
+            inner = match.group(1)
+            parts = re.split(r"(<[^>]+>)", inner)
+            result = []
+            for part in parts:
+                if part.startswith("<"):
+                    result.append(part)
+                elif _base in part:
+                    idx = _cnt[0]
+                    if idx < len(_vals) and _vals[idx]:
+                        part = part.replace(_base, saxutils.escape(_vals[idx]), 1)
+                    _cnt[0] += 1
+                    result.append(part)
+                else:
+                    result.append(part)
+            return "<hp:t>" + "".join(result) + "</hp:t>"
+
+        xml_text = re.sub(r"<hp:t>(.*?)</hp:t>", _replace_nth, xml_text, flags=re.DOTALL)
+
+    return xml_text
+
+
 def clone(src_path, dst_path, replacements=None, keywords=None,
           title=None, creator=None, strip_images=False):
     """HWPX 양식을 복제하고 텍스트를 치환한다.
@@ -426,8 +488,10 @@ def clone(src_path, dst_path, replacements=None, keywords=None,
         title: 문서 제목 (메타데이터)
         creator: 작성자 (메타데이터)
     """
+    # __N 접미사 키 분리 (순서 기반 치환 vs 일반 치환)
+    normal_repl, ordered_repl = _split_ordered_replacements(replacements or {})
     # 긴 키 우선 정렬: "중소벤처기업부 장관"이 "중소벤처기업부"보다 먼저 매칭되어야 함
-    replacements = dict(sorted((replacements or {}).items(), key=lambda x: len(x[0]), reverse=True))
+    replacements = dict(sorted(normal_repl.items(), key=lambda x: len(x[0]), reverse=True))
     sorted_keywords = _prepare_keywords(keywords) if keywords else []
 
     tmp_path = dst_path + ".tmp"
@@ -475,6 +539,10 @@ def clone(src_path, dst_path, replacements=None, keywords=None,
                         r"<hp:fieldBegin\b[^>]*>.*?<hp:fieldEnd\b[^>]*/>",
                         _protect_field, text, flags=re.DOTALL,
                     )
+
+                    # Phase -1: __N 순서 기반 치환 (중복 셀 개별 처리)
+                    if ordered_repl:
+                        text = _apply_ordered_in_xml(text, ordered_repl)
 
                     # Phase 0: run 경계 병합 치환
                     if replacements:

@@ -20,13 +20,17 @@ SYSTEM_PROMPT_MAP = """\
 
 양식은 테이블 구조로 제공됩니다. 각 행에서:
 - [H] 표시가 있는 셀 = 라벨/헤더 (절대 교체 금지)
+- __N 접미사가 붙은 셀 = 같은 유형의 N번째 항목 (예: 회사명__1, 회사명__2)
 - 일반 글씨 셀 = 값 (교체 대상)
 
 규칙:
 1. 라벨/헤더 셀은 절대 교체하지 마세요.
 2. 값 셀만 사용자 내용에서 찾아 매핑하세요.
 3. 사용자 내용에 없는 정보는 추측하지 마세요.
-4. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이."""
+4. __N 접미사 셀은 N번째 해당 항목을 채우세요. 빠짐없이 모두 포함하세요.
+5. 경력, 학력처럼 시기/날짜가 있는 항목은 과거(오래된 순)에서 현재 순으로 위(__1)부터 채우세요.
+6. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
+7. __N 접미사가 있는 셀은 JSON 키에도 반드시 __N을 포함하세요. 예: {"회사명__1": "A사", "회사명__2": "B사"}"""
 
 SYSTEM_PROMPT_GEN = """\
 당신은 한글 문서 양식 작성 도우미입니다.
@@ -78,10 +82,23 @@ _GEN_KEYWORDS = [
 def _format_structured_fields(structured):
     """구조화된 필드 데이터를 AI 프롬프트용 텍스트로 변환한다.
 
-    테이블은 마크다운 테이블 형태, bold/bg 셀은 **강조** 또는 [H] 태그로 표시.
+    테이블은 마크다운 테이블 형태, bold/bg 셀은 [H] 태그로 표시.
+    중복 값 셀에는 __N 인덱스를 붙여 AI가 순서대로 개별 매핑하도록 한다.
     """
-    lines = []
     _SKIP = {"□", "☑", "※", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "☐", "○", "●"}
+
+    # 1패스: 값 셀 텍스트 빈도 계산 (중복 여부 파악)
+    text_freq: dict[str, int] = {}
+    for table in structured["tables"]:
+        for row in table["rows"]:
+            for cell in row:
+                t = cell["text"].strip()
+                if t and t not in _SKIP and not cell["bold"] and not cell["bg"]:
+                    text_freq[t] = text_freq.get(t, 0) + 1
+
+    # 2패스: 마크다운 테이블 생성 (중복 셀만 __N 추가)
+    lines = []
+    text_seen: dict[str, int] = {}
 
     for ti, table in enumerate(structured["tables"]):
         lines.append(f"[표{ti+1}]")
@@ -92,12 +109,15 @@ def _format_structured_fields(structured):
                 if not text or text in _SKIP:
                     cells.append("")
                     continue
-                # bold 또는 배경색 → 라벨 힌트 표시 ([H] 태그 사용, ** 충돌 방지)
                 if cell["bold"] or cell["bg"]:
                     cells.append(f"[H]{text}")
                 else:
-                    cells.append(text)
-            # 빈 행 스킵
+                    if text_freq.get(text, 1) > 1:
+                        # 중복 셀: __N 인덱스 추가 (AI가 각각 구분하도록)
+                        text_seen[text] = text_seen.get(text, 0) + 1
+                        cells.append(f"{text}__{text_seen[text]}")
+                    else:
+                        cells.append(text)
             if any(c for c in cells):
                 lines.append("| " + " | ".join(cells) + " |")
 
