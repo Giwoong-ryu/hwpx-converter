@@ -33,4 +33,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 112c2008bcc4f69be9b6ba1769c060c7
-          command: pages deploy frontend/out --project-name=eazy-hwpx
+          command: pages deploy frontend/out --project-name=eazy-hwpx --commit-dirty=true --commit-message="deploy"
