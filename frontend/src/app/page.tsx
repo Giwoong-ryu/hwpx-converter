@@ -184,7 +184,7 @@ export default function LandingPage() {
               파일 업로드, 복사 붙여넣기, 직접 입력 — 어떤 방식이든.
             </p>
 
-            <div className="hero-stagger hero-s4 flex flex-wrap items-center gap-4 mb-6">
+            <div className="hero-stagger hero-s4 flex flex-wrap items-center gap-4 mb-3">
               <Link
                 href="/tool"
                 className="cta-warm bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white px-8 py-3.5 rounded-xl text-base font-bold shadow-lg shadow-[#1E40AF]/20 hover:shadow-xl transition-all active:scale-95 flex items-center gap-2"
@@ -192,6 +192,16 @@ export default function LandingPage() {
                 무료로 시작하기 <ArrowRight size={17} />
               </Link>
               <span className="text-sm text-[#57423c]/50">회원가입 없이 바로 사용</span>
+            </div>
+            <div className="hero-stagger hero-s4 mb-6">
+              <Link
+                href="/gallery"
+                className="inline-flex items-center gap-1.5 text-sm text-[#2563EB] hover:text-[#1E40AF] transition-colors"
+              >
+                <FileText size={14} />
+                양식이 없다면? 사업계획서, 이력서, 견적서 등 공공 양식 바로 사용
+                <ArrowRight size={13} />
+              </Link>
             </div>
 
             {/* 핵심 수치 */}

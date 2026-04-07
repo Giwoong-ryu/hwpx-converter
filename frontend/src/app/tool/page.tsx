@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FormProvider, useForm } from "@/context/FormContext";
 import { useAuth } from "@/context/AuthContext";
-import { analyzeForm, shareFormToGallery } from "@/lib/api";
+import { analyzeForm, shareFormToGallery, useGalleryForm } from "@/lib/api";
 import FileUpload from "@/components/ui/FileUpload";
 import AiMappingTab from "@/components/tabs/AiMappingTab";
 import BatchTab from "@/components/tabs/BatchTab";
@@ -349,6 +349,30 @@ function Main() {
         setActiveTab(tab);
       }
     }
+  }, [searchParams]);
+
+  // 갤러리에서 "바로 사용" 클릭 시 자동 분석
+  useEffect(() => {
+    const galleryId = searchParams.get("gallery_id");
+    if (!galleryId || isAnalyzed) return;
+    setLoading(true);
+    setError("");
+    useGalleryForm(Number(galleryId))
+      .then((res) => {
+        setForm({
+          fileId: res.file_id,
+          filename: res.filename,
+          fields: res.fields,
+          fieldCount: res.field_count,
+          isAnalyzed: true,
+          docType: res.doc_type || null,
+          smartFields: res.smart_fields || [],
+        });
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "갤러리 양식 불러오기 실패");
+      })
+      .finally(() => setLoading(false));
   }, [searchParams]);
 
   const doAnalyze = async () => {

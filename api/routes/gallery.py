@@ -97,6 +97,83 @@ async def download_form(form_id: int, authorization: str = Header(None)):
     )
 
 
+# ═══ 갤러리 양식 → 분석 (바로 사용) ═══
+
+@router.post("/{form_id}/use")
+async def use_gallery_form(form_id: int, authorization: str = Header(None)):
+    """갤러리 양식을 다운받아 분석 결과(file_id, fields)를 반환"""
+    user = await _require_auth(authorization)
+    sb = get_supabase()
+
+    result = sb.table("docflow_shared_forms").select(
+        "id, title, file_path, downloads, category"
+    ).eq("id", form_id).execute()
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="양식을 찾을 수 없습니다.")
+
+    form = result.data[0]
+
+    # 다운로드 수 증가
+    sb.table("docflow_shared_forms").update(
+        {"downloads": (form.get("downloads") or 0) + 1}
+    ).eq("id", form_id).execute()
+
+    # Storage에서 파일 다운로드
+    try:
+        file_data = sb.storage.from_(BUCKET).download(form["file_path"])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"파일 다운로드 실패: {e}")
+
+    # 로컬에 저장 + 분석
+    import tempfile as _tf
+    ext = os.path.splitext(form["file_path"])[1].lower() or ".hwp"
+    tmp = _tf.NamedTemporaryFile(delete=False, suffix=ext)
+    tmp.write(file_data)
+    tmp.close()
+
+    from api.services.file_manager import file_manager
+    file_id = file_manager.save(tmp.name, f"{form['title']}{ext}")
+
+    # HWP → HWPX 변환
+    path = file_manager.get_path(file_id)
+    if path and path.lower().endswith(".hwp"):
+        try:
+            file_id = file_manager.convert_hwp(file_id)
+        except Exception:
+            pass
+        path = file_manager.get_path(file_id)
+
+    # DOCX → HWPX 변환
+    if path and path.lower().endswith(".docx"):
+        try:
+            file_id = file_manager.convert_docx(file_id)
+        except Exception:
+            pass
+        path = file_manager.get_path(file_id)
+
+    # 텍스트 추출
+    from clone_form import extract_texts
+    fields = extract_texts(path)
+
+    from api.services.doc_type_detector import detect_doc_type
+    doc_info = detect_doc_type(fields)
+
+    try:
+        os.unlink(tmp.name)
+    except Exception:
+        pass
+
+    return {
+        "file_id": file_id,
+        "filename": f"{form['title']}{ext}",
+        "field_count": len(fields),
+        "fields": fields,
+        "doc_type": doc_info.get("type"),
+        "smart_fields": doc_info.get("smart_fields", []),
+    }
+
+
 # ═══ 양식 공유 (로그인 필요) ═══
 
 @router.post("/share")
@@ -123,24 +200,40 @@ async def share_form(
     if file_size > 100 * 1024 * 1024:  # 100MB
         raise HTTPException(status_code=400, detail="파일 크기가 100MB를 초과합니다.")
 
-    # 필드 수 추출 (HWPX만)
+    # 필드 수 추출 (HWP는 변환 후 추출)
     field_count = 0
     doc_type = None
-    if ext == ".hwpx":
-        try:
-            import tempfile
-            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
-            tmp.write(content)
-            tmp.close()
+    try:
+        import tempfile as _tf
+        tmp = _tf.NamedTemporaryFile(delete=False, suffix=ext)
+        tmp.write(content)
+        tmp.close()
+        analyze_path = tmp.name
+
+        # HWP → HWPX 변환 후 추출
+        if ext == ".hwp":
+            from api.services.file_manager import file_manager
+            tmp_id = file_manager.save(tmp.name, f"gallery_tmp{ext}")
+            try:
+                converted_id = file_manager.convert_hwp(tmp_id)
+                analyze_path = file_manager.get_path(converted_id) or tmp.name
+            except Exception:
+                pass
+
+        if analyze_path and analyze_path.lower().endswith(".hwpx"):
             from clone_form import extract_texts
-            fields = extract_texts(tmp.name)
+            fields = extract_texts(analyze_path)
             field_count = len(fields)
             from api.services.doc_type_detector import detect_doc_type
             doc_info = detect_doc_type(fields)
             doc_type = doc_info.get("type")
+
+        try:
             os.unlink(tmp.name)
         except Exception:
             pass
+    except Exception:
+        pass
 
     # Supabase Storage에 업로드
     sb = get_supabase()
