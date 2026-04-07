@@ -90,25 +90,26 @@ async def ai_map(
     elif content_file and content_file.filename:
         all_files = [content_file]
 
-    # 무료 사용자: 파일 1개 제한
-    if len(all_files) > 1 and user_id:
-        try:
-            status = await credit_service.get_user_status(user_id)
-            plan = status.get("plan", "free") if status else "free"
-            if plan == "free":
-                raise HTTPException(status_code=429, detail={
-                    "detail": "무료 플랜은 파일 1개만 업로드할 수 있습니다. Plus로 업그레이드하면 여러 파일을 한번에 처리할 수 있습니다.",
-                    "error_code": "FILE_LIMIT",
-                })
-        except HTTPException:
-            raise
-        except Exception:
-            pass
-    elif len(all_files) > 1 and not user_id:
-        raise HTTPException(status_code=401, detail={
-            "detail": "여러 파일을 업로드하려면 로그인이 필요합니다.",
-            "error_code": "LOGIN_REQUIRED",
-        })
+    # 무료 사용자: 파일 1개 제한 (AI 모드만 — direct 모드는 5MB 총량으로만 제한)
+    if len(all_files) > 1 and not use_direct:
+        if user_id:
+            try:
+                status = await credit_service.get_user_status(user_id)
+                plan = status.get("plan", "free") if status else "free"
+                if plan == "free":
+                    raise HTTPException(status_code=429, detail={
+                        "detail": "무료 플랜은 파일 1개만 업로드할 수 있습니다. Plus로 업그레이드하면 여러 파일을 한번에 처리할 수 있습니다.",
+                        "error_code": "FILE_LIMIT",
+                    })
+            except HTTPException:
+                raise
+            except Exception:
+                pass
+        else:
+            raise HTTPException(status_code=401, detail={
+                "detail": "여러 파일을 업로드하려면 로그인이 필요합니다.",
+                "error_code": "LOGIN_REQUIRED",
+            })
 
     # 파일 합산 크기 체크 (5MB)
     content_paths = []
@@ -132,7 +133,7 @@ async def ai_map(
     content_path = content_paths[0] if len(content_paths) == 1 else None
     extra_paths = content_paths[1:] if len(content_paths) > 1 else []
 
-    action_mode = "generate" if action == "generation" else ("direct" if use_direct else "mapping")
+    action_mode = "direct" if use_direct else ("generate" if action == "generation" else "mapping")
     with Timer() as t:
         try:
             print(f"[ai/map] mode={action_mode}, fields={len(fields)}, text_len={len(text or '')}, files={len(content_paths)}")

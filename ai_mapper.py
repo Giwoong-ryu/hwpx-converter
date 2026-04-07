@@ -351,7 +351,8 @@ def _parse_kv_from_text(text: str) -> dict[str, str]:
         if ":" in line:
             key, _, val = line.partition(":")
             key, val = key.strip(), val.strip()
-            if key and val and len(key) <= 30:
+            # URL scheme("https", "http", "ftp" 등) 키 제외
+            if key and val and len(key) <= 30 and "://" not in key:
                 kv[key] = val
             continue
 
