@@ -471,19 +471,20 @@ def _apply_ordered_in_xml(xml_text, ordered_map, label_counts=None):
             if not t_matches:
                 return para
 
-            # 케이스 1: 단일 <hp:t>에서 base_text 발견 여부
+            # 케이스 1: 단일 <hp:t>에서 base_text 발견 여부 (정확 매칭 우선)
+            # substring 매칭 금지: "기간"이 "교육기간(이수시간)" 안에서 오탐하는 것을 방지
             single_hit_idx = None
             for i, m in enumerate(t_matches):
-                inner_clean = re.sub(r"<[^>]+>", "", m.group(1))
-                if _base in inner_clean:
+                inner_clean = re.sub(r"<[^>]+>", "", m.group(1)).strip()
+                if inner_clean == _base:  # 정확 매칭만 허용
                     single_hit_idx = i
                     break
 
-            # 케이스 2: 분산 run — 합산 텍스트에서 발견 여부
+            # 케이스 2: 분산 run — 합산 텍스트가 base_text와 정확히 일치하는지
             combined_clean = "".join(
                 re.sub(r"<[^>]+>", "", m.group(1)) for m in t_matches
             )
-            has_in_combined = _base in combined_clean
+            has_in_combined = combined_clean.strip() == _base
 
             if single_hit_idx is None and not has_in_combined:
                 return para  # 이 문단에 base_text 없음
@@ -511,8 +512,8 @@ def _apply_ordered_in_xml(xml_text, ordered_map, label_counts=None):
                 for part in parts:
                     if part.startswith("<"):
                         result_parts.append(part)
-                    elif _base in part:
-                        result_parts.append(part.replace(_base, new_val, 1))
+                    elif part.strip() == _base:  # 정확 매칭
+                        result_parts.append(new_val)
                     else:
                         result_parts.append(part)
                 new_t = "<hp:t>" + "".join(result_parts) + "</hp:t>"
