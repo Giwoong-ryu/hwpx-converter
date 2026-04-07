@@ -25,12 +25,13 @@ SYSTEM_PROMPT_MAP = """\
 
 규칙:
 1. 라벨/헤더 셀은 절대 교체하지 마세요.
-2. 값 셀만 사용자 내용에서 찾아 매핑하세요.
-3. 사용자 내용에 없는 정보는 추측하지 마세요.
+2. 값 셀만 사용자 내용에서 찾아 매핑하세요. 인접한 [H] 라벨을 단서로 활용하여 사용자 내용의 어떤 부분이 해당 값 셀에 해당하는지 추론하세요.
+3. 사용자 내용에서 직접 확인 가능한 정보만 매핑하세요. [H] 라벨과 내용의 문맥을 종합하여 명확히 대응되는 경우 추론 매핑을 허용합니다. 근거 없이 추측한 내용은 삽입하지 마세요.
 4. __N 접미사 셀은 N번째 해당 항목을 채우세요. 빠짐없이 모두 포함하세요.
 5. 경력, 학력처럼 시기/날짜가 있는 항목은 과거(오래된 순)에서 현재 순으로 위(__1)부터 채우세요.
 6. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
-7. __N 접미사가 있는 셀은 JSON 키에도 반드시 __N을 포함하세요. 예: {"회사명__1": "A사", "회사명__2": "B사"}"""
+7. __N 접미사가 있는 셀은 JSON 키에도 반드시 __N을 포함하세요. 예: {"회사명__1": "A사", "회사명__2": "B사"}
+8. 매핑 가능한 필드는 최대한 빠짐없이 채우세요."""
 
 SYSTEM_PROMPT_GEN = """\
 당신은 한글 문서 양식 작성 도우미입니다.
@@ -60,7 +61,8 @@ USER_PROMPT_MAP = """\
 
 위 양식에서 [H] 태그가 없는 값 셀 중, 사용자 내용으로 교체해야 할 항목을 JSON으로 반환하세요.
 형식: {{"원본 텍스트": "새 텍스트", ...}}
-라벨/헤더는 절대 포함하지 마세요."""
+라벨/헤더는 절대 포함하지 마세요.
+각 값 셀 옆의 [H] 라벨을 단서로 활용하세요. 예: [H]성명 옆의 값 셀은 사용자 내용에서 이름을 찾아 매핑."""
 
 USER_PROMPT_GEN = """\
 [양식 구조]
@@ -312,10 +314,24 @@ def _read_content_file(file_path):
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     raw = f.read()
             soup = BeautifulSoup(raw, "html.parser")
-            # script/style 제거 후 텍스트 추출
+            # script/style 제거
             for tag in soup(["script", "style"]):
                 tag.decompose()
-            return soup.get_text(separator="\n", strip=True)
+
+            # h1이 한글 이름처럼 보이면 "성명: " 프리픽스 힌트 추가
+            # (이력서 HTML에서 이름이 레이블 없이 h1으로만 표기되는 경우 AI 매핑 보조)
+            prefix_hints = []
+            h1_tag = soup.find("h1")
+            if h1_tag:
+                h1_text = h1_tag.get_text(strip=True)
+                name_clean = re.sub(r"\s+", "", h1_text)
+                if re.match(r"^[가-힣]{2,4}$", name_clean):
+                    prefix_hints.append(f"성명: {h1_text}")
+
+            full_text = soup.get_text(separator="\n", strip=True)
+            if prefix_hints:
+                return "\n".join(prefix_hints) + "\n" + full_text
+            return full_text
         except Exception as e:
             return f"[HTML 읽기 실패: {e}]"
 
