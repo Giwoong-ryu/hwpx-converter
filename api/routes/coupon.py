@@ -14,6 +14,49 @@ class RedeemRequest(BaseModel):
     code: str
 
 
+@router.post("/check")
+async def check_coupon(req: RedeemRequest, authorization: str = Header(None)):
+    """쿠폰 코드 유효성 확인 (적용하지 않고 정보만 반환)"""
+    user = await _get_user(authorization)
+    sb = get_supabase()
+    code = req.code.strip().upper()
+
+    if not code:
+        raise HTTPException(status_code=400, detail="쿠폰 코드를 입력해주세요.")
+
+    result = sb.table("docflow_coupons").select("*").eq("code", code).eq("is_active", True).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="유효하지 않은 쿠폰 코드입니다.")
+
+    coupon = result.data[0]
+
+    if coupon.get("expires_at"):
+        expires = datetime.fromisoformat(coupon["expires_at"].replace("Z", "+00:00"))
+        if datetime.now(timezone.utc) > expires:
+            raise HTTPException(status_code=410, detail="만료된 쿠폰입니다.")
+
+    if coupon.get("max_uses") is not None:
+        if coupon.get("used_count", 0) >= coupon["max_uses"]:
+            raise HTTPException(status_code=410, detail="모두 소진된 쿠폰입니다.")
+
+    used = sb.table("docflow_coupon_uses").select("id").eq("coupon_id", coupon["id"]).eq("user_id", user.id).execute()
+    if used.data:
+        raise HTTPException(status_code=409, detail="이미 사용한 쿠폰입니다.")
+
+    coupon_label = "Plus 1개월 무료 체험" if coupon["type"] == "plus_free" else f"게이지 +{coupon['value']}%"
+    expires_str = coupon["expires_at"][:10] if coupon.get("expires_at") else "무기한"
+
+    return {
+        "ok": True,
+        "code": code,
+        "label": coupon_label,
+        "value": coupon["value"],
+        "type": coupon["type"],
+        "expires": expires_str,
+        "remaining": (coupon["max_uses"] - coupon.get("used_count", 0)) if coupon.get("max_uses") else None,
+    }
+
+
 @router.post("/redeem")
 async def redeem_coupon(req: RedeemRequest, authorization: str = Header(None)):
     """쿠폰 코드 적용 -> 게이지 충전"""
