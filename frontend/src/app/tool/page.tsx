@@ -346,6 +346,7 @@ function Main() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("ai");
   const [showInfo, setShowInfo] = useState(false);
+  const [showGauge, setShowGauge] = useState(false);
   const [showExamples, setShowExamples] = useState(false);
   const [showSteps, setShowSteps] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -621,6 +622,37 @@ function Main() {
                   <div>
                     <p className="font-semibold text-[#1a1c1b] mb-0.5">통신 보안</p>
                     <p>모든 데이터는 HTTPS(TLS 1.3) 암호화 통신으로 전송됩니다.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 게이지 설명 */}
+            <div className="mt-2 pt-2 border-t border-[#93C5FD]/20">
+              <button
+                onClick={() => setShowGauge(!showGauge)}
+                className="w-full py-2 flex items-center gap-2 hover:opacity-70 transition-opacity text-left"
+              >
+                <Zap size={15} className="text-[#2563EB] shrink-0" />
+                <span className="text-base font-semibold text-[#1a1c1b]">게이지란 무엇인가요?</span>
+                {showGauge
+                  ? <ChevronUp size={14} className="text-[#57423c] ml-auto" />
+                  : <ChevronDown size={14} className="text-[#57423c] ml-auto" />
+                }
+              </button>
+              {showGauge && (
+                <div className="pt-3 pb-2 text-base text-[#57423c] leading-relaxed space-y-3">
+                  <div>
+                    <p className="font-semibold text-[#1a1c1b] mb-0.5">게이지 = AI 사용량</p>
+                    <p>상단의 % 숫자가 게이지입니다. <span className="font-medium text-[#1a1c1b]">AI로 채우기</span> 버튼을 누를 때마다 소모됩니다. 일반 <span className="font-medium text-[#1a1c1b]">채우기</span> 버튼은 AI를 사용하지 않아 게이지가 줄지 않습니다.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#1a1c1b] mb-0.5">자동 충전 + 보상</p>
+                    <p>매일 자정 자동으로 충전됩니다. 양식을 분석하거나 문서를 완성하면 <span className="font-medium text-[#2563EB]">+25%</span> 같은 보상이 뜨는데, 그 숫자가 바로 게이지입니다. Plus 플랜은 더 많이 충전됩니다.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#1a1c1b] mb-0.5">게이지가 부족하면?</p>
+                    <p>내일 자정까지 기다리거나, Plus로 업그레이드하면 더 많은 AI 사용량을 쓸 수 있습니다.</p>
                   </div>
                 </div>
               )}
