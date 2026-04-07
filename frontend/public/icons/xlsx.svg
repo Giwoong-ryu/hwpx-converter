@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 64" fill="none">
+  <!-- 종이 -->
+  <path d="M4 0h28l12 12v48a4 4 0 01-4 4H4a4 4 0 01-4-4V4a4 4 0 014-4z" fill="#fff"/>
+  <path d="M4 0h28l12 12v48a4 4 0 01-4 4H4a4 4 0 01-4-4V4a4 4 0 014-4z" stroke="#D1D5DB" stroke-width="1"/>
+  <!-- 접힌 모서리 -->
+  <path d="M32 0l12 12H36a4 4 0 01-4-4V0z" fill="#E5E7EB"/>
+  <!-- 엑셀 녹색 바 -->
+  <rect x="6" y="28" width="36" height="28" rx="3" fill="#217346"/>
+  <!-- X 글자 -->
+  <text x="24" y="48" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="18" fill="white">X</text>
+  <!-- 상단 미니 격자 -->
+  <rect x="8" y="16" width="10" height="3" rx="0.5" fill="#217346" opacity="0.3"/>
+  <rect x="20" y="16" width="10" height="3" rx="0.5" fill="#217346" opacity="0.2"/>
+  <rect x="8" y="21" width="10" height="3" rx="0.5" fill="#217346" opacity="0.2"/>
+  <rect x="20" y="21" width="10" height="3" rx="0.5" fill="#217346" opacity="0.15"/>
+</svg>

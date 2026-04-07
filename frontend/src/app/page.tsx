@@ -579,6 +579,51 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════════════════════
+          섹션 1.5: 3단계 사용법 (사용자 심리 — "나도 할 수 있겠다" 확신)
+      ══════════════════════════════════════════ */}
+      <section className="py-16 bg-white border-t border-gray-100">
+        <div className="max-w-screen-xl mx-auto px-8 lg:px-12">
+          <h2 className="text-2xl font-extrabold tracking-tight text-center mb-2">
+            3단계로 끝납니다
+          </h2>
+          <p className="text-sm text-[#57423c]/40 text-center mb-10">
+            평균 완성 시간 <strong className="text-[#1a1c1b]">3분</strong> — 반복 복붙이 사라집니다
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+            {/* Step 1 */}
+            <div className="scroll-fade relative flex flex-col items-center text-center p-6 rounded-2xl bg-[#f9f9f6] border border-gray-100" data-delay="0">
+              <div className="w-10 h-10 rounded-xl bg-[#1a1c1b] text-white flex items-center justify-center font-black text-lg mb-4">1</div>
+              <h3 className="font-bold text-base text-[#1a1c1b] mb-1.5">양식 파일 업로드</h3>
+              <p className="text-sm text-[#57423c]/55 leading-relaxed">채워야 할 HWP·HWPX 양식을 올립니다.<br />DOCX도 됩니다.</p>
+              {/* 화살표 */}
+              <div className="hidden md:block absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-[#57423c]/30 text-xs font-bold">→</div>
+            </div>
+            {/* Step 2 */}
+            <div className="scroll-fade relative flex flex-col items-center text-center p-6 rounded-2xl bg-[#f9f9f6] border border-gray-100" data-delay="100">
+              <div className="w-10 h-10 rounded-xl bg-[#2563EB] text-white flex items-center justify-center font-black text-lg mb-4">2</div>
+              <h3 className="font-bold text-base text-[#1a1c1b] mb-1.5">내 자료 입력</h3>
+              <p className="text-sm text-[#57423c]/55 leading-relaxed">텍스트 붙여넣기, 파일 첨부,<br />또는 직접 입력 — 어느 방식이든.</p>
+              <div className="hidden md:block absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-[#57423c]/30 text-xs font-bold">→</div>
+            </div>
+            {/* Step 3 */}
+            <div className="scroll-fade flex flex-col items-center text-center p-6 rounded-2xl bg-[#f9f9f6] border border-gray-100" data-delay="200">
+              <div className="w-10 h-10 rounded-xl bg-[#1E40AF] text-white flex items-center justify-center font-black text-lg mb-4">3</div>
+              <h3 className="font-bold text-base text-[#1a1c1b] mb-1.5">완성 파일 다운로드</h3>
+              <p className="text-sm text-[#57423c]/55 leading-relaxed">AI가 채운 내용을 확인하고<br />1클릭으로 바로 다운로드.</p>
+            </div>
+          </div>
+          {/* 신뢰 배지 라인 */}
+          <div className="flex items-center justify-center gap-8 mt-10 text-xs text-[#57423c]/35">
+            <span>파일 3시간 후 자동 삭제</span>
+            <span className="w-1 h-1 rounded-full bg-[#57423c]/20" />
+            <span>AI 학습에 사용 안 함</span>
+            <span className="w-1 h-1 rounded-full bg-[#57423c]/20" />
+            <span>로그인 없이 무료 체험</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
           섹션 2: Before/After + 7가지 기능 (합침)
       ══════════════════════════════════════════ */}
       <section id="demo-section" className="w-full pt-40 pb-24 bg-[#FAFAFA] border-t border-gray-100">
@@ -773,13 +818,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── 푸터 ── */}
-      <footer className="border-t border-[#BFDBFE]/40 py-6 px-8 lg:px-12 bg-[#f4f4f1]">
-        <div className="max-w-screen-2xl mx-auto flex justify-between items-center">
-          <span className="text-base font-bold">Eazy HWPX</span>
-          <span className="text-sm text-[#57423c]/40">HTTPS 암호화 · 파일 3시간 후 삭제</span>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthWrapper } from "./auth-wrapper";
+import Footer from "@/components/ui/Footer";
 
 export const metadata: Metadata = {
   icons: { icon: "/favicon.svg" },
@@ -29,8 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
       </head>
-      <body className="antialiased">
+      <body className="antialiased flex flex-col min-h-screen">
         <AuthWrapper>{children}</AuthWrapper>
+        <Footer />
       </body>
     </html>
   );
