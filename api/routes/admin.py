@@ -9,7 +9,7 @@ from api.services import auth_service
 
 router = APIRouter()
 
-OWNER_EMAILS = os.getenv("OWNER_EMAILS", "eazypick.dev@gmail.com").split(",")
+OWNER_EMAILS = os.getenv("OWNER_EMAILS", "ryugw10@gmail.com").split(",")
 
 PLAN_DEFAULTS = {
     "free": {"plan": "free", "gauge_percent": 0, "preset_limit": 1, "mapping_save_limit": 0, "streak_freeze_count": 0},

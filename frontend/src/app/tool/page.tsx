@@ -192,7 +192,7 @@ function UserMenu({ onLoginClick }: { onLoginClick: () => void }) {
             <Link href="/pricing" className="block px-3 py-2 text-sm text-[#57423c] hover:bg-[#f4f4f1] rounded-lg" onClick={() => setOpen(false)}>
               요금제
             </Link>
-            {user.email && ["eazypick.dev@gmail.com"].includes(user.email) && (
+            {user.email && ["ryugw10@gmail.com"].includes(user.email) && (
               <div className="border-t border-gray-100 mt-1 pt-1">
                 <p className="px-3 py-1 text-[10px] text-[#57423c]/30 font-bold">OWNER</p>
                 {(["free", "plus", "pro"] as const).map((p) => (
