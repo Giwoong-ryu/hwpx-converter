@@ -59,10 +59,19 @@ USER_PROMPT_MAP = """\
 [사용자 제공 내용]
 {content}
 
-위 양식에서 [H] 태그가 없는 값 셀 중, 사용자 내용으로 교체해야 할 항목을 JSON으로 반환하세요.
-형식: {{"원본 텍스트": "새 텍스트", ...}}
-라벨/헤더는 절대 포함하지 마세요.
-각 값 셀 옆의 [H] 라벨을 단서로 활용하세요. 예: [H]성명 옆의 값 셀은 사용자 내용에서 이름을 찾아 매핑."""
+위 양식의 값 셀([H] 태그가 없는 셀)에 사용자 내용을 채워 JSON으로 반환하세요.
+형식: {{"원본 텍스트": "채울 내용", ...}}
+라벨/헤더([H] 셀)는 절대 JSON 키로 포함하지 마세요.
+
+매핑 전략:
+1. 각 값 셀 옆의 [H] 라벨을 보고 사용자 내용에서 해당 정보를 찾아 매핑하세요.
+   예) [H]성명 옆 값 셀 → 내용에서 이름 추출 / [H]연락처 옆 값 셀 → 전화번호 추출
+2. __N 접미사 셀은 N번째 항목을 채우세요 (날짜순, 오래된 것 → __1).
+   예) [H]회사명 옆 회사명__1 → 가장 오래된 직장명 / 회사명__2 → 그 다음 직장명
+3. 경력 항목에서 직위/회사명·근무기간·업무내용은 각 경력 항목에서 각각 추출하세요.
+   내용에 "직위명\n기간\n업무설명" 형태로 나열된 경우 순서대로 __N에 매핑하세요.
+4. 내용에 명시적 라벨이 없어도 문맥상 명확하면 추론하여 채우세요.
+5. 매핑 가능한 모든 값 셀을 최대한 빠짐없이 채우세요."""
 
 USER_PROMPT_GEN = """\
 [양식 구조]
@@ -269,6 +278,118 @@ def _parse_json_response(text):
     return None
 
 
+def _extract_html_structured(soup) -> str:
+    """HTML에서 구조화된 텍스트를 추출한다.
+
+    - h1이 한글 이름이면 '성명: ' 프리픽스 추가
+    - h2 섹션별로 콘텐츠를 구조화하여 AI 매핑 정확도 향상
+    - 이력서, 회사소개서 등 문서형 HTML에 최적화
+    """
+    parts = []
+
+    # 1. h1이 한글 이름(2-4자)이면 "성명: " 힌트 삽입
+    h1_tag = soup.find("h1")
+    if h1_tag:
+        h1_text = h1_tag.get_text(strip=True)
+        name_clean = re.sub(r"\s+", "", h1_text)
+        if re.match(r"^[가-힣]{2,4}$", name_clean):
+            parts.append(f"성명: {h1_text}")
+
+    # 2. 헤더 영역의 "라벨: 값" 인라인 정보 수집 (연락처, 이메일 등)
+    header_tag = soup.find("header")
+    if header_tag:
+        for elem in header_tag.find_all(["span", "p"]):
+            if elem.find(["span", "p"]):  # 자식 있는 컨테이너 스킵
+                continue
+            text = elem.get_text(strip=True)
+            if ":" in text and len(text) <= 80:
+                key, _, val = text.partition(":")
+                if key.strip() and val.strip() and len(key.strip()) <= 20 and "://" not in key:
+                    parts.append(text)
+
+    # 3. h2 섹션 구조가 있는 경우 섹션별 분리 추출
+    sections = soup.find_all("section")
+    if sections:
+        for section in sections:
+            h2 = section.find(["h2", "h3"])
+            section_title = h2.get_text(strip=True) if h2 else ""
+            if section_title:
+                parts.append(f"\n[{section_title}]")
+
+            # 반복 항목 감지: 클래스명이 "-item" 또는 "-entry"로 끝나는 최상위 div만
+            # (career-header, career-title 등 하위 요소 제외)
+            item_groups = section.find_all(
+                lambda tag: tag.name in ("div", "article", "li") and
+                any(c.endswith("-item") or c.endswith("-entry") or c in ("item", "entry")
+                    for c in tag.get("class", []))
+            )
+
+            if item_groups:
+                # 과거→현재 순 정렬: 기간 정보 파싱
+                def _parse_start_year(item):
+                    period_text = item.get_text()
+                    m = re.search(r"(\d{4})\.\d{2}", period_text)
+                    return int(m.group(1)) if m else 9999
+
+                try:
+                    item_groups_sorted = sorted(item_groups, key=_parse_start_year)
+                except Exception:
+                    item_groups_sorted = item_groups
+
+                for idx, item in enumerate(item_groups_sorted, 1):
+                    # 제목/기간/내용 요소 추출
+                    title_elem = (
+                        item.find(class_=re.compile(r"(title|name|position)", re.I))
+                        or item.find(["h3", "h4"])  # 클래스 없는 h태그 폴백
+                    )
+                    period_elem = item.find(class_=re.compile(r"(period|date|duration|term)", re.I))
+                    desc_elems = item.find_all(["li", "p"])
+
+                    item_parts = [f"항목{idx})"]
+                    if title_elem:
+                        item_parts.append(f"직위/기관: {title_elem.get_text(strip=True)}")
+                    if period_elem:
+                        item_parts.append(f"기간: {period_elem.get_text(strip=True)}")
+                    if desc_elems:
+                        desc = " / ".join(
+                            e.get_text(strip=True) for e in desc_elems
+                            if e.get_text(strip=True)
+                        )
+                        if desc:
+                            item_parts.append(f"내용: {desc}")
+                    # 위 요소 모두 미발견 시 전체 텍스트 폴백
+                    if len(item_parts) == 1:
+                        item_parts.append(item.get_text(separator=" | ", strip=True))
+                    parts.append(" | ".join(item_parts))
+            else:
+                # 반복 항목 없는 섹션: h4 기반 항목 분리 또는 전체 텍스트
+                h4_items = section.find_all("h4")
+                if h4_items:
+                    for idx, h4 in enumerate(h4_items, 1):
+                        item_text = h4.get_text(strip=True)
+                        # h4 다음 형제 p/ul 콘텐츠 수집 (다음 h4 전까지)
+                        content_parts = []
+                        for sib in h4.next_siblings:
+                            if getattr(sib, "name", None) == "h4":
+                                break
+                            if hasattr(sib, "get_text"):
+                                t = sib.get_text(strip=True)
+                                if t:
+                                    content_parts.append(t)
+                        content = " ".join(content_parts)[:300]
+                        parts.append(f"항목{idx}) {item_text}" + (f" | 내용: {content}" if content else ""))
+                else:
+                    # 일반 섹션: 전체 텍스트 (h2/h3 제외)
+                    if h2:
+                        h2.extract()
+                    parts.append(section.get_text(separator="\n", strip=True).strip())
+    else:
+        # 섹션 구조 없음: 전체 텍스트 그대로
+        parts.append(soup.get_text(separator="\n", strip=True))
+
+    return "\n".join(p for p in parts if p.strip())
+
+
 def _read_content_file(file_path):
     """내용 파일을 읽어 텍스트로 반환한다."""
     ext = os.path.splitext(file_path)[1].lower()
@@ -314,24 +435,10 @@ def _read_content_file(file_path):
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     raw = f.read()
             soup = BeautifulSoup(raw, "html.parser")
-            # script/style 제거
             for tag in soup(["script", "style"]):
                 tag.decompose()
 
-            # h1이 한글 이름처럼 보이면 "성명: " 프리픽스 힌트 추가
-            # (이력서 HTML에서 이름이 레이블 없이 h1으로만 표기되는 경우 AI 매핑 보조)
-            prefix_hints = []
-            h1_tag = soup.find("h1")
-            if h1_tag:
-                h1_text = h1_tag.get_text(strip=True)
-                name_clean = re.sub(r"\s+", "", h1_text)
-                if re.match(r"^[가-힣]{2,4}$", name_clean):
-                    prefix_hints.append(f"성명: {h1_text}")
-
-            full_text = soup.get_text(separator="\n", strip=True)
-            if prefix_hints:
-                return "\n".join(prefix_hints) + "\n" + full_text
-            return full_text
+            return _extract_html_structured(soup)
         except Exception as e:
             return f"[HTML 읽기 실패: {e}]"
 
