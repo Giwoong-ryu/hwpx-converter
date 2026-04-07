@@ -29,7 +29,8 @@ const STEPS = [
 
 const STORAGE_KEY = "eazyhwpx_onboarding_done";
 const LAST_VISIT_KEY = "eazyhwpx_last_visit";
-const REVISIT_DAYS = 30; // 30일 이상 안 오면 가이드 재표시
+const NEVER_SHOW_KEY = "eazyhwpx_onboarding_never";
+const REVISIT_DAYS = 30;
 const PADDING = 8;
 
 export default function OnboardingGuide({ forceShow, onClose }: { forceShow?: boolean; onClose?: () => void } = {}) {
@@ -38,20 +39,22 @@ export default function OnboardingGuide({ forceShow, onClose }: { forceShow?: bo
   const [rect, setRect] = useState<DOMRect | null>(null);
 
   useEffect(() => {
+    // "다시 보지 않기" 설정 시 forceShow도 무시
+    if (localStorage.getItem(NEVER_SHOW_KEY) === "true" && !forceShow) return;
+
     if (forceShow) {
       setStep(0);
       setShow(true);
       return;
     }
+
     const done = localStorage.getItem(STORAGE_KEY);
     const lastVisit = localStorage.getItem(LAST_VISIT_KEY);
     const now = Date.now();
 
-    // 마지막 방문일 갱신
     localStorage.setItem(LAST_VISIT_KEY, String(now));
 
     if (!done) {
-      // 첫 방문
       const timer = setTimeout(() => setShow(true), 800);
       return () => clearTimeout(timer);
     }
@@ -59,7 +62,6 @@ export default function OnboardingGuide({ forceShow, onClose }: { forceShow?: bo
     if (lastVisit) {
       const daysSince = (now - Number(lastVisit)) / (1000 * 60 * 60 * 24);
       if (daysSince >= REVISIT_DAYS) {
-        // 30일 이상 미방문 → 가이드 재표시
         const timer = setTimeout(() => setShow(true), 800);
         return () => clearTimeout(timer);
       }
@@ -83,10 +85,11 @@ export default function OnboardingGuide({ forceShow, onClose }: { forceShow?: bo
     return () => window.removeEventListener("resize", updateRect);
   }, [updateRect]);
 
-  const finish = () => {
+  const finish = (never = false) => {
     setShow(false);
     localStorage.setItem(STORAGE_KEY, "true");
     localStorage.setItem(LAST_VISIT_KEY, String(Date.now()));
+    if (never) localStorage.setItem(NEVER_SHOW_KEY, "true");
     onClose?.();
   };
 
@@ -145,7 +148,7 @@ export default function OnboardingGuide({ forceShow, onClose }: { forceShow?: bo
         className="fixed inset-0 z-[9998] pointer-events-none"
         width="100%" height="100%"
         style={{ pointerEvents: "auto" }}
-        onClick={finish}
+        onClick={() => finish(false)}
       >
         <defs>
           <mask id="spotlight-mask">
@@ -213,20 +216,37 @@ export default function OnboardingGuide({ forceShow, onClose }: { forceShow?: bo
         <p className="text-sm text-[#57423c] leading-relaxed mb-4">{current.desc}</p>
 
         {/* 버튼 */}
-        <div className="flex items-center justify-between">
-          <button onClick={finish} className="text-xs text-gray-400 hover:text-gray-600">
-            건너뛰기
-          </button>
-          <button
-            onClick={next}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white px-4 py-2 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity"
-          >
-            {step < STEPS.length - 1 ? (
-              <>다음 <ChevronRight size={14} /></>
-            ) : (
-              "시작하기"
-            )}
-          </button>
+        <div className="space-y-2.5">
+          {/* 마지막 스텝: 다시 보지 않기 체크박스 */}
+          {step === STEPS.length - 1 && (
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                onChange={(e) => {
+                  if (e.target.checked) localStorage.setItem(NEVER_SHOW_KEY, "true");
+                  else localStorage.removeItem(NEVER_SHOW_KEY);
+                }}
+                defaultChecked={localStorage.getItem(NEVER_SHOW_KEY) === "true"}
+                className="rounded accent-[#2563EB] w-3.5 h-3.5"
+              />
+              <span className="text-xs text-gray-400">다시 보지 않기</span>
+            </label>
+          )}
+          <div className="flex items-center justify-between">
+            <button onClick={() => finish(false)} className="text-xs text-gray-400 hover:text-gray-600">
+              건너뛰기
+            </button>
+            <button
+              onClick={next}
+              className="flex items-center gap-1.5 bg-linear-to-r from-[#2563EB] to-[#1E40AF] text-white px-4 py-2 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity"
+            >
+              {step < STEPS.length - 1 ? (
+                <>다음 <ChevronRight size={14} /></>
+              ) : (
+                "시작하기"
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </>
