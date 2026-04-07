@@ -28,20 +28,43 @@ const STEPS = [
 ];
 
 const STORAGE_KEY = "eazyhwpx_onboarding_done";
+const LAST_VISIT_KEY = "eazyhwpx_last_visit";
+const REVISIT_DAYS = 30; // 30일 이상 안 오면 가이드 재표시
 const PADDING = 8;
 
-export default function OnboardingGuide() {
+export default function OnboardingGuide({ forceShow, onClose }: { forceShow?: boolean; onClose?: () => void } = {}) {
   const [step, setStep] = useState(0);
   const [show, setShow] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
 
   useEffect(() => {
+    if (forceShow) {
+      setStep(0);
+      setShow(true);
+      return;
+    }
     const done = localStorage.getItem(STORAGE_KEY);
+    const lastVisit = localStorage.getItem(LAST_VISIT_KEY);
+    const now = Date.now();
+
+    // 마지막 방문일 갱신
+    localStorage.setItem(LAST_VISIT_KEY, String(now));
+
     if (!done) {
+      // 첫 방문
       const timer = setTimeout(() => setShow(true), 800);
       return () => clearTimeout(timer);
     }
-  }, []);
+
+    if (lastVisit) {
+      const daysSince = (now - Number(lastVisit)) / (1000 * 60 * 60 * 24);
+      if (daysSince >= REVISIT_DAYS) {
+        // 30일 이상 미방문 → 가이드 재표시
+        const timer = setTimeout(() => setShow(true), 800);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [forceShow]);
 
   const updateRect = useCallback(() => {
     if (!show) return;
@@ -63,6 +86,8 @@ export default function OnboardingGuide() {
   const finish = () => {
     setShow(false);
     localStorage.setItem(STORAGE_KEY, "true");
+    localStorage.setItem(LAST_VISIT_KEY, String(Date.now()));
+    onClose?.();
   };
 
   const next = () => {

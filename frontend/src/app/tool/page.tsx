@@ -24,7 +24,7 @@ import {
   FileText, Loader2, Shield, Wand2, Layers, TableProperties,
   Calendar, Stamp, Merge, CheckCircle2, FileSpreadsheet,
   Sparkles, ChevronLeft, Upload, ChevronDown, ChevronUp, Settings2,
-  User, Zap, LogOut, Flame, Globe, Gift
+  User, Zap, LogOut, Flame, Globe, Gift, BookOpen
 } from "lucide-react";
 
 const MAIN_TABS = [
@@ -347,6 +347,7 @@ function Main() {
   const [activeTab, setActiveTab] = useState("ai");
   const [showInfo, setShowInfo] = useState(false);
   const [showGauge, setShowGauge] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [showExamples, setShowExamples] = useState(false);
   const [showSteps, setShowSteps] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -657,6 +658,16 @@ function Main() {
                 </div>
               )}
             </div>
+            {/* 사용법 다시 보기 */}
+            <div className="mt-3 pt-3 border-t border-[#93C5FD]/20">
+              <button
+                onClick={() => setShowOnboarding(true)}
+                className="w-full py-2 flex items-center gap-2 text-sm text-[#57423c]/60 hover:text-[#2563EB] transition-colors"
+              >
+                <BookOpen size={14} className="shrink-0" />
+                사용법 다시 보기
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -683,8 +694,8 @@ function Main() {
       )}
       {/* 보상 토스트 */}
       {rewards.length > 0 && <RewardToast rewards={rewards} onDone={() => setRewards([])} />}
-      {/* 첫 방문 가이드 */}
-      <OnboardingGuide />
+      {/* 첫 방문 / 다시 보기 가이드 */}
+      <OnboardingGuide forceShow={showOnboarding} onClose={() => setShowOnboarding(false)} />
     </div>
   );
 }
