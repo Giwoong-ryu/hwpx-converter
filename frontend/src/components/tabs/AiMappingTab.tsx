@@ -273,8 +273,8 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
           <div className="lg:col-span-2">
             <div className="border-2 border-dashed border-[#93C5FD]/40 rounded-xl p-4 bg-[#FAFBFF] h-full flex flex-col">
               <FileUpload
-                accept=".txt,.xlsx,.xls,.docx,.csv,.json,.md"
-                label="엑셀, 워드, 텍스트 등"
+                accept=".txt,.xlsx,.xls,.docx,.csv,.json,.md,.html,.htm"
+                label="엑셀, 워드, 텍스트, HTML 등"
                 multiple
                 onFiles={(f) => setContentFiles((prev) => [...prev, ...f].slice(0, 5))}
               />

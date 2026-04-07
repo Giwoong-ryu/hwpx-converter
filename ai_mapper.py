@@ -297,6 +297,18 @@ def _read_content_file(file_path):
         except Exception as e:
             return f"[워드 읽기 실패: {e}]"
 
+    if ext in (".html", ".htm"):
+        try:
+            from bs4 import BeautifulSoup
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                soup = BeautifulSoup(f.read(), "html.parser")
+            # script/style 제거 후 텍스트 추출
+            for tag in soup(["script", "style"]):
+                tag.decompose()
+            return soup.get_text(separator="\n", strip=True)
+        except Exception as e:
+            return f"[HTML 읽기 실패: {e}]"
+
     if ext == ".json":
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
