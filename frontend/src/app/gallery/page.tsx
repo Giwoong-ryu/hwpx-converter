@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { listGalleryForms, toggleGalleryLike, type GalleryForm } from "@/lib/api";
+import { listGalleryForms, toggleGalleryLike, deleteGalleryForm, type GalleryForm } from "@/lib/api";
 import {
   FileText, Heart, Download, Search, ChevronLeft,
-  Loader2, Filter, ArrowUpDown, Sparkles,
+  Loader2, Sparkles, Trash2,
 } from "lucide-react";
 import LoginModal from "@/components/ui/LoginModal";
 
@@ -110,6 +110,16 @@ export default function GalleryPage() {
       return;
     }
     window.location.href = `/tool?gallery_id=${formId}`;
+  };
+
+  const handleDelete = async (formId: number) => {
+    if (!confirm("이 양식을 삭제하시겠습니까?")) return;
+    try {
+      await deleteGalleryForm(formId);
+      setForms((prev) => prev.filter((f) => f.id !== formId));
+    } catch {
+      alert("삭제에 실패했습니다.");
+    }
   };
 
   return (
@@ -217,14 +227,25 @@ export default function GalleryPage() {
                 key={form.id}
                 className="bg-white rounded-2xl border border-[#93C5FD]/30 p-5 hover:border-[#2563EB]/40 hover:shadow-md transition-all group"
               >
-                {/* 카테고리 + 시간 */}
+                {/* 카테고리 + 시간 + 삭제 */}
                 <div className="flex items-center justify-between mb-3">
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
                     CATEGORY_COLORS[form.category] || CATEGORY_COLORS["기타"]
                   }`}>
                     {form.category}
                   </span>
-                  <span className="text-xs text-[#57423c]/40">{timeAgo(form.created_at)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[#57423c]/40">{timeAgo(form.created_at)}</span>
+                    {user && form.user_id === user.user_id && (
+                      <button
+                        onClick={() => handleDelete(form.id)}
+                        className="text-[#57423c]/30 hover:text-red-500 transition-colors"
+                        title="삭제"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* 제목 */}
