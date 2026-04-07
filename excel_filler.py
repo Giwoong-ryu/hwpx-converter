@@ -54,18 +54,22 @@ def fill_excel(template_path, replacements, output_path=None):
     # 원본 복사
     shutil.copy2(template_path, output_path)
 
-    # 열어서 치환
+    # 열어서 치환 (수식 셀은 건드리지 않음)
     wb = openpyxl.load_workbook(output_path)
     for ws in wb.worksheets:
         for row in ws.iter_rows():
             for cell in row:
-                if cell.value is not None:
-                    val = str(cell.value)
-                    for old, new in replacements.items():
-                        if old in val:
-                            val = val.replace(old, new)
-                    if val != str(cell.value):
-                        cell.value = val
+                if cell.value is None:
+                    continue
+                # 수식 셀(= 로 시작) 보호: 텍스트 치환 대상에서 제외
+                if isinstance(cell.value, str) and cell.value.startswith("="):
+                    continue
+                val = str(cell.value)
+                for old, new in replacements.items():
+                    if old in val:
+                        val = val.replace(old, new)
+                if val != str(cell.value):
+                    cell.value = val
     wb.save(output_path)
     wb.close()
     return output_path

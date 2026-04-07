@@ -2,6 +2,7 @@
 
 import json
 import os
+import shutil
 import tempfile
 import zipfile
 
@@ -41,12 +42,17 @@ async def map_excel_headers(
     sample_row = [str(v).strip() if v else "" for v in rows[1]]
     row_count = len(rows) - 1
 
+    # HWP 파일은 extract_texts 미지원 (HWPX만 가능)
+    if form_path.lower().endswith(".hwp") and not form_path.lower().endswith(".hwpx"):
+        raise HTTPException(status_code=400, detail="대량 생성은 HWPX 파일만 지원합니다. HWP 파일을 HWPX로 변환 후 사용해주세요.")
+
     # 양식 텍스트
     form_texts = extract_texts(form_path)
 
     # AI로 헤더 ↔ 양식 텍스트 매핑
     from ai_mapper import _get_api_key, _parse_json_response
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types
 
     api_key = _get_api_key()
     if not api_key:
@@ -56,7 +62,7 @@ async def map_excel_headers(
 각 엑셀 헤더가 양식의 어떤 텍스트에 해당하는지 매핑해주세요.
 
 양식 텍스트 (일부):
-{json.dumps(form_texts[:50], ensure_ascii=False)}
+{json.dumps(form_texts[:200], ensure_ascii=False)}
 
 엑셀 헤더: {json.dumps(headers, ensure_ascii=False)}
 엑셀 샘플 (1행): {json.dumps(sample_row, ensure_ascii=False)}
@@ -65,9 +71,12 @@ JSON 배열로 응답: [{{"header": "엑셀헤더", "form_text": "양식에서 �
 매칭 안 되는 헤더는 form_text를 빈 문자열로.
 """
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        response = model.generate_content(prompt, generation_config=genai.GenerationConfig(temperature=0.1))
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.1),
+        )
         parsed = _parse_json_response(response.text)
         if isinstance(parsed, list):
             mappings = parsed
@@ -119,38 +128,53 @@ def batch_generate_mapped(req: BatchGenerateRequest):
             header_to_form[h] = ft
 
     out_dir = tempfile.mkdtemp()
+    zip_dir = tempfile.mkdtemp()
     generated = []
+    used_names: set[str] = set()
 
-    for i, row in enumerate(rows[1:], start=1):
-        replacements = {}
-        for j, val in enumerate(row):
-            if j < len(headers) and headers[j] in header_to_form and val is not None:
-                form_text = header_to_form[headers[j]]
-                replacements[form_text] = str(val).strip()
+    try:
+        for i, row in enumerate(rows[1:], start=1):
+            replacements = {}
+            for j, val in enumerate(row):
+                if j < len(headers) and headers[j] in header_to_form and val is not None:
+                    form_text = header_to_form[headers[j]]
+                    replacements[form_text] = str(val).strip()
 
-        if not replacements:
-            continue
+            if not replacements:
+                continue
 
-        first_val = str(row[0]).strip() if row[0] else f"문서_{i}"
-        safe_name = "".join(c for c in first_val if c not in r'\/:*?"<>|')[:50]
-        out_path = os.path.join(out_dir, f"{safe_name}.hwpx")
-        if os.path.exists(out_path):
-            out_path = os.path.join(out_dir, f"{safe_name}_{i}.hwpx")
+            first_val = str(row[0]).strip() if row[0] else f"문서_{i}"
+            safe_name = "".join(c for c in first_val if c not in r'\/:*?"<>|')[:50] or f"문서_{i}"
 
-        clone_hwpx(form_path, out_path, replacements=replacements)
-        generated.append(out_path)
+            # 파일명 중복 처리: 겹치면 _i 접미사 붙여 고유하게
+            candidate = f"{safe_name}.hwpx"
+            if candidate in used_names:
+                candidate = f"{safe_name}_{i}.hwpx"
+            used_names.add(candidate)
+            out_path = os.path.join(out_dir, candidate)
 
-    if not generated:
-        mlog("batch", success=False, error="생성할 데이터 없음")
-        raise HTTPException(status_code=400, detail="생성할 데이터가 없습니다.")
+            clone_hwpx(form_path, out_path, replacements=replacements)
+            generated.append(out_path)
 
-    zip_path = os.path.join(tempfile.mkdtemp(), "DocFlow_batch.zip")
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        for fp in generated:
-            zf.write(fp, os.path.basename(fp))
+        if not generated:
+            mlog("batch", success=False, error="생성할 데이터 없음")
+            raise HTTPException(status_code=400, detail="생성할 데이터가 없습니다.")
+
+        zip_path = os.path.join(zip_dir, "DocFlow_batch.zip")
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for fp in generated:
+                zf.write(fp, os.path.basename(fp))
+
+    finally:
+        shutil.rmtree(out_dir, ignore_errors=True)
 
     mlog("batch", success=True, field_count=len(generated), detail=f"docs={len(generated)}")
-    return FileResponse(zip_path, filename="DocFlow_batch.zip", media_type="application/zip")
+    return FileResponse(
+        zip_path,
+        filename="DocFlow_batch.zip",
+        media_type="application/zip",
+        background=None,  # FileResponse가 반환된 후 zip_dir는 OS가 정리
+    )
 
 
 # 기존 API도 유지 (하위 호환)
