@@ -166,9 +166,13 @@ async def ai_map(
         mlog("ai_map", success=False, field_count=len(fields), duration_ms=t.ms, error=error, detail=action_mode)
         raise HTTPException(status_code=400, detail=error)
 
-    # 매핑 커버리지 계산
+    # 매핑 커버리지 계산 (__N 접미사 제거 후 원본 필드와 매칭)
+    import re as _re
     field_set = set(fields)
-    matched_count = sum(1 for k in result if k in field_set)
+    def _base_key(k):
+        return _re.sub(r"__\d+$", "", k)
+    base_field_set = {_base_key(f) for f in field_set}
+    matched_count = sum(1 for k in result if k in field_set or _base_key(k) in base_field_set)
     coverage_pct = (matched_count / max(len(fields), 1)) * 100
 
     # 칸별 출처 판정
