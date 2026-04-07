@@ -443,41 +443,102 @@ def _split_ordered_replacements(replacements):
     return normal, ordered
 
 
-def _apply_ordered_in_xml(xml_text, ordered_map):
-    """base_text의 N번째 <hp:t> 내 occurrence를 values[N]으로 순서대로 치환한다.
+def _apply_ordered_in_xml(xml_text, ordered_map, label_counts=None):
+    """base_text의 N번째 문단(셀) occurrence를 values[N]으로 순서대로 치환한다.
 
     ordered_map: {base_text: [val1, val2, val3, ...]}
+    label_counts: {base_text: 라벨 셀 수} — 앞 N개 occurrence를 스킵 (A1 수정)
+
+    처리 방식 (문단 레벨):
+      - 케이스 1: <hp:t> 하나에 base_text 발견 → 해당 <hp:t>만 치환
+      - 케이스 2: 분산 run (<hp:t> 여러 개에 나뉨) → 합산 텍스트로 치환 (A2 수정)
     """
+    label_counts = label_counts or {}
+
     for base_text, values in ordered_map.items():
         if not base_text or not values:
             continue
 
-        occurrence_count = [0]  # mutable closure
+        skip = label_counts.get(base_text, 0)  # 라벨 셀 수 (앞에서 스킵할 개수)
+        total_occ = [0]   # 라벨+값 전체 카운터
+        val_occ = [0]     # 값 셀 카운터
 
-        def _replace_nth(match, _base=base_text, _vals=values, _cnt=occurrence_count):
-            inner = match.group(1)
-            parts = re.split(r"(<[^>]+>)", inner)
-            result = []
-            for part in parts:
-                if part.startswith("<"):
-                    result.append(part)
-                elif _base in part:
-                    idx = _cnt[0]
-                    if idx < len(_vals) and _vals[idx]:
-                        part = part.replace(_base, saxutils.escape(_vals[idx]), 1)
-                    _cnt[0] += 1
-                    result.append(part)
-                else:
-                    result.append(part)
-            return "<hp:t>" + "".join(result) + "</hp:t>"
+        def _replace_para(para_match,
+                          _base=base_text, _vals=values,
+                          _total=total_occ, _vcnt=val_occ, _skip=skip):
+            para = para_match.group(0)
+            t_matches = list(re.finditer(r"<hp:t>(.*?)</hp:t>", para, re.DOTALL))
+            if not t_matches:
+                return para
 
-        xml_text = re.sub(r"<hp:t>(.*?)</hp:t>", _replace_nth, xml_text, flags=re.DOTALL)
+            # 케이스 1: 단일 <hp:t>에서 base_text 발견 여부
+            single_hit_idx = None
+            for i, m in enumerate(t_matches):
+                inner_clean = re.sub(r"<[^>]+>", "", m.group(1))
+                if _base in inner_clean:
+                    single_hit_idx = i
+                    break
+
+            # 케이스 2: 분산 run — 합산 텍스트에서 발견 여부
+            combined_clean = "".join(
+                re.sub(r"<[^>]+>", "", m.group(1)) for m in t_matches
+            )
+            has_in_combined = _base in combined_clean
+
+            if single_hit_idx is None and not has_in_combined:
+                return para  # 이 문단에 base_text 없음
+
+            t_idx = _total[0]
+            _total[0] += 1
+
+            if t_idx < _skip:
+                return para  # 라벨 셀 구간: 원본 유지 (치환하지 않음)
+
+            v_idx = _vcnt[0]
+            _vcnt[0] += 1
+
+            if v_idx >= len(_vals) or not _vals[v_idx]:
+                return para  # 해당 순번 값 없음: 원본 유지
+
+            new_val = saxutils.escape(_vals[v_idx])
+
+            if single_hit_idx is not None:
+                # 케이스 1: 해당 <hp:t>에서만 치환
+                m = t_matches[single_hit_idx]
+                inner = m.group(1)
+                parts = re.split(r"(<[^>]+>)", inner)
+                result_parts = []
+                for part in parts:
+                    if part.startswith("<"):
+                        result_parts.append(part)
+                    elif _base in part:
+                        result_parts.append(part.replace(_base, new_val, 1))
+                    else:
+                        result_parts.append(part)
+                new_t = "<hp:t>" + "".join(result_parts) + "</hp:t>"
+                return para.replace(m.group(0), new_t, 1)
+            else:
+                # 케이스 2: 분산 run → 합산 텍스트로 치환, 첫 <hp:t>에 결과 넣기
+                replaced = combined_clean.replace(_base, new_val, 1)
+                result = para
+                for i, m in enumerate(t_matches):
+                    old_tag = m.group(0)
+                    new_tag = f"<hp:t>{replaced}</hp:t>" if i == 0 else "<hp:t></hp:t>"
+                    result = result.replace(old_tag, new_tag, 1)
+                return result
+
+        xml_text = re.sub(
+            r"<hp:p\b[^>]*>.*?</hp:p>",
+            _replace_para,
+            xml_text,
+            flags=re.DOTALL,
+        )
 
     return xml_text
 
 
 def clone(src_path, dst_path, replacements=None, keywords=None,
-          title=None, creator=None, strip_images=False):
+          title=None, creator=None, strip_images=False, label_counts=None):
     """HWPX 양식을 복제하고 텍스트를 치환한다.
 
     Args:
@@ -487,6 +548,7 @@ def clone(src_path, dst_path, replacements=None, keywords=None,
         keywords: Phase 2 키워드 치환 dict (old → new), <hp:t> 내부에서만 적용
         title: 문서 제목 (메타데이터)
         creator: 작성자 (메타데이터)
+        label_counts: {base_text: 라벨 셀 수} — __N 치환 시 앞 N개 occurrence 스킵
     """
     # __N 접미사 키 분리 (순서 기반 치환 vs 일반 치환)
     normal_repl, ordered_repl = _split_ordered_replacements(replacements or {})
@@ -542,7 +604,7 @@ def clone(src_path, dst_path, replacements=None, keywords=None,
 
                     # Phase -1: __N 순서 기반 치환 (중복 셀 개별 처리)
                     if ordered_repl:
-                        text = _apply_ordered_in_xml(text, ordered_repl)
+                        text = _apply_ordered_in_xml(text, ordered_repl, label_counts=label_counts)
 
                     # Phase 0: run 경계 병합 치환
                     if replacements:

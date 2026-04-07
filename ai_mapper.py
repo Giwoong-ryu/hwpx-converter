@@ -38,14 +38,18 @@ SYSTEM_PROMPT_GEN = """\
 
 양식은 테이블 구조로 제공됩니다. 각 행에서:
 - [H] 표시가 있는 셀 = 라벨/헤더 (절대 교체 금지)
+- __N 접미사가 붙은 셀 = 같은 유형의 N번째 항목 (예: 회사명__1, 회사명__2)
 - 일반 글씨 셀 = 값 (교체 대상)
 
 규칙:
 1. 라벨/헤더 셀은 절대 교체하지 마세요. 테이블 구조를 보고 판단하세요.
 2. 값 셀만 사용자 요청 주제에 맞게 새로 작성하세요.
 3. 현실적이고 구체적인 내용을 작성하세요.
-4. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
-5. 가능한 한 많은 값 필드를 교체하세요. 빠뜨리지 마세요."""
+4. __N 접미사 셀은 N번째 해당 항목을 작성하세요. 빠짐없이 모두 포함하세요.
+5. 경력, 학력처럼 시기/날짜가 있는 항목은 과거(오래된 순)에서 현재 순으로 위(__1)부터 채우세요.
+6. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
+7. __N 접미사가 있는 셀은 JSON 키에도 반드시 __N을 포함하세요. 예: {"회사명__1": "A사", "회사명__2": "B사"}
+8. 가능한 한 많은 값 필드를 채우세요. 빠뜨리지 마세요."""
 
 USER_PROMPT_MAP = """\
 [양식 구조]
@@ -67,6 +71,7 @@ USER_PROMPT_GEN = """\
 
 위 양식에서 [H] 태그가 없는 값 셀을 사용자 요청 주제로 새로 작성하세요.
 라벨/헤더 셀은 절대 교체하지 마세요. 값 셀만 교체하세요.
+__N 접미사 셀은 각각 별도로 작성하세요 (예: {{"회사명__1": "A사", "회사명__2": "B사"}}).
 가능한 한 빠짐없이 교체하세요.
 
 형식: {{"원본 텍스트": "새로 작성한 텍스트", ...}}"""
@@ -545,34 +550,24 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
                 start = rb * BATCH_SIZE
                 batch = unmapped[start:start + BATCH_SIZE]
                 fields_text = "\n".join(f"- {t}" for t in batch)
-                if is_gen:
-                    prompt = USER_PROMPT_GEN.format(fields=fields_text, content=combined_content)
-                else:
-                    prompt = USER_PROMPT_MAP.format(fields=fields_text, content=combined_content)
+                prompt_template = USER_PROMPT_GEN if is_gen else USER_PROMPT_MAP
+                retry_prompt = prompt_template.format(fields=fields_text, content=combined_content)
 
                 import time
                 time.sleep(1)
                 try:
-                    response = model.generate_content(prompt, generation_config=gen_config)
-                    retry_parsed = _parse_json_response(response.text)
+                    retry_resp = _call_with_retry(
+                        client, model_name, retry_prompt, system_prompt, temperature
+                    )
+                    retry_parsed = _parse_json_response(retry_resp.text)
                     if retry_parsed:
-                        for k2, v2 in retry_parsed.items():
-                            if not isinstance(k2, str) or not k2.strip():
-                                continue
-                            k2 = k2.strip()
-                            if isinstance(v2, (int, float)):
-                                v2 = str(v2)
-                            if not isinstance(v2, str) or not v2.strip():
-                                continue
-                            # 환각 키 정규화 적용
-                            if k2 in field_set:
-                                normalized[k2] = v2.strip()
-                            else:
-                                k2_esc = k2.replace("<", "&lt;").replace(">", "&gt;")
-                                if k2_esc in field_set:
-                                    normalized[k2_esc] = v2.strip()
-                                else:
-                                    normalized[k2] = v2.strip()
+                        for k2, v2 in _collect_results(retry_parsed).items():
+                            matched2 = _norm_index.get(k2) or _norm_index.get(
+                                k2.replace("<", "&lt;").replace(">", "&gt;")
+                            ) or _norm_index.get(
+                                k2.replace("&lt;", "<").replace("&gt;", ">")
+                            )
+                            normalized[matched2 or k2] = v2
                     print(f"[ai/map] 재시도 batch {rb+1}: +{len(retry_parsed or {})}개")
                 except Exception as retry_e:
                     print(f"[ai/map] 재시도 실패: {retry_e}")

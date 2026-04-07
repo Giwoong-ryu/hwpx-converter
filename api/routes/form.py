@@ -91,11 +91,32 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
         mlog("generate", success=False, error="파일 없음")
         raise HTTPException(status_code=404, detail="양식 파일을 찾을 수 없습니다. 다시 분석해주세요.")
 
+    # 라벨 셀 카운트 추출: 같은 텍스트가 라벨(bold/bg)과 값 셀에 모두 있을 때
+    # __N 치환 시 라벨 셀을 건너뛰기 위해 사용 (A1 수정)
+    label_counts: dict[str, int] = {}
+    try:
+        from clone_form import extract_structured_fields
+        structured_data = extract_structured_fields(path)
+        seen_cell_ids: set[int] = set()
+        for table in structured_data.get("tables", []):
+            for row in table["rows"]:
+                for cell in row:
+                    cid = id(cell)
+                    if cid in seen_cell_ids:
+                        continue  # 병합 셀 중복 제외
+                    seen_cell_ids.add(cid)
+                    if (cell.get("bold") or cell.get("bg")) and cell.get("text", "").strip():
+                        t = cell["text"].strip()
+                        label_counts[t] = label_counts.get(t, 0) + 1
+    except Exception:
+        pass  # 실패해도 label_counts={} 로 계속 (치환 순서만 약간 어긋날 수 있음)
+
     fmt = req.output_format.lower()
     with Timer() as t:
         try:
             out_path = os.path.join(tempfile.mkdtemp(), "EazyHWPX_result.hwpx")
-            clone_hwpx(path, out_path, replacements=req.replacements, strip_images=req.strip_images)
+            clone_hwpx(path, out_path, replacements=req.replacements,
+                       strip_images=req.strip_images, label_counts=label_counts or None)
         except Exception as e:
             mlog("generate", success=False, output_format=fmt, field_count=len(req.replacements), error=str(e))
             raise HTTPException(status_code=500, detail=f"문서 생성 실패: {e}")
