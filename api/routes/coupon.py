@@ -11,7 +11,7 @@ router = APIRouter()
 
 # 쿠폰별 표시 이름 (코드 → 라벨)
 COUPON_LABELS: dict[str, str] = {
-    "HELLO": "지인 전용 Plus 혜택",
+    "HELLO": "지인 전용 Pro 혜택",
     "OPEN2026": "오픈 기념 Plus 체험",
 }
 
@@ -124,12 +124,18 @@ async def redeem_coupon(req: RedeemRequest, authorization: str = Header(None)):
         new_gauge = round(current_gauge + gauge_added, 1)
 
         update_data = {"gauge_percent": new_gauge}
-        # plus_free 쿠폰이면 플랜도 plus로 업그레이드
-        if coupon_type == "plus_free" and user_row.data.get("plan") == "free":
-            update_data["plan"] = "plus"
-            update_data["preset_limit"] = 3
-            update_data["mapping_save_limit"] = 10
-            update_data["streak_freeze_count"] = 1
+        # plus_free 쿠폰 플랜 업그레이드 (HELLO는 pro, 나머지는 plus)
+        if coupon_type == "plus_free" and user_row.data.get("plan") in ("free", "plus"):
+            if code == "HELLO":
+                update_data["plan"] = "pro"
+                update_data["preset_limit"] = 9999
+                update_data["mapping_save_limit"] = 9999
+                update_data["streak_freeze_count"] = 2
+            else:
+                update_data["plan"] = "plus"
+                update_data["preset_limit"] = 3
+                update_data["mapping_save_limit"] = 10
+                update_data["streak_freeze_count"] = 1
 
         sb.table("docflow_users").update(update_data).eq("id", user.id).execute()
     else:
@@ -151,7 +157,7 @@ async def redeem_coupon(req: RedeemRequest, authorization: str = Header(None)):
     }).eq("id", coupon["id"]).execute()
 
     # 8. 응답
-    message = _get_success_message(coupon_type, gauge_added)
+    message = _get_success_message(coupon_type, gauge_added, code)
     return {"ok": True, "message": message, "gauge_added": gauge_added}
 
 
@@ -188,9 +194,11 @@ async def my_coupon(authorization: str = Header(None)):
     return {"active": True, "coupon_name": coupon_name, "code": c["code"]}
 
 
-def _get_success_message(coupon_type: str, value: float) -> str:
+def _get_success_message(coupon_type: str, value: float, code: str = "") -> str:
     """쿠폰 타입별 성공 메시지"""
     if coupon_type == "plus_free":
+        if code == "HELLO":
+            return f"Pro 플랜이 적용되었습니다! 게이지 {value}% 충전"
         return f"Plus 무료 체험이 적용되었습니다! 게이지 {value}% 충전"
     elif coupon_type == "gauge_bonus":
         return f"게이지 {value}%가 충전되었습니다!"
