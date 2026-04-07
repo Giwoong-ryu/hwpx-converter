@@ -10,26 +10,42 @@ import MappingManager from "@/components/mypage/MappingManager";
 import PlanInfo from "@/components/mypage/PlanInfo";
 import LoginModal from "@/components/ui/LoginModal";
 import { FileText, ChevronLeft, User, Ticket } from "lucide-react";
-import { redeemCoupon } from "@/lib/api";
+import { checkCoupon, redeemCoupon } from "@/lib/api";
 
 export default function MyPage() {
   const { user, accessToken, loading } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
-  const [couponResult, setCouponResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [couponInfo, setCouponInfo] = useState<{ code: string; label: string; value: number; expires: string } | null>(null);
+  const [couponApplied, setCouponApplied] = useState(false);
 
-  async function handleCoupon() {
+  async function handleCheckCoupon() {
     if (!couponCode.trim() || !user || !accessToken) return;
     setCouponLoading(true);
-    setCouponResult(null);
+    setCouponError("");
+    setCouponInfo(null);
     try {
-      const data = await redeemCoupon(couponCode.trim());
-      setCouponResult({ ok: true, message: data.message || "쿠폰이 적용되었습니다!" });
+      const data = await checkCoupon(couponCode.trim());
+      setCouponInfo({ code: data.code, label: data.label, value: data.value, expires: data.expires });
+    } catch (e: unknown) {
+      setCouponError(e instanceof Error ? e.message : "유효하지 않은 쿠폰입니다.");
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  async function handleUseCoupon() {
+    if (!couponInfo) return;
+    setCouponLoading(true);
+    try {
+      await redeemCoupon(couponInfo.code);
+      setCouponApplied(true);
       setCouponCode("");
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "쿠폰 적용에 실패했습니다.";
-      setCouponResult({ ok: false, message: msg });
+      setCouponError(e instanceof Error ? e.message : "쿠폰 적용에 실패했습니다.");
+      setCouponInfo(null);
     } finally {
       setCouponLoading(false);
     }
@@ -93,28 +109,63 @@ export default function MyPage() {
                   <Ticket size={16} className="text-[#2563EB]" />
                   <span className="font-bold text-sm text-[#1a1c1b]">쿠폰 / 프로모션 코드</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={couponCode}
-                    onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponResult(null); }}
-                    onKeyDown={(e) => e.key === "Enter" && handleCoupon()}
-                    placeholder="코드 입력"
-                    className="flex-1 px-3 py-2.5 rounded-xl border border-gray-200 bg-[#f9f9f6] text-sm focus:border-[#2563EB] focus:outline-none"
-                  />
-                  <button
-                    onClick={handleCoupon}
-                    disabled={couponLoading || !couponCode.trim()}
-                    className="px-4 py-2.5 rounded-xl bg-[#2563EB] text-white font-bold text-sm hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shrink-0"
-                  >
-                    {couponLoading ? "..." : "적용"}
-                  </button>
-                </div>
-                {couponResult && (
-                  <p className={`text-sm mt-2 font-medium ${couponResult.ok ? "text-emerald-600" : "text-red-500"}`}>
-                    {couponResult.message}
-                  </p>
+
+                {couponApplied ? (
+                  /* Step 3: 적용 완료 */
+                  <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-xl">
+                    <Ticket size={14} className="text-emerald-600 shrink-0" />
+                    <span className="text-sm font-bold text-emerald-700">쿠폰이 적용되었습니다!</span>
+                  </div>
+                ) : couponInfo ? (
+                  /* Step 2: 쿠폰 카드 */
+                  <div className="border-2 border-dashed border-[#2563EB]/40 rounded-2xl p-4 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 bg-[#2563EB] text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl">쿠폰 발급</div>
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-[#EFF6FF] flex items-center justify-center shrink-0">
+                        <Ticket size={16} className="text-[#2563EB]" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-extrabold text-[#1a1c1b]">{couponInfo.label}</p>
+                        <p className="text-xs text-[#57423c]/50">코드: {couponInfo.code} / {couponInfo.expires}까지</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleUseCoupon}
+                        disabled={couponLoading}
+                        className="flex-1 py-2 rounded-xl bg-[#2563EB] text-white font-bold text-sm hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {couponLoading ? "적용 중..." : "지금 사용하기"}
+                      </button>
+                      <button
+                        onClick={() => { setCouponInfo(null); setCouponCode(""); }}
+                        className="px-3 py-2 rounded-xl border border-gray-200 text-[#57423c] font-bold text-sm hover:bg-gray-50 transition-all"
+                      >
+                        나중에
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Step 1: 코드 입력 */
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponError(""); }}
+                      onKeyDown={(e) => e.key === "Enter" && handleCheckCoupon()}
+                      placeholder="코드 입력"
+                      className="flex-1 px-3 py-2.5 rounded-xl border border-gray-200 bg-[#f9f9f6] text-sm focus:border-[#2563EB] focus:outline-none"
+                    />
+                    <button
+                      onClick={handleCheckCoupon}
+                      disabled={couponLoading || !couponCode.trim()}
+                      className="px-4 py-2.5 rounded-xl bg-[#2563EB] text-white font-bold text-sm hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shrink-0"
+                    >
+                      {couponLoading ? "..." : "확인"}
+                    </button>
+                  </div>
                 )}
+                {couponError && <p className="text-sm text-red-500 font-medium mt-2">{couponError}</p>}
               </div>
             </div>
 

@@ -9,6 +9,20 @@ from api.services import auth_service
 
 router = APIRouter()
 
+# 쿠폰별 표시 이름 (코드 → 라벨)
+COUPON_LABELS: dict[str, str] = {
+    "HELLO": "지인 전용 Plus 혜택",
+    "OPEN2026": "오픈 기념 Plus 체험",
+}
+
+
+def _coupon_label(code: str, coupon_type: str, value: float) -> str:
+    if code in COUPON_LABELS:
+        return COUPON_LABELS[code]
+    if coupon_type == "plus_free":
+        return "Plus 무료 체험"
+    return f"게이지 +{value}%"
+
 
 class RedeemRequest(BaseModel):
     code: str
@@ -43,7 +57,7 @@ async def check_coupon(req: RedeemRequest, authorization: str = Header(None)):
     if used.data:
         raise HTTPException(status_code=409, detail="이미 사용한 쿠폰입니다.")
 
-    coupon_label = "Plus 1개월 무료 체험" if coupon["type"] == "plus_free" else f"게이지 +{coupon['value']}%"
+    coupon_label = _coupon_label(code, coupon["type"], float(coupon["value"]))
     expires_str = coupon["expires_at"][:10] if coupon.get("expires_at") else "무기한"
 
     return {
