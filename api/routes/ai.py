@@ -7,7 +7,7 @@ from typing import Optional, List
 from api.services.file_manager import file_manager
 from api.services.metrics import log as mlog, Timer
 from api.services import credit_service, auth_service
-from ai_mapper import map_content
+from ai_mapper import map_content, direct_map
 
 router = APIRouter()
 
@@ -18,10 +18,14 @@ async def ai_map(
     text: Optional[str] = Form(None),
     content_file: Optional[UploadFile] = File(None),
     content_files: Optional[List[UploadFile]] = File(None),
+    mode: Optional[str] = Form(None),  # "direct" | "ai" (기본값: ai)
     authorization: Optional[str] = Header(None),
     x_fingerprint: Optional[str] = Header(None),
 ):
-    # ── 게이트키퍼: 인증 + 크레딧 체크 ──
+    # ── 모드 결정 (direct=AI없음, ai=AI사용) ──
+    use_direct = (mode == "direct")
+
+    # ── 게이트키퍼: 인증 + 크레딧 체크 (AI 모드만) ──
     user_id = None
     if authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ", 1)[1]
@@ -36,27 +40,29 @@ async def ai_map(
     action = "generation" if _is_generation_request(text) else "mapping"
 
     gauge_cost = 0.0
-    if user_id:
-        credit_result = await credit_service.use_gauge(user_id, action)
-        if not credit_result["ok"]:
-            code = credit_result.get("error_code", "GAUGE_EMPTY")
-            status = 401 if code == "LOGIN_REQUIRED" else 429
-            raise HTTPException(status_code=status, detail={
-                "detail": credit_result.get("detail", "사용량 초과"),
-                "error_code": code,
-                "plan": credit_result.get("plan", ""),
-                "gauge_pct": credit_result.get("gauge_pct", 0),
-            })
-        gauge_cost = credit_result.get("cost", 0.0)
-    else:
-        # 비로그인: 핑거프린트 기반 맛보기
-        fp = x_fingerprint or "unknown"
-        anon_result = await credit_service.check_anon(fp, action)
-        if not anon_result["ok"]:
-            raise HTTPException(status_code=401, detail={
-                "detail": anon_result.get("detail", "로그인이 필요합니다."),
-                "error_code": anon_result.get("error_code", "LOGIN_REQUIRED"),
-            })
+    if not use_direct:
+        # AI 모드: 크레딧 차감
+        if user_id:
+            credit_result = await credit_service.use_gauge(user_id, action)
+            if not credit_result["ok"]:
+                code = credit_result.get("error_code", "GAUGE_EMPTY")
+                status = 401 if code == "LOGIN_REQUIRED" else 429
+                raise HTTPException(status_code=status, detail={
+                    "detail": credit_result.get("detail", "사용량 초과"),
+                    "error_code": code,
+                    "plan": credit_result.get("plan", ""),
+                    "gauge_pct": credit_result.get("gauge_pct", 0),
+                })
+            gauge_cost = credit_result.get("cost", 0.0)
+        else:
+            # 비로그인: 핑거프린트 기반 맛보기
+            fp = x_fingerprint or "unknown"
+            anon_result = await credit_service.check_anon(fp, action)
+            if not anon_result["ok"]:
+                raise HTTPException(status_code=401, detail={
+                    "detail": anon_result.get("detail", "로그인이 필요합니다."),
+                    "error_code": anon_result.get("error_code", "LOGIN_REQUIRED"),
+                })
 
     path = file_manager.get_path(file_id)
     if not path:
@@ -126,15 +132,19 @@ async def ai_map(
     content_path = content_paths[0] if len(content_paths) == 1 else None
     extra_paths = content_paths[1:] if len(content_paths) > 1 else []
 
-    mode = "generate" if action == "generation" else "mapping"
+    action_mode = "generate" if action == "generation" else ("direct" if use_direct else "mapping")
     with Timer() as t:
         try:
-            print(f"[ai/map] fields={len(fields)}, text_len={len(text or '')}, files={len(content_paths)}")
-            result, error = map_content(
-                fields, text or "", content_path,
-                structured=structured,
-                extra_content_files=extra_paths if extra_paths else None,
-            )
+            print(f"[ai/map] mode={action_mode}, fields={len(fields)}, text_len={len(text or '')}, files={len(content_paths)}")
+            if use_direct:
+                # 레인 1: AI 없이 직접 매칭
+                result, error = direct_map(fields, content_paths, text or "")
+            else:
+                result, error = map_content(
+                    fields, text or "", content_path,
+                    structured=structured,
+                    extra_content_files=extra_paths if extra_paths else None,
+                )
             print(f"[ai/map] result={'OK' if result else 'None'}, error={error}")
         except Exception as e:
             import traceback as tb
@@ -142,17 +152,17 @@ async def ai_map(
             print(f"[ai/map] EXCEPTION: {err_msg}")
             with open("ai_error.log", "a", encoding="utf-8") as f:
                 f.write(f"\n{'='*50}\n{err_msg}\n")
-            mlog("ai_map", success=False, field_count=len(fields), duration_ms=0, error=str(e), detail=mode)
+            mlog("ai_map", success=False, field_count=len(fields), duration_ms=0, error=str(e), detail=action_mode)
             # AI 실패 시 차감된 게이지 복구
             if user_id and gauge_cost > 0:
                 try:
                     await credit_service.refund_gauge(user_id, gauge_cost)
                 except Exception:
                     pass
-            raise HTTPException(status_code=500, detail="AI 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.")
+            raise HTTPException(status_code=500, detail="처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
     if error:
-        mlog("ai_map", success=False, field_count=len(fields), duration_ms=t.ms, error=error, detail=mode)
+        mlog("ai_map", success=False, field_count=len(fields), duration_ms=t.ms, error=error, detail=action_mode)
         raise HTTPException(status_code=400, detail=error)
 
     # 매핑 커버리지 계산
@@ -160,35 +170,39 @@ async def ai_map(
     matched_count = sum(1 for k in result if k in field_set)
     coverage_pct = (matched_count / max(len(fields), 1)) * 100
 
-    # 칸별 출처 판정: 사용자 자료에 값이 포함되어 있으면 "user", 없으면 "ai"
-    user_text = (text or "").strip()
-    for cp in content_paths:
-        try:
-            with open(cp, "r", encoding="utf-8", errors="ignore") as f:
-                user_text += "\n" + f.read()
-        except Exception:
-            pass
-    user_text_lower = user_text.lower().replace(" ", "")
-
+    # 칸별 출처 판정
     sources = {}
     ai_count = 0
-    for k, v in result.items():
-        if not v or not v.strip():
+    if use_direct:
+        # 직접 채우기: 모든 값은 사용자 자료에서 온 것
+        for k in result:
             sources[k] = "user"
-            continue
-        # 값의 핵심 부분(숫자, 이름 등)이 사용자 자료에 있는지 체크
-        v_check = v.strip().lower().replace(" ", "")
-        if len(v_check) >= 2 and v_check in user_text_lower:
-            sources[k] = "user"
-        elif user_text.strip():
-            sources[k] = "ai"
-            ai_count += 1
-        else:
-            sources[k] = "ai"
-            ai_count += 1
+    else:
+        user_text = (text or "").strip()
+        for cp in content_paths:
+            try:
+                with open(cp, "r", encoding="utf-8", errors="ignore") as f:
+                    user_text += "\n" + f.read()
+            except Exception:
+                pass
+        user_text_lower = user_text.lower().replace(" ", "")
+
+        for k, v in result.items():
+            if not v or not v.strip():
+                sources[k] = "user"
+                continue
+            v_check = v.strip().lower().replace(" ", "")
+            if len(v_check) >= 2 and v_check in user_text_lower:
+                sources[k] = "user"
+            elif user_text.strip():
+                sources[k] = "ai"
+                ai_count += 1
+            else:
+                sources[k] = "ai"
+                ai_count += 1
 
     mlog("ai_map", success=True, field_count=len(fields), duration_ms=t.ms,
-         detail=f"mapped={len(result)}, matched={matched_count}, coverage={coverage_pct:.1f}%, ai_filled={ai_count}")
+         detail=f"mode={action_mode}, mapped={len(result)}, matched={matched_count}, coverage={coverage_pct:.1f}%, ai_filled={ai_count}")
 
     return {
         "mapping_count": len(result),

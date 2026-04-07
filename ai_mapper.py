@@ -310,6 +310,166 @@ def _read_content_file(file_path):
         return f"[파일 읽기 실패: {file_path}]"
 
 
+def _parse_kv_from_text(text: str) -> dict[str, str]:
+    """텍스트에서 key:value 쌍을 파싱한다.
+
+    지원 형식:
+    - "이름: 홍길동"
+    - "이름 홍길동" (공백 구분, 짧은 키)
+    - 탭 구분 "이름\t홍길동"
+    - 엑셀 행 "이름 | 홍길동 | ..."
+    """
+    kv = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+
+        # 콜론 구분 (가장 일반적)
+        if ":" in line:
+            key, _, val = line.partition(":")
+            key, val = key.strip(), val.strip()
+            if key and val and len(key) <= 30:
+                kv[key] = val
+            continue
+
+        # 탭 구분
+        if "\t" in line:
+            parts = [p.strip() for p in line.split("\t") if p.strip()]
+            if len(parts) >= 2 and len(parts[0]) <= 30:
+                kv[parts[0]] = parts[1]
+            continue
+
+        # 파이프 구분 (엑셀 변환 형식)
+        if " | " in line:
+            parts = [p.strip() for p in line.split(" | ") if p.strip()]
+            if len(parts) >= 2 and len(parts[0]) <= 30:
+                kv[parts[0]] = parts[1]
+            continue
+
+    return kv
+
+
+def _parse_kv_from_excel(file_path: str) -> dict[str, str]:
+    """엑셀 파일에서 key:value 구조를 직접 추출한다.
+
+    지원 구조:
+    - A열=키, B열=값 (2열 구조)
+    - 헤더 행 자동 감지
+    """
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
+        kv = {}
+        for ws in wb.worksheets:
+            for row in ws.iter_rows(values_only=True):
+                cells = [str(c).strip() if c is not None else "" for c in row]
+                non_empty = [c for c in cells if c]
+                if len(non_empty) >= 2:
+                    key = non_empty[0]
+                    val = non_empty[1]
+                    if key and val and len(key) <= 30 and key not in ("None", ""):
+                        kv[key] = val
+        wb.close()
+        return kv
+    except Exception as e:
+        print(f"[direct_map] 엑셀 직접 추출 실패: {e}")
+        return {}
+
+
+def direct_map(form_texts: list[str], content_paths: list[str], text: str = "") -> tuple[dict, str | None]:
+    """AI 없이 문서에서 텍스트 추출 → 양식 필드명과 직접 매칭한다.
+
+    Args:
+        form_texts: 양식에서 추출된 텍스트 목록
+        content_paths: 내용 파일 경로 목록
+        text: 사용자가 입력한 텍스트 (선택)
+
+    Returns:
+        dict: {원본필드텍스트: 매핑된값} — 못 찾은 필드는 포함하지 않음
+        str: 에러 메시지 (성공 시 None)
+    """
+    # 1. 모든 소스에서 key:value 수집
+    all_kv: dict[str, str] = {}
+
+    # 텍스트 입력
+    if text and text.strip():
+        all_kv.update(_parse_kv_from_text(text.strip()))
+
+    # 파일별 처리
+    for fp in content_paths:
+        ext = os.path.splitext(fp)[1].lower()
+        if ext in (".xlsx", ".xls"):
+            # 엑셀: key:value 직접 추출 우선
+            kv = _parse_kv_from_excel(fp)
+            if kv:
+                all_kv.update(kv)
+            else:
+                # 폴백: 텍스트로 변환 후 파싱
+                raw = _read_content_file(fp)
+                all_kv.update(_parse_kv_from_text(raw))
+        else:
+            raw = _read_content_file(fp)
+            all_kv.update(_parse_kv_from_text(raw))
+
+    if not all_kv and not text.strip():
+        return None, "내용을 입력하거나 파일을 업로드해주세요."
+
+    if not all_kv:
+        return None, "파일에서 키:값 형식의 내용을 찾지 못했습니다. '항목명: 값' 형식으로 입력해주세요."
+
+    print(f"[direct_map] key:value 파싱 완료: {len(all_kv)}개")
+
+    # 2. 양식 필드와 매칭
+    _SKIP = {"□", "☑", "※", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "☐", "○", "●"}
+    result: dict[str, str] = {}
+
+    # 키 정규화 인덱스 (공백 제거 버전으로 매칭)
+    kv_norm: dict[str, str] = {}
+    for k, v in all_kv.items():
+        kv_norm[k] = v
+        kv_norm[re.sub(r"\s+", "", k)] = v
+
+    # __N 접미사별 카운터 (같은 기본 필드 여러 개 순서대로 채우기)
+    base_counter: dict[str, int] = {}
+
+    for field in form_texts:
+        if not field.strip() or field.strip() in _SKIP:
+            continue
+
+        # __N 접미사 처리
+        base = re.sub(r"__\d+$", "", field)
+        has_suffix = base != field
+
+        if has_suffix:
+            base_counter[base] = base_counter.get(base, 0) + 1
+            # 소스에서 해당 순번 값 찾기
+            # 먼저 "기본키__N" 직접 매칭 시도
+            direct_key = field
+            if direct_key in kv_norm:
+                result[field] = kv_norm[direct_key]
+                continue
+            # 기본키로 첫 번째 값 사용 (순번=1일 때만)
+            base_norm = re.sub(r"\s+", "", base)
+            val = kv_norm.get(base) or kv_norm.get(base_norm)
+            if val and base_counter[base] == 1:
+                result[field] = val
+            continue
+
+        # 일반 필드: 정확 매칭
+        field_norm = re.sub(r"\s+", "", field)
+        val = kv_norm.get(field) or kv_norm.get(field_norm)
+        if val:
+            result[field] = val
+
+    print(f"[direct_map] 매핑 결과: {len(result)}개 / {len(form_texts)}개 필드")
+
+    if not result:
+        return None, "양식 필드와 일치하는 항목을 찾지 못했습니다. 파일의 항목명이 양식과 일치하는지 확인해주세요."
+
+    return result, None
+
+
 def map_content(form_texts, user_content, content_file=None, structured=None, extra_content_files=None):
     """양식 필드와 사용자 내용을 AI로 매핑한다.
 

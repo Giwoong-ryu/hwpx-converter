@@ -5,7 +5,7 @@ import { useForm } from "@/context/FormContext";
 import { useAuth } from "@/context/AuthContext";
 import { aiMap, generateDoc, downloadBlob, GaugeEmptyError, saveMapping, listMyMappings, loadMapping, deleteMapping, listPublicMappings, toggleLike, updateMappingPublic } from "@/lib/api";
 import FileUpload from "@/components/ui/FileUpload";
-import { Wand2, Download, Loader2, CheckCircle2, ChevronDown, ChevronUp, ImageOff, Sparkles, PenLine, Save, FolderOpen, Trash2, X, Heart, Globe, Lock } from "lucide-react";
+import { Wand2, Download, Loader2, CheckCircle2, ChevronDown, ChevronUp, ImageOff, Sparkles, PenLine, Save, FolderOpen, Trash2, X, Heart, Globe, Lock, FileSearch } from "lucide-react";
 
 interface AiMappingTabProps {
   onGaugeEmpty?: (data: { errorCode: string; plan: string; gaugePct: number }) => void;
@@ -81,14 +81,15 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
   const [savedList, setSavedList] = useState<{ id: number; form_name: string; form_field_count: number; created_at: string }[]>([]);
   const [publicList, setPublicList] = useState<{ id: number; form_name: string; form_field_count: number; likes: number; created_at: string; liked?: boolean }[]>([]);
 
-  const doMap = async () => {
+  const doMap = async (useAi: boolean) => {
     if (!fileId) return;
     const prompt = text.trim();
     if (!prompt && contentFiles.length === 0) return;
     setLoading(true);
     setError("");
     try {
-      const res = await aiMap(fileId, prompt, contentFiles.length > 0 ? contentFiles : undefined);
+      const apiMode = useAi ? "ai" : "direct";
+      const res = await aiMap(fileId, prompt, contentFiles.length > 0 ? contentFiles : undefined, apiMode);
       setMappings(Object.entries(res.mappings));
       setIsGeneration(res.is_generation || false);
       setCoverage(res.coverage || null);
@@ -217,9 +218,10 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
               </span>
             </div>
           )}
+
           <p className="text-sm text-[#57423c]/60">
-            내 자료를 입력하거나 파일을 올리면 AI가 양식에 맞춰 채워드립니다.
-            <span className="text-[#57423c]/40 ml-1">Google AI 사용 · 학습에 미사용</span>
+            내 자료를 입력하거나 파일을 올려주세요.
+            <span className="text-[#57423c]/40 ml-1">항목명: 값 형식이면 AI 없이도 채울 수 있습니다.</span>
           </p>
         </div>
 
@@ -296,14 +298,24 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
           </div>
         </div>
 
-        <button
-          onClick={doMap}
-          disabled={loading || !isAnalyzed || (!text.trim() && contentFiles.length === 0)}
-          className="w-full bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-        >
-          {loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-          {loading ? "채우는 중..." : "AI 자동 채우기"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => doMap(false)}
+            disabled={loading || !isAnalyzed || (!text.trim() && contentFiles.length === 0)}
+            className="flex-1 bg-white border border-gray-300 text-[#1a1c1b] py-3 rounded-xl font-semibold text-sm hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <FileSearch size={16} />}
+            {loading ? "채우는 중..." : "채우기"}
+          </button>
+          <button
+            onClick={() => doMap(true)}
+            disabled={loading || !isAnalyzed || (!text.trim() && contentFiles.length === 0)}
+            className="flex-1 bg-linear-to-r from-[#2563EB] to-[#1E40AF] text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+            {loading ? "채우는 중..." : "AI로 채우기"}
+          </button>
+        </div>
       </div>
 
       {error && <div className="text-base text-red-600 bg-red-50 p-3 rounded-xl">{error}</div>}

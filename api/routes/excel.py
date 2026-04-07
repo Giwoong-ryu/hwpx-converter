@@ -95,7 +95,8 @@ async def map_and_batch(
 
     # AI 매핑
     from ai_mapper import _get_api_key, _parse_json_response
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types
 
     api_key = _get_api_key()
     if not api_key:
@@ -112,9 +113,12 @@ JSON 배열로 응답: [{{"header": "데이터헤더", "form_text": "양식에�
 매칭 안 되는 헤더는 form_text를 빈 문자열로."""
 
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        response = model.generate_content(prompt, generation_config=genai.GenerationConfig(temperature=0.1))
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.1),
+        )
         parsed = _parse_json_response(response.text)
         if isinstance(parsed, list):
             mappings = parsed

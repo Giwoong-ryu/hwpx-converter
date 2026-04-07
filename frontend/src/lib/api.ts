@@ -67,10 +67,11 @@ export async function analyzeForm(file: File) {
   return res.json();
 }
 
-export async function aiMap(fileId: string, text: string, contentFiles?: File[]) {
+export async function aiMap(fileId: string, text: string, contentFiles?: File[], mode?: "direct" | "ai") {
   const fd = new FormData();
   fd.append("file_id", fileId);
   fd.append("text", text);
+  if (mode) fd.append("mode", mode);
   if (contentFiles && contentFiles.length === 1) {
     fd.append("content_file", contentFiles[0]);
   } else if (contentFiles && contentFiles.length > 1) {
