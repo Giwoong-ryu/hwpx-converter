@@ -109,6 +109,10 @@ def batch_generate_mapped(req: BatchGenerateRequest):
     if not form_path:
         raise HTTPException(status_code=404, detail="양식 파일을 찾을 수 없습니다.")
 
+    # HWP 파일은 clone_hwpx 미지원 (HWPX만 가능)
+    if form_path.lower().endswith(".hwp") and not form_path.lower().endswith(".hwpx"):
+        raise HTTPException(status_code=400, detail="대량 생성은 HWPX 파일만 지원합니다. HWP 파일을 HWPX로 변환 후 사용해주세요.")
+
     excel_path = file_manager.get_path(req.excel_id)
     if not excel_path:
         raise HTTPException(status_code=404, detail="엑셀 파일을 찾을 수 없습니다.")

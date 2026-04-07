@@ -300,8 +300,18 @@ def _read_content_file(file_path):
     if ext in (".html", ".htm"):
         try:
             from bs4 import BeautifulSoup
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                soup = BeautifulSoup(f.read(), "html.parser")
+            # charset 자동 감지: utf-8 시도 후 실패 시 euc-kr (카카오톡 내보내기 등)
+            for enc in ("utf-8", "euc-kr", "cp949"):
+                try:
+                    with open(file_path, "r", encoding=enc) as f:
+                        raw = f.read()
+                    break
+                except UnicodeDecodeError:
+                    continue
+            else:
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    raw = f.read()
+            soup = BeautifulSoup(raw, "html.parser")
             # script/style 제거 후 텍스트 추출
             for tag in soup(["script", "style"]):
                 tag.decompose()

@@ -181,8 +181,18 @@ async def ai_map(
         user_text = (text or "").strip()
         for cp in content_paths:
             try:
-                with open(cp, "r", encoding="utf-8", errors="ignore") as f:
-                    user_text += "\n" + f.read()
+                ext = os.path.splitext(cp)[1].lower()
+                if ext in (".html", ".htm"):
+                    # HTML은 태그 제거 후 텍스트만 추출 (raw 읽기 시 태그가 섞여 출처 판정 오작동)
+                    from bs4 import BeautifulSoup
+                    with open(cp, "r", encoding="utf-8", errors="ignore") as f:
+                        soup = BeautifulSoup(f.read(), "html.parser")
+                    for tag in soup(["script", "style"]):
+                        tag.decompose()
+                    user_text += "\n" + soup.get_text(separator="\n", strip=True)
+                else:
+                    with open(cp, "r", encoding="utf-8", errors="ignore") as f:
+                        user_text += "\n" + f.read()
             except Exception:
                 pass
         user_text_lower = user_text.lower().replace(" ", "")
