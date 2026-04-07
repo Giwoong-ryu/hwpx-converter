@@ -101,6 +101,7 @@ def batch_fill_excel(template_path, data_path):
 
     out_dir = tempfile.mkdtemp()
     generated = []
+    used_names: set = set()
 
     for i, row in enumerate(rows[1:], start=1):
         replacements = {}
@@ -111,10 +112,12 @@ def batch_fill_excel(template_path, data_path):
             continue
 
         first_val = str(row[0]).strip() if row[0] else f"문서_{i}"
-        safe_name = "".join(c for c in first_val if c not in r'\/:*?"<>|')[:50]
-        out_path = os.path.join(out_dir, f"{safe_name}.xlsx")
-        if os.path.exists(out_path):
-            out_path = os.path.join(out_dir, f"{safe_name}_{i}.xlsx")
+        safe_name = "".join(c for c in first_val if c not in r'\/:*?"<>|')[:50] or f"문서_{i}"
+        candidate = f"{safe_name}.xlsx"
+        if candidate in used_names:
+            candidate = f"{safe_name}_{i}.xlsx"
+        used_names.add(candidate)
+        out_path = os.path.join(out_dir, candidate)
 
         fill_excel(template_path, replacements, out_path)
         generated.append(out_path)

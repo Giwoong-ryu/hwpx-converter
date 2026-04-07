@@ -122,6 +122,8 @@ def batch_generate_mapped(req: BatchGenerateRequest):
     wb = openpyxl.load_workbook(excel_path, data_only=True)
     ws = wb.active
     rows = list(ws.iter_rows(values_only=True))
+    if len(rows) < 2:
+        raise HTTPException(status_code=400, detail="엑셀에 최소 2행(헤더 + 데이터)이 필요합니다.")
     headers = [str(h).strip() if h else "" for h in rows[0]]
 
     header_to_form = {}
@@ -133,6 +135,7 @@ def batch_generate_mapped(req: BatchGenerateRequest):
 
     out_dir = tempfile.mkdtemp()
     zip_dir = tempfile.mkdtemp()
+    zip_path = os.path.join(zip_dir, "DocFlow_batch.zip")  # 사전 정의 (clone_hwpx 예외 시 UnboundLocalError 방지)
     generated = []
     used_names: set[str] = set()
 
@@ -164,7 +167,6 @@ def batch_generate_mapped(req: BatchGenerateRequest):
             mlog("batch", success=False, error="생성할 데이터 없음")
             raise HTTPException(status_code=400, detail="생성할 데이터가 없습니다.")
 
-        zip_path = os.path.join(zip_dir, "DocFlow_batch.zip")
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
             for fp in generated:
                 zf.write(fp, os.path.basename(fp))
