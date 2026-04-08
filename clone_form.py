@@ -36,6 +36,13 @@ _NS = {
     'hh': 'http://www.hancom.co.kr/hwpml/2011/head',
 }
 
+# ai_mapper._SUB_LABELS와 동기화: 이 셀들은 서브 헤더로 취급 → 인접 빈 셀을 직접 슬롯으로 등록
+_FORM_SUB_LABELS = {
+    "H.P", "HP", "E-MAIL", "E.MAIL", "EMAIL", "TEL", "FAX",
+    "전화", "휴대폰", "이메일", "홈페이지",
+    "상", "중", "하", "상/중/하",
+}
+
 
 def _parse_header_styles(header_bytes):
     """header.xml에서 borderFill 배경색과 charPr bold 정보를 파싱한다."""
@@ -805,7 +812,11 @@ def build_header_slot_map(hwpx_path):
                         elif (hr, rc) in header_positions:
                             # 다른 헤더 셀 = 경계, 스캔 종료
                             break
-                        # else: 서브라벨(비헤더 텍스트) → 건너뜀 (계속 스캔)
+                        elif found_right:
+                            # 빈 슬롯 발견 후 비헤더 텍스트 = 다른 서브라벨/영역 시작 → 중단
+                            # (예: 성명|한글|[empty]|한문|[empty] 에서 한문 이후 슬롯 오염 방지)
+                            break
+                        # else: 첫 빈 셀 전 서브라벨 → 건너뜀 (H.P 등 그냥 통과)
 
                     if found_right:
                         continue
@@ -827,6 +838,25 @@ def build_header_slot_map(hwpx_path):
                             break  # 비헤더 텍스트 있는 행 → 세로 탐색 종료
                         else:
                             break  # 다른 헤더 → 영역 종료
+
+                # ─ _FORM_SUB_LABELS 추가 스캔: E-MAIL / H.P 등 서브라벨도
+                #   자신의 바로 오른쪽 빈 셀을 슬롯으로 등록 (ai_mapper와 동기화)
+                for sr, sc, st, _ in phys_cells:
+                    label = st.strip()
+                    if label not in _FORM_SUB_LABELS:
+                        continue
+                    right_sub = [(c, t) for (r, c, t, h) in phys_cells
+                                 if r == sr and c > sc]
+                    right_sub.sort(key=lambda x: x[0])
+                    for rc, rt in right_sub:
+                        if not rt.strip():
+                            slot = {"file": fname, "tbl": tbl_idx, "row": sr, "col": rc}
+                            result.setdefault(label, [])
+                            if slot not in result[label]:
+                                result[label].append(slot)
+                            break  # 서브라벨은 바로 다음 빈 셀 하나만
+                        elif (sr, rc) in header_positions:
+                            break  # 헤더 경계 = 종료
 
     return result
 

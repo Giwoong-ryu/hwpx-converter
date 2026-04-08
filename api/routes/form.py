@@ -126,14 +126,19 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
 
     # replacements를 슬롯 주입용 vs 일반 텍스트 치환으로 분리
     _base_re = re.compile(r'__\d+$')
+    _ws_re = re.compile(r'\s+')
     slot_assignments: list = []
     normal_repl: dict[str, str] = {}
 
+    # 슬롯 맵 키 정규화 인덱스 (공백 차이 무시: "성 명" vs "성명" 매칭)
+    slot_map_norm = {_ws_re.sub('', k): k for k in slot_map}
+
     for key, value in req.replacements.items():
         base = _base_re.sub('', key)
-        if base in slot_map and slot_map[base]:
+        real_key = slot_map_norm.get(_ws_re.sub('', base))
+        if real_key is not None and slot_map[real_key]:
             suffix_m = re.search(r'__(\d+)$', key)
-            slots = slot_map[base]
+            slots = slot_map[real_key]
             if suffix_m:
                 # __N suffix: 특정 인덱스 슬롯에만 주입
                 slot_idx = int(suffix_m.group(1)) - 1
