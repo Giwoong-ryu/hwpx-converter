@@ -769,15 +769,26 @@ def build_header_slot_map(hwpx_path):
                     c = int(addr.get('colAddr', '0'))
                     text = _get_cell_text(tc)
                     bf_id = tc.get('borderFillIDRef', '')
-                    is_h = bf_colors.get(bf_id, False)
+                    has_bg = bf_colors.get(bf_id, False)
+                    # bold도 헤더로 인식 (bg 없어도)
+                    run = tc.find('.//hp:run', _NS)
+                    is_bold = False
+                    if run is not None:
+                        cp_id = run.get('charPrIDRef', '')
+                        is_bold = cp_bold.get(cp_id, False)
+                    is_h = has_bg or is_bold
                     phys_cells.append((r, c, text, is_h))
+
+                # 헤더 위치 룩업 (가로 스캔 시 경계 판별용)
+                header_positions = {(r, c) for (r, c, t, h) in phys_cells if h}
 
                 # 헤더 셀별 슬롯 탐색
                 for hr, hc, ht, is_h in phys_cells:
                     if not (is_h and ht.strip()):
                         continue
 
-                    # ─ 방향 1: 같은 행 오른쪽에서 첫 빈 셀 탐색 (가로형)
+                    # ─ 방향 1: 같은 행 오른쪽 빈 셀 탐색 (가로형)
+                    # 서브라벨(비헤더 텍스트)은 건너뛰고, 다른 헤더 셀에서만 중단
                     right = [(c, t) for (r, c, t, h) in phys_cells
                              if r == hr and c > hc]
                     right.sort(key=lambda x: x[0])
@@ -785,17 +796,16 @@ def build_header_slot_map(hwpx_path):
                     found_right = False
                     for rc, rt in right:
                         if not rt.strip():
-                            # 빈 셀: 슬롯 추가 후 계속 (연속 빈칸 전체 수집)
+                            # 빈 셀 = 슬롯
                             slot = {"file": fname, "tbl": tbl_idx, "row": hr, "col": rc}
                             result.setdefault(ht, [])
                             if slot not in result[ht]:
                                 result[ht].append(slot)
                             found_right = True
-                            # break 제거 → 연속 빈 셀 모두 수집, 헤더 경계에서만 중단
-                        else:
-                            # 헤더든 채워진 셀이든 비어있지 않으면 스캔 중단
-                            # (헤더를 건너뛰어 다른 필드 슬롯을 오염시키지 않음)
+                        elif (hr, rc) in header_positions:
+                            # 다른 헤더 셀 = 경계, 스캔 종료
                             break
+                        # else: 서브라벨(비헤더 텍스트) → 건너뜀 (계속 스캔)
 
                     if found_right:
                         continue
@@ -811,11 +821,12 @@ def build_header_slot_map(hwpx_path):
                             result.setdefault(ht, [])
                             if slot not in result[ht]:
                                 result[ht].append(slot)
-                        # 빈 셀이 아닌 행을 만나면 중단 (단, ~, ·, 공백만 있는 셀은 계속)
                         elif bt.strip() in ('~', '∼', '·', '-', '─'):
-                            continue  # 구분자 셀은 슬롯 아님, 계속
+                            continue  # 구분자 셀은 스킵
+                        elif (br, hc) not in header_positions:
+                            break  # 비헤더 텍스트 있는 행 → 세로 탐색 종료
                         else:
-                            break  # 실제 텍스트 있는 셀 → 세로 탐색 종료
+                            break  # 다른 헤더 → 영역 종료
 
     return result
 
