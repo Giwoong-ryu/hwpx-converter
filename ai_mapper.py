@@ -109,13 +109,20 @@ def _format_structured_fields(structured):
     """
     _SKIP = {"□", "☑", "※", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "☐", "○", "●"}
 
+    # 서식 내 소라벨 (bold/bg 없어도 헤더로 처리)
+    _SUB_LABELS = {
+        "H.P", "HP", "E-MAIL", "E.MAIL", "EMAIL", "TEL", "FAX",
+        "전화", "휴대폰", "이메일", "홈페이지",
+        "상", "중", "하", "상/중/하",
+    }
+
     # 1패스: 값 셀 텍스트 빈도 계산 (중복 여부 파악)
     text_freq: dict[str, int] = {}
     for table in structured["tables"]:
         for row in table["rows"]:
             for cell in row:
                 t = cell["text"].strip()
-                if t and t not in _SKIP and not cell["bold"] and not cell["bg"]:
+                if t and t not in _SKIP and t not in _SUB_LABELS and not cell["bold"] and not cell["bg"]:
                     text_freq[t] = text_freq.get(t, 0) + 1
 
     # 2패스: 마크다운 테이블 생성 (중복 셀만 __N 추가)
@@ -131,7 +138,7 @@ def _format_structured_fields(structured):
                 if not text or text in _SKIP:
                     cells.append("")
                     continue
-                if cell["bold"] or cell["bg"]:
+                if cell["bold"] or cell["bg"] or text in _SUB_LABELS:
                     cells.append(f"[H]{text}")
                 else:
                     if text_freq.get(text, 1) > 1:
