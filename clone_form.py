@@ -768,6 +768,8 @@ def build_header_slot_map(hwpx_path):
 
                 # 물리 셀 목록: (row, col, text, is_header)
                 phys_cells = []
+                bold_positions: set = set()   # bold 셀 위치 (수직 스캔 경계)
+                bg_positions: set = set()     # bg-색상 셀 위치 (빈칸 구분자 판별)
                 for tc in tbl.findall('hp:tr/hp:tc', _NS):
                     addr = tc.find('hp:cellAddr', _NS)
                     if addr is None:
@@ -785,6 +787,10 @@ def build_header_slot_map(hwpx_path):
                         is_bold = cp_bold.get(cp_id, False)
                     is_h = has_bg or is_bold
                     phys_cells.append((r, c, text, is_h))
+                    if is_bold:
+                        bold_positions.add((r, c))
+                    if has_bg:
+                        bg_positions.add((r, c))
 
                 # 헤더 위치 룩업 (가로 스캔 시 경계 판별용)
                 header_positions = {(r, c) for (r, c, t, h) in phys_cells if h}
@@ -822,22 +828,27 @@ def build_header_slot_map(hwpx_path):
                         continue
 
                     # ─ 방향 2: 같은 열 아래에서 빈 셀들 탐색 (세로형)
-                    below = [(r, t) for (r, c, t, h) in phys_cells
+                    below = [(r, t, h) for (r, c, t, h) in phys_cells
                              if c == hc and r > hr]
                     below.sort(key=lambda x: x[0])
 
-                    for br, bt in below:
+                    for br, bt, bh in below:
                         if not bt.strip():
+                            # bg 색상 있는 빈 셀 = 구분자(배경 행) → 슬롯 아님
+                            if (br, hc) in bg_positions:
+                                continue
                             slot = {"file": fname, "tbl": tbl_idx, "row": br, "col": hc}
                             result.setdefault(ht, [])
                             if slot not in result[ht]:
                                 result[ht].append(slot)
                         elif bt.strip() in ('~', '∼', '·', '-', '─'):
                             continue  # 구분자 셀은 스킵
-                        elif (br, hc) not in header_positions:
-                            break  # 비헤더 텍스트 있는 행 → 세로 탐색 종료
+                        elif (br, hc) in bold_positions:
+                            break  # 굵은 섹션 헤더 → 영역 종료
+                        elif bh:
+                            continue  # bg-only 라벨(제목 : 등) → 통과, 아래로 계속
                         else:
-                            break  # 다른 헤더 → 영역 종료
+                            break  # 일반 값 텍스트 → 세로 탐색 종료
 
                 # ─ _FORM_SUB_LABELS 추가 스캔: E-MAIL / H.P 등 서브라벨도
                 #   자신의 바로 오른쪽 빈 셀을 슬롯으로 등록 (ai_mapper와 동기화)

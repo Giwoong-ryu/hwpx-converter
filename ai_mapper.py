@@ -36,7 +36,12 @@ SYSTEM_PROMPT_MAP = """\
 5. 경력, 학력처럼 시기/날짜가 있는 항목은 과거(오래된 순)에서 현재 순으로 위(__1)부터 채우세요.
 6. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
 7. __N 접미사가 있는 셀은 JSON 키에도 반드시 __N을 포함하세요. 예: {"회사명__1": "A사", "회사명__2": "B사"}
-8. 매핑 가능한 필드는 최대한 빠짐없이 채우세요."""
+8. 매핑 가능한 필드는 최대한 빠짐없이 채우세요.
+9. 섹션명__1, 섹션명__2 형태 셀은 자기소개서 등 섹션형 양식입니다.
+   - __1 = 해당 섹션의 제목(소제목), __2 = 해당 섹션의 본문 내용
+   - 사용자 내용을 바탕으로 각 섹션에 맞는 내용을 작성하세요.
+   - 예: 지원동기__1 = "카페 운영 경험을 살린 도전", 지원동기__2 = "8년간의 카페 운영 경험을..."
+   - 내용이 길더라도 줄바꿈 없이 한 문자열로 작성하세요."""
 
 SYSTEM_PROMPT_GEN = """\
 당신은 한글 문서 양식 작성 도우미입니다.
@@ -70,17 +75,21 @@ USER_PROMPT_MAP = """\
 핵심 원칙: 이 양식은 빈 칸을 채우는 방식입니다. [H] 라벨 텍스트는 절대 JSON 키로 쓰지 마세요.
 
 매핑 전략:
+0. [반복 항목 선추출 — 필수] 경력/학력/직업훈련처럼 여러 행이 있는 항목은
+   JSON 맨 앞에 "_목록" 키로 전체 목록을 먼저 나열한 뒤 슬롯을 채우세요.
+   이 키는 실제 양식에 삽입되지 않으므로 빠짐없이 정직하게 나열하세요.
+   예) {{"_경력목록": ["대은인테리어 (2014~2017)", "ABC건설 (2020~2023)"],
+         "_학력목록": ["전북대학교 생물환경화학과 (2014~2018 중퇴)"],
+         "회사명__1": "대은인테리어", ...}}
 1. [H] 라벨(성명, 생년월일, 회사명 등)을 JSON 키로 사용해 해당 빈 칸에 넣을 값을 지정하세요.
    예) [H]성명 옆 빈 칸 → {{"성명": "홍길동"}}
        [H]연락처 옆 H.P 옆 빈 칸 → {{"연락처": "010-1234-5678"}}
        [H]E-MAIL 옆 빈 칸 → {{"E-MAIL": "hong@email.com"}}
 2. 경력/학력처럼 여러 행이 있는 경우 __N 접미사로 구분하세요.
-   - 먼저 사용자 내용에서 해당 항목 개수를 세세요.
-   - 사용자 내용에 실제로 있는 N번째 항목만 채우세요.
+   - 0번 단계에서 나열한 목록 수만큼만 __N 키를 생성합니다.
    - N번째 항목이 없으면 __N 키를 생략하세요 (절대 복사 금지).
    - 양식에 3개 슬롯이 있어도 사용자 데이터가 1개라면 __1만 생성합니다.
-   예) 경력 1개 → {{"회사명__1": "A사", "기간__1": "2020~2023", "업무내용__1": "..."}}
-       경력 2개 → __1, __2만, __3 이상은 생략.
+   예) 경력 2개 → {{"회사명__1": "A사", "기간__1": "2020~2023", "회사명__2": "B사", "기간__2": "2018~2020"}}
        직업훈련 1개 → {{"교육기간(이수시간)__1": "2024.09~", "교육 명__1": "...", "교육 내 용__1": "..."}}
 3. 셀에 이미 텍스트가 있는 경우(날짜 형식 힌트 등)는 그 텍스트를 키로 쓰세요.
    예) "년 월~ 년 월" 셀 → {{"년 월~ 년 월": "2014년 02월 ~ 2017년 01월"}}
@@ -139,6 +148,13 @@ def _format_structured_fields(structured):
 
     for ti, table in enumerate(structured["tables"]):
         lines.append(f"[표{ti+1}]")
+
+        # 1컬럼 섹션형 테이블(자기소개서 등) 탐지: 모든 행이 1셀
+        is_single_col = all(len(row) == 1 for row in table["rows"])
+        current_section: str | None = None
+        section_empty_count: dict[str, int] = {}
+        seen_sublabel: bool = False  # 섹션 헤더 뒤 bg 라벨(제목 :)을 봤는지
+
         for row in table["rows"]:
             cells = []
             for cell in row:
@@ -148,6 +164,15 @@ def _format_structured_fields(structured):
                     continue
                 if cell["bold"] or cell["bg"] or text in _SUB_LABELS:
                     cells.append(f"[H]{text}")
+                    if is_single_col:
+                        if cell["bold"]:
+                            # 새 섹션 헤더 → 상태 리셋
+                            current_section = text
+                            section_empty_count[text] = 0
+                            seen_sublabel = False
+                        elif cell["bg"] and text:
+                            # bg 라벨(제목 :) 확인 → 이후 빈 셀은 슬롯 대상
+                            seen_sublabel = True
                 else:
                     if text_freq.get(text, 1) > 1:
                         # 중복 셀: __N 인덱스 추가 (AI가 각각 구분하도록)
@@ -155,6 +180,19 @@ def _format_structured_fields(structured):
                         cells.append(f"{text}__{text_seen[text]}")
                     else:
                         cells.append(text)
+
+            # 1컬럼 섹션형: bg 라벨을 본 뒤 등장하는 빈 셀에 섹션명__N 부여
+            if (is_single_col
+                    and current_section
+                    and seen_sublabel
+                    and len(cells) == 1
+                    and not cells[0]
+                    and not row[0].get("bg", False)):  # bg=True 빈 행은 구분자 → 스킵
+                cnt = section_empty_count.get(current_section, 0) + 1
+                if cnt <= 2:  # 최대 2슬롯: __1(제목), __2(내용)
+                    section_empty_count[current_section] = cnt
+                    cells = [f"{current_section}__{cnt}"]
+
             if any(c for c in cells):
                 lines.append("| " + " | ".join(cells) + " |")
 
