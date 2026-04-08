@@ -920,6 +920,9 @@ def inject_values_by_slot(src_path, dst_path, slot_assignments):
                         text,
                         flags=re.DOTALL,
                     )
+                    # pageBreak="NONE" 표는 페이지 범위를 벗어나면 화면에서 사라짐.
+                    # 값 주입 후 CELL 분리 허용으로 변경 (한글뷰어 정상 스크롤 보장)
+                    text = text.replace('pageBreak="NONE"', 'pageBreak="CELL"')
                     data = text.encode("utf-8")
 
                 zout.writestr(item, data)
