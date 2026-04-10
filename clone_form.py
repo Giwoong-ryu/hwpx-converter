@@ -923,6 +923,19 @@ def inject_values_by_slot(src_path, dst_path, slot_assignments):
                             tbl_text = _inject_into_cell_xml(
                                 tbl_text, sa["row"], sa["col"], sa["value"]
                             )
+
+                        # 테이블 전체 높이(hp:sz height)를 셀 높이 합산으로 재계산
+                        cell_heights = [int(h) for h in re.findall(
+                            r'<hp:cellSz\b[^>]*height="(\d+)"', tbl_text)]
+                        if cell_heights:
+                            total_h = sum(cell_heights)
+                            sz_m = re.search(
+                                r'(<hp:sz\b[^>]*height=")(\d+)(")', tbl_text)
+                            if sz_m and total_h > int(sz_m.group(2)):
+                                tbl_text = (tbl_text[:sz_m.start(2)]
+                                            + str(total_h)
+                                            + tbl_text[sz_m.end(2):])
+
                         return tbl_text
 
                     text = re.sub(
