@@ -6,7 +6,8 @@ import {
   Wand2, Layers, TableProperties, Calendar,
   Stamp, Merge, FileSpreadsheet, ArrowRight,
   FileText, Shield, ChevronRight,
-  Lock, Server, Trash2, Clock, CheckCircle2, ChevronDown
+  Lock, Server, Trash2, Clock, CheckCircle2, ChevronDown,
+  UploadCloud, RefreshCw
 } from "lucide-react";
 import CouponBadge from "@/components/ui/CouponBadge";
 
@@ -136,6 +137,14 @@ export default function LandingPage() {
   const scrollRef = useScrollReveal();
   const [showMoreFeatures, setShowMoreFeatures] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [isAiScanning, setIsAiScanning] = useState(false);
+  const [isAiDone, setIsAiDone] = useState(false);
+
+  const startScan = () => {
+    if (isAiScanning) return;
+    setIsAiScanning(true);
+    setTimeout(() => setIsAiDone(true), 2500);
+  };
 
   return (
     <div ref={scrollRef} className="min-h-screen bg-[#f9f9f6] text-[#1a1c1b] overflow-hidden">
@@ -230,74 +239,270 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* 오른쪽: AI 매핑 플로우 시각화 */}
-          <div className="lg:col-span-6 relative hidden lg:flex items-center justify-center py-8">
-            <div className="relative flex items-stretch gap-5 w-full max-w-125">
+          {/* 오른쪽: 버블 프레임 + Before/After 스캔 애니메이션 */}
+          <div className="lg:col-span-6 relative hidden lg:flex items-center justify-center h-[460px] scale-[0.85] origin-center translate-x-44">
 
-              {/* 왼쪽: 내 자료 */}
-              <div className="flex-1 bg-white rounded-2xl border border-[#BFDBFE]/50 shadow-[0_8px_30px_rgba(0,0,0,0.06)] p-5">
-                <p className="text-[10px] font-bold text-[#57423c]/40 mb-3 uppercase tracking-widest">내 자료</p>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2.5 px-3 py-2 bg-[#f0fdf4] rounded-lg border border-[#107C41]/15">
-                    <div className="w-5 h-5 bg-[#107C41] rounded-[3px] flex items-center justify-center text-white font-black text-[9px] shrink-0">X</div>
-                    <span className="text-xs font-semibold text-gray-700 truncate">매출현황.xlsx</span>
+            {/* ── 입체 버블들 (배경) ── */}
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div className="absolute top-[15%] right-[-10%] w-[360px] h-[360px] rounded-full bg-white shadow-[inset_-25px_-25px_40px_rgba(0,0,0,0.03),_0_20px_40px_rgba(0,0,0,0.06)] border border-[#F9FAFB]" />
+              <div className="absolute top-[5%] left-[5%] w-[260px] h-[260px] rounded-full bg-white shadow-[inset_-20px_-20px_35px_rgba(0,0,0,0.02),_10px_15px_30px_rgba(0,0,0,0.05)] border border-[#F9FAFB]" />
+              <div className="absolute top-[-5%] left-[25%] w-[200px] h-[200px] rounded-full bg-white shadow-[inset_-15px_-15px_30px_rgba(0,0,0,0.02),_5px_10px_20px_rgba(0,0,0,0.03)] border border-[#F9FAFB]" />
+              <div className="absolute top-[0%] right-[10%] w-[120px] h-[120px] rounded-full bg-white shadow-[inset_-10px_-10px_20px_rgba(0,0,0,0.02),_5px_5px_15px_rgba(0,0,0,0.04)]" />
+              <div className="absolute bottom-[-10%] left-[15%] w-[220px] h-[220px] rounded-full bg-[#FAFAFA] shadow-[inset_-15px_-15px_30px_rgba(0,0,0,0.02),_10px_10px_25px_rgba(37,99,235,0.06)] border border-[#F3F4F6]" />
+              <div className="absolute top-[40%] right-[2%] w-[80px] h-[80px] rounded-full bg-blue-50 shadow-[inset_-8px_-8px_15px_rgba(37,99,235,0.1),_0_5px_10px_rgba(0,0,0,0.03)] border border-blue-100" />
+              <div className="absolute top-[60%] left-[-2%] w-[90px] h-[90px] rounded-full bg-blue-100 shadow-[inset_-10px_-10px_20px_rgba(37,99,235,0.15),_0_5px_15px_rgba(37,99,235,0.1)] opacity-80 border border-blue-200" />
+            </div>
+
+            {/* ── 3D 투시 래퍼 ── */}
+            <div style={{ perspective: '1600px' }} className="z-10 ml-16 relative flex items-center">
+
+              {/* ── 1. 양식 파일 카드 (Top Left) ── */}
+              <div className="absolute top-[10%] left-[-360px] z-30 w-[220px] hidden xl:flex flex-col items-center">
+                <div className="w-full bg-white rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.08),_0_0_0_1px_rgba(0,0,0,0.02)] p-4 transform -rotate-6 transition-transform duration-500 hover:rotate-0 relative">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-md bg-[#EEF2FF] flex items-center justify-center text-blue-600">
+                      <UploadCloud size={14} />
+                    </div>
+                    <span className="font-bold text-[16px] text-gray-800 tracking-tight">양식 파일</span>
                   </div>
-                  <div className="flex items-center gap-2.5 px-3 py-2 bg-[#EFF6FF] rounded-lg border border-[#2B579A]/15">
-                    <div className="w-5 h-5 bg-[#2B579A] rounded-[3px] flex items-center justify-center text-white font-black text-[9px] shrink-0">W</div>
-                    <span className="text-xs font-semibold text-gray-700 truncate">회사소개서.docx</span>
+                  <p className="text-[12px] text-gray-500 mb-3 leading-tight">HWP, HWPX, DOCX 양식을 올리세요.</p>
+                  <div className="relative border-[2px] border-dashed border-[#BFDBFE] rounded-xl py-4 px-4 flex flex-col items-center justify-center bg-[#EFF6FF]/50 mb-3">
+                    <div className="absolute -top-2 z-20 w-16 h-20 bg-white rounded-lg flex flex-col items-center justify-center border border-[#00A1E9]/40 shadow-lg transform rotate-3 animate-[bounce_3s_infinite]">
+                      <div className="absolute top-0 right-0 w-4 h-4 bg-[#00A1E9]/10 border-b border-l border-[#00A1E9]/30 rounded-bl-sm z-10" />
+                      <div className="w-8 h-8 bg-[#00A1E9] rounded flex items-center justify-center text-white font-black text-[14px] shadow-sm mb-1 z-0 relative">H</div>
+                      <span className="text-[8px] font-black text-[#00A1E9] tracking-tighter">.hwpx</span>
+                    </div>
+                    <div className="mt-8 w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center">
+                      <UploadCloud size={16} className="text-[#3B82F6]" />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2.5 px-3 py-2 bg-[#f9f9f6] rounded-lg border border-gray-200">
-                    <div className="w-5 h-5 bg-[#4B5563] rounded-[3px] flex items-center justify-center text-white font-black text-[8px] shrink-0">T</div>
-                    <span className="text-xs font-semibold text-gray-700 truncate">붙여넣기 텍스트</span>
-                  </div>
-                  <p className="text-[10px] text-[#57423c]/40 text-center pt-1">어떤 형식이든 OK</p>
+                  <div className="w-full bg-[#7C88C3] text-white text-center py-2 rounded-lg text-[12px] font-bold shadow-sm">양식 분석</div>
                 </div>
               </div>
 
-              {/* 가운데: AI 매핑 화살표 */}
-              <div className="flex flex-col items-center justify-center gap-3 shrink-0 w-16">
-                <div className="w-10 h-10 rounded-full bg-linear-to-br from-[#2563EB] to-[#1E40AF] flex items-center justify-center shadow-lg shadow-[#1E40AF]/20">
-                  <Wand2 size={16} className="text-white" />
+              {/* ── 2. 내 자료 카드 (Bottom Left) ── */}
+              <div className="absolute bottom-[8%] left-[-320px] z-30 w-[220px] hidden xl:flex flex-col items-center">
+                <div className="w-full bg-white rounded-2xl shadow-[0_15px_35px_rgba(0,0,0,0.07),_0_0_0_1px_rgba(0,0,0,0.02)] p-4 transform rotate-4 transition-transform duration-500 hover:rotate-0 relative">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center text-emerald-600">
+                      <FileSpreadsheet size={14} />
+                    </div>
+                    <span className="font-bold text-[16px] text-gray-800 tracking-tight">내 자료</span>
+                  </div>
+                  <p className="text-[12px] text-gray-500 mb-3 leading-tight">엑셀, 워드, 텍스트 또는 직접 입력</p>
+                  <div className="relative border-[2px] border-dashed border-emerald-200 rounded-xl py-3 px-4 flex flex-col items-center justify-center bg-emerald-50/50 mb-3">
+                    <div className="absolute -top-2 flex -space-x-1 z-20 transform animate-[bounce_3.5s_infinite]">
+                      <div className="relative w-12 h-14 bg-white rounded-lg flex flex-col items-center justify-center border border-[#107C41]/30 shadow-md transform -rotate-12 z-30">
+                        <div className="w-6 h-6 bg-[#107C41] rounded-[3px] flex items-center justify-center text-white font-black text-[11px] shadow-sm mb-0.5">X</div>
+                      </div>
+                      <div className="relative w-12 h-14 bg-white rounded-lg flex flex-col items-center justify-center border border-[#2B579A]/30 shadow-md z-20 -translate-y-1">
+                        <div className="w-6 h-6 bg-[#2B579A] rounded-[3px] flex items-center justify-center text-white font-black text-[11px] shadow-sm mb-0.5">W</div>
+                      </div>
+                      <div className="relative w-12 h-14 bg-white rounded-lg flex flex-col items-center justify-center border border-[#00A1E9]/30 shadow-md transform rotate-12 z-10">
+                        <div className="w-6 h-6 bg-[#00A1E9] rounded-[3px] flex items-center justify-center text-white font-black text-[11px] shadow-sm mb-0.5">H</div>
+                      </div>
+                    </div>
+                    <div className="mt-6 w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center">
+                      <UploadCloud size={16} className="text-emerald-500" />
+                    </div>
+                  </div>
+                  <div className="w-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-center py-2 rounded-lg text-[12px] font-bold shadow-sm">직접 입력</div>
                 </div>
-                <div className="flex flex-col items-center gap-1">
-                  <div className="w-0.5 h-6 bg-linear-to-b from-[#2563EB]/60 to-transparent" />
-                  <span className="text-[9px] font-bold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-full whitespace-nowrap">AI 매핑</span>
-                  <div className="w-0.5 h-6 bg-linear-to-b from-transparent to-[#2563EB]/60" />
-                </div>
-                <ArrowRight size={18} className="text-[#2563EB]" />
               </div>
 
-              {/* 오른쪽: 완성된 양식 */}
-              <div className="flex-1 bg-white rounded-2xl border border-[#BFDBFE]/50 shadow-[0_8px_30px_rgba(37,99,235,0.08)] p-4 relative">
-                <div className="absolute -top-2.5 right-3 bg-[#2563EB] text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full shadow">완성</div>
-                <p className="text-[10px] font-bold text-[#57423c]/40 mb-2 uppercase tracking-widest">완성된 양식</p>
-                <div className="bg-[#E5E7EB] py-1.5 text-center mb-2 rounded-sm">
-                  <span className="text-[11px] font-extrabold text-black">사업계획서</span>
+              {/* ── 화살표 ── */}
+              <div className="absolute top-1/2 left-[-60px] -translate-y-1/2 z-40">
+                <div className="bg-white p-3 rounded-full shadow-xl border border-gray-200">
+                  <ArrowRight size={22} className="text-[#2563EB]" />
                 </div>
-                <table className="w-full text-[8px] border-collapse">
-                  <tbody>
-                    <tr>
-                      <td className="bg-[#F3F4F6] border border-gray-300 px-1.5 py-1 font-bold text-gray-600 w-[38%]">기업명</td>
-                      <td className="border border-gray-300 px-1.5 py-1 bg-[#EFF6FF] text-[#1E40AF] font-semibold">(주)이지테크</td>
-                    </tr>
-                    <tr>
-                      <td className="bg-[#F3F4F6] border border-gray-300 px-1.5 py-1 font-bold text-gray-600">대표자</td>
-                      <td className="border border-gray-300 px-1.5 py-1 bg-[#EFF6FF] text-[#1E40AF] font-semibold">홍길동</td>
-                    </tr>
-                    <tr>
-                      <td className="bg-[#F3F4F6] border border-gray-300 px-1.5 py-1 font-bold text-gray-600">매출액</td>
-                      <td className="border border-gray-300 px-1.5 py-1 bg-[#EFF6FF] text-[#1E40AF] font-semibold">2.4억원</td>
-                    </tr>
-                    <tr>
-                      <td className="bg-[#F3F4F6] border border-gray-300 px-1.5 py-1 font-bold text-gray-600">소재지</td>
-                      <td className="border border-gray-300 px-1.5 py-1 bg-[#EFF6FF] text-[#1E40AF] font-semibold">서울 강남구</td>
-                    </tr>
-                  </tbody>
-                </table>
-                <div className="mt-2 flex justify-end">
-                  <span className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5">
-                    <CheckCircle2 size={9} /> 4개 항목 자동 채움
-                  </span>
+              </div>
+
+              {/* ── 메인 3D 문서 카드 ── */}
+              <div className="relative w-[520px] bg-white shadow-[-20px_30px_60px_rgba(0,0,0,0.18),_-5px_10px_30px_rgba(0,0,0,0.10),_0_0_0_1px_rgba(0,0,0,0.04)] overflow-hidden font-sans"
+                style={{ transform: 'rotateX(12deg) rotateY(-22deg) rotateZ(2deg) scale(1.0)', transformStyle: 'preserve-3d' }}>
+
+                {/* 클릭 유도 오버레이 */}
+                {!isAiScanning && !isAiDone && (
+                  <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/5">
+                    <div className="relative group cursor-pointer" onClick={startScan}>
+                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-0.5 pointer-events-none text-gray-800 font-extrabold text-[12px] animate-bounce">
+                        <span>클릭</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14" /><path d="m19 12-7 7-7-7" /></svg>
+                      </div>
+                      <button className="bg-blue-600 group-hover:bg-blue-700 text-white px-8 py-4 rounded-full font-bold shadow-2xl flex items-center gap-3 transform transition-all group-hover:scale-105 active:scale-95 text-[15px] pointer-events-none">
+                        <Wand2 size={24} />
+                        AI로 양식 자동 완성하기
+                      </button>
+                      <div className="absolute -bottom-6 -right-6 text-gray-800 transform rotate-[-15deg] group-hover:-translate-x-2 group-hover:-translate-y-2 transition-transform duration-300 drop-shadow-xl pointer-events-none hidden sm:block">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white" stroke="#1f2937" strokeWidth="1.5"><path d="M4 2v20l6-6h10z" /></svg>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* BEFORE: 빈 양식 */}
+                <div className="bg-white p-5 relative w-full h-[520px] flex flex-col gap-2">
+                  <div className="border-[1.5px] border-gray-500 bg-[#E5E7EB] py-2.5 text-center">
+                    <h2 className="text-[18px] font-extrabold text-black tracking-tighter">사업계획서</h2>
+                  </div>
+                  <div className="flex items-center gap-2 mt-3">
+                    <div className="w-3 h-3 border border-gray-400 bg-white" />
+                    <span className="font-bold text-[13px] text-black tracking-tight">일반현황</span>
+                  </div>
+                  <table className="w-full border-collapse border-[1.5px] border-gray-400 text-[10px] text-center tracking-tight">
+                    <tbody>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] w-[20%] py-1.5 font-bold text-black">기업명</th>
+                        <td className="border-[1.5px] border-gray-400 w-[30%] py-1.5 text-blue-500 italic px-1">O O O O</td>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] w-[20%] py-1.5 font-bold text-black">개업연월일</th>
+                        <td className="border-[1.5px] border-gray-400 w-[30%] py-1.5 text-blue-500 italic px-1">00. 00. 00</td>
+                      </tr>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">사업자 구분</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-blue-500 italic">개인 / 법인</td>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">대표자 유형</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-blue-500 italic">단독 / 공동</td>
+                      </tr>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">사업자등록번호</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-blue-500 italic">000-00-00000</td>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">소재지</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-blue-500 italic">OO도 OO시</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <table className="w-full border-collapse border-[1.5px] border-gray-400 text-[10px] text-center tracking-tight mt-2">
+                    <tbody>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] w-[20%] py-1.5 font-bold text-black">창업아이템명</th>
+                        <td className="border-[1.5px] border-gray-400 w-[80%] py-1.5 text-blue-500 italic" colSpan={3}>OO기술 적용 제품/서비스</td>
+                      </tr>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">산출물</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-blue-500 italic px-2 text-left" colSpan={3}>웹사이트(0개), 앱(0개)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div className="flex items-center gap-2 mt-4">
+                    <div className="w-3 h-3 border border-gray-400 bg-white" />
+                    <span className="font-bold text-[13px] text-black tracking-tight">대표자 현황</span>
+                  </div>
+                  <table className="w-full border-collapse border-[1.5px] border-gray-400 text-[10px] text-center tracking-tight">
+                    <tbody>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] w-[20%] py-1.5 font-bold text-black">성명</th>
+                        <td className="border-[1.5px] border-gray-400 w-[30%] py-1.5 text-blue-500 italic">O O O</td>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] w-[20%] py-1.5 font-bold text-black">생년월일</th>
+                        <td className="border-[1.5px] border-gray-400 w-[30%] py-1.5 text-blue-500 italic">00. 00. 00</td>
+                      </tr>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">최종학력</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-blue-500 italic">OO대학교</td>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">전공</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-blue-500 italic">OO학과</td>
+                      </tr>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">연락처</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-blue-500 italic">010-0000-0000</td>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">이메일</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-blue-500 italic">OOO@OO.com</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* AFTER: AI가 채운 양식 */}
+                <div className="absolute inset-0 bg-white p-5 h-[520px] flex flex-col gap-2 transition-all duration-[2500ms] ease-in-out"
+                  style={{ clipPath: isAiScanning ? 'inset(0 0 0 0)' : 'inset(0 100% 0 0)' }}>
+                  <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+                    {isAiDone && (
+                      <button onClick={() => { setIsAiScanning(false); setIsAiDone(false); }}
+                        className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm text-[9px] font-bold transition-all active:scale-95 cursor-pointer">
+                        <RefreshCw size={10} /> 되돌리기
+                      </button>
+                    )}
+                    <div className="bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full shadow-sm">
+                      <span className="text-[9px] font-bold text-blue-600">AI 자동 채우기 완료</span>
+                    </div>
+                  </div>
+                  <div className="border-[1.5px] border-gray-500 bg-[#E5E7EB] py-2.5 text-center">
+                    <h2 className="text-[18px] font-extrabold text-black tracking-tighter">사업계획서</h2>
+                  </div>
+                  <div className="flex items-center gap-2 mt-3">
+                    <div className="w-3 h-3 border border-gray-400 bg-black" />
+                    <span className="font-bold text-[13px] text-black tracking-tight">일반현황</span>
+                  </div>
+                  <table className="w-full border-collapse border-[1.5px] border-gray-400 text-[10px] text-center tracking-tight">
+                    <tbody>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] w-[20%] py-1.5 font-bold text-black">기업명</th>
+                        <td className="border-[1.5px] border-gray-400 w-[30%] py-1.5 text-black font-semibold px-1 bg-[#EFF6FF]">(주)이지테크</td>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] w-[20%] py-1.5 font-bold text-black">개업연월일</th>
+                        <td className="border-[1.5px] border-gray-400 w-[30%] py-1.5 text-black font-semibold px-1 bg-[#EFF6FF]">2024. 01. 15</td>
+                      </tr>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">사업자 구분</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-black font-semibold bg-[#EFF6FF]">법인사업자</td>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">대표자 유형</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-black font-semibold bg-[#EFF6FF]">단독</td>
+                      </tr>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">사업자등록번호</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-black font-semibold bg-[#EFF6FF]">123-45-67890</td>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">소재지</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-black font-semibold bg-[#EFF6FF]">서울 강남구</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <table className="w-full border-collapse border-[1.5px] border-gray-400 text-[10px] text-center tracking-tight mt-2">
+                    <tbody>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] w-[20%] py-1.5 font-bold text-black">창업아이템명</th>
+                        <td className="border-[1.5px] border-gray-400 w-[80%] py-1.5 text-black font-semibold bg-[#EFF6FF]" colSpan={3}>LLM기반 HWPX 문서 자동 작성</td>
+                      </tr>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">산출물</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-black font-semibold px-2 text-left bg-[#EFF6FF]" colSpan={3}>SaaS 웹 플랫폼 (1식)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div className="flex items-center gap-2 mt-4">
+                    <div className="w-3 h-3 border border-gray-400 bg-black" />
+                    <span className="font-bold text-[13px] text-black tracking-tight">대표자 현황</span>
+                  </div>
+                  <table className="w-full border-collapse border-[1.5px] border-gray-400 text-[10px] text-center tracking-tight">
+                    <tbody>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] w-[20%] py-1.5 font-bold text-black">성명</th>
+                        <td className="border-[1.5px] border-gray-400 w-[30%] py-1.5 text-black font-semibold bg-[#EFF6FF]">홍길동</td>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] w-[20%] py-1.5 font-bold text-black">생년월일</th>
+                        <td className="border-[1.5px] border-gray-400 w-[30%] py-1.5 text-black font-semibold bg-[#EFF6FF]">1990. 03. 15</td>
+                      </tr>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">최종학력</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-black font-semibold bg-[#EFF6FF]">한국대학교</td>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">전공</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-black font-semibold bg-[#EFF6FF]">컴퓨터공학</td>
+                      </tr>
+                      <tr>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">연락처</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-black font-semibold bg-[#EFF6FF]">010-1234-5678</td>
+                        <th className="border-[1.5px] border-gray-400 bg-[#F3F4F6] py-1.5 font-bold text-black">이메일</th>
+                        <td className="border-[1.5px] border-gray-400 py-1.5 text-black font-semibold bg-[#EFF6FF]">hong@eazy.kr</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 스캔 디바이더 */}
+                <div className={`absolute top-0 bottom-0 z-20 pointer-events-none transition-all duration-[2500ms] ease-in-out ${isAiScanning && !isAiDone ? 'opacity-100' : 'opacity-0'}`}
+                  style={{ left: isAiScanning ? '100%' : '0%' }}>
+                  <div className="w-[3px] h-full bg-gradient-to-b from-transparent via-[#3B82F6] to-transparent"
+                    style={{ boxShadow: '0 0 16px rgba(37,99,235,0.8)' }} />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#2563EB] flex items-center justify-center shadow-lg"
+                    style={{ animation: 'aiIconPulse 1.5s ease-in-out infinite' }}>
+                    <Wand2 size={16} className="text-white" />
+                  </div>
                 </div>
               </div>
 
