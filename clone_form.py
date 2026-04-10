@@ -941,6 +941,22 @@ def inject_values_by_slot(src_path, dst_path, slot_assignments):
     os.replace(tmp_path, dst_path)
 
 
+def _expand_cell_height(tc_block, value):
+    """주입된 텍스트 길이에 맞게 셀 높이를 확장한다.
+    한글 11.5pt 기준 1줄 ≈ 500 HWPUNIT, 여유 포함 600으로 계산.
+    """
+    # 대략적 줄 수 추정: 한글 기준 1줄에 약 35자
+    line_count = max(len(value) // 35, 1) + 1  # 여유 +1줄
+    needed_height = line_count * 600  # 1줄당 600 HWPUNIT
+
+    m = re.search(r'(<hp:cellSz\b[^>]*height=")(\d+)(")', tc_block)
+    if m:
+        current = int(m.group(2))
+        if needed_height > current:
+            tc_block = tc_block[:m.start(2)] + str(needed_height) + tc_block[m.end(2):]
+    return tc_block
+
+
 def _inject_into_cell_xml(tbl_text, row_addr, col_addr, value):
     """테이블 XML에서 (row_addr, col_addr) 셀을 찾아 텍스트를 주입한다."""
     if not value:
@@ -980,18 +996,18 @@ def _inject_into_cell_xml(tbl_text, row_addr, col_addr, value):
         # ① 빈 <hp:t></hp:t> 이 있는 경우: 텍스트 주입
         if '<hp:t></hp:t>' in tc_block:
             new_block = tc_block.replace('<hp:t></hp:t>', f'<hp:t>{escaped}</hp:t>', 1)
+            new_block = _expand_cell_height(new_block, value)
             return tbl_text[:tc_start] + new_block + tbl_text[tc_end:]
 
         # ② self-closing <hp:run ... /> 이 있는 경우: <hp:t> 삽입
-        # 주의: /? 패턴은 open-tag도 매칭하므로 반드시 /> 로 끝나는 것만 (self-closing) 매칭
         run_sc_pat = r'<hp:run\b[^>]*/>'
         run_m = re.search(run_sc_pat, tc_block)
         if run_m:
-            # self-closing run → 열린 태그로 변환 후 hp:t 주입
-            orig_run = run_m.group(0)  # e.g. '<hp:run charPrIDRef="5"/>'
-            open_run = orig_run[:-2] + '>'  # '<hp:run charPrIDRef="5">'
+            orig_run = run_m.group(0)
+            open_run = orig_run[:-2] + '>'
             new_run = f'{open_run}<hp:t>{escaped}</hp:t></hp:run>'
             new_block = tc_block[:run_m.start()] + new_run + tc_block[run_m.end():]
+            new_block = _expand_cell_height(new_block, value)
             return tbl_text[:tc_start] + new_block + tbl_text[tc_end:]
 
         # ③ <hp:run>...</hp:run> 이 있지만 hp:t 없는 경우
@@ -1003,6 +1019,7 @@ def _inject_into_cell_xml(tbl_text, row_addr, col_addr, value):
                 '</hp:run>', f'<hp:t>{escaped}</hp:t></hp:run>', 1
             )
             new_block = tc_block[:run_m.start()] + new_run + tc_block[run_m.end():]
+            new_block = _expand_cell_height(new_block, value)
             return tbl_text[:tc_start] + new_block + tbl_text[tc_end:]
 
         break  # cellAddr 찾았지만 주입 패턴 없음 → 중단
