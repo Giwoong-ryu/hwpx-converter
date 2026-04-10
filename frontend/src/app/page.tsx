@@ -76,7 +76,7 @@ function PopularForms() {
         {["사업계획서", "이력서", "견적서", "보고서", "계약서", "공문"].map((name) => (
           <div key={name} className="bg-[#f9f9f6] rounded-2xl border border-dashed border-[#93C5FD]/40 p-5 text-center">
             <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${COLORS[name] || "bg-gray-100 text-gray-600"}`}>{name}</span>
-            <p className="text-sm text-[#57423c]/40 mt-3">아직 공유된 양식이 없습니다</p>
+            <p className="text-sm text-[#57423c]/60 mt-3">아직 공유된 양식이 없습니다</p>
             <Link href="/tool" className="text-xs text-[#2563EB] mt-1 inline-block">첫 번째 양식 공유하기</Link>
           </div>
         ))}
@@ -92,7 +92,7 @@ function PopularForms() {
           <h3 className="text-sm font-bold text-[#1a1c1b] mt-2 mb-1 line-clamp-1 group-hover:text-[#2563EB] transition-colors">{f.title}</h3>
           <p className="text-sm text-[#57423c]/50 mb-3">{f.field_count}개 필드</p>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-[#57423c]/40">{f.likes} 좋아요 · {f.downloads}명 사용</span>
+            <span className="text-sm text-[#57423c]/60">{f.likes} 좋아요 · {f.downloads}명 사용</span>
             <Link
               href={`/tool?gallery_id=${f.id}`}
               className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-linear-to-r from-[#2563EB] to-[#1E40AF] text-white text-xs font-bold hover:opacity-90 transition-opacity"
@@ -519,7 +519,7 @@ export default function LandingPage() {
           <h2 className="text-2xl font-extrabold tracking-tight text-center mb-2">
             이렇게 동작합니다
           </h2>
-          <p className="text-sm text-[#57423c]/40 text-center mb-10">
+          <p className="text-sm text-[#57423c]/60 text-center mb-10">
             3단계, 평균 <strong className="text-[#1a1c1b]">3분</strong> — 반복 복붙이 사라집니다
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
@@ -528,14 +528,14 @@ export default function LandingPage() {
               <div className="w-10 h-10 rounded-xl bg-[#1a1c1b] text-white flex items-center justify-center font-black text-lg mb-4">1</div>
               <h3 className="font-bold text-base text-[#1a1c1b] mb-1.5">양식 파일 올리기</h3>
               <p className="text-sm text-[#57423c]/55 leading-relaxed">사업계획서, 견적서, 이력서 등<br />채워야 할 HWP·HWPX·DOCX 양식</p>
-              <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white border border-gray-200 items-center justify-center text-[#57423c]/30 text-xs font-bold">→</div>
+              <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white border border-gray-200 items-center justify-center text-[#57423c]/50 text-xs font-bold">→</div>
             </div>
             {/* Step 2 */}
             <div className="scroll-fade relative flex flex-col items-center text-center p-6 rounded-2xl bg-[#f9f9f6] border border-gray-100" data-delay="100">
               <div className="w-10 h-10 rounded-xl bg-[#2563EB] text-white flex items-center justify-center font-black text-lg mb-4">2</div>
               <h3 className="font-bold text-base text-[#1a1c1b] mb-1.5">내 자료 올리기</h3>
               <p className="text-sm text-[#57423c]/55 leading-relaxed">엑셀, 워드, 텍스트<br />— 어떤 형식이든.</p>
-              <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white border border-gray-200 items-center justify-center text-[#57423c]/30 text-xs font-bold">→</div>
+              <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white border border-gray-200 items-center justify-center text-[#57423c]/50 text-xs font-bold">→</div>
             </div>
             {/* Step 3 */}
             <div className="scroll-fade flex flex-col items-center text-center p-6 rounded-2xl bg-[#f9f9f6] border border-gray-100" data-delay="200">
@@ -564,7 +564,7 @@ export default function LandingPage() {
           <h2 className="scroll-fade text-2xl lg:text-3xl font-bold tracking-tight text-center mb-3">
             이런 것도 됩니다
           </h2>
-          <p className="text-sm text-[#57423c]/40 text-center mb-12">AI 매핑 외에도 다양한 자동화 기능을 무료로 쓸 수 있어요</p>
+          <p className="text-sm text-[#57423c]/60 text-center mb-12">AI 매핑 외에도 다양한 자동화 기능을 무료로 쓸 수 있어요</p>
 
           {/* 메인 기능 2개 (큰 카드) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
@@ -634,7 +634,7 @@ export default function LandingPage() {
                 <h3 className="text-sm font-extrabold text-[#1a1c1b] mb-1">AI 초안 작성 — 자료가 없어도 괜찮아요</h3>
                 <p className="text-sm text-[#57423c]/60 leading-relaxed">
                   양식에 맞는 핵심 질문을 안내해드립니다. 답변하면 초안이 채워져요.
-                  <span className="text-[#57423c]/40 ml-1">중요 문서는 반드시 본인이 검토하세요.</span>
+                  <span className="text-[#57423c]/60 ml-1">중요 문서는 반드시 본인이 검토하세요.</span>
                 </p>
               </div>
             </div>
@@ -731,7 +731,7 @@ export default function LandingPage() {
                     <span className="text-sm font-bold text-[#1a1c1b]">{faq.q}</span>
                     <ChevronDown
                       size={16}
-                      className={`text-[#57423c]/40 shrink-0 ml-3 transition-transform duration-200 ${openFaq === i ? 'rotate-180' : ''}`}
+                      className={`text-[#57423c]/60 shrink-0 ml-3 transition-transform duration-200 ${openFaq === i ? 'rotate-180' : ''}`}
                     />
                   </button>
                   {openFaq === i && (
@@ -755,15 +755,15 @@ export default function LandingPage() {
               </div>
               <div className="space-y-2.5">
                 <div className="flex items-start gap-3 bg-white rounded-lg px-4 py-3 border border-gray-100">
-                  <Server size={14} className="text-[#57423c]/40 mt-0.5 shrink-0" />
+                  <Server size={14} className="text-[#57423c]/60 mt-0.5 shrink-0" />
                   <span className="text-base text-[#57423c]">양식 분석과 문서 생성은 이 서버에서만 처리됩니다</span>
                 </div>
                 <div className="flex items-start gap-3 bg-white rounded-lg px-4 py-3 border border-gray-100">
-                  <Lock size={14} className="text-[#57423c]/40 mt-0.5 shrink-0" />
+                  <Lock size={14} className="text-[#57423c]/60 mt-0.5 shrink-0" />
                   <span className="text-base text-[#57423c]">AI 자동 채우기만 Google AI를 사용하며, 데이터는 학습에 사용되지 않습니다</span>
                 </div>
                 <div className="flex items-start gap-3 bg-white rounded-lg px-4 py-3 border border-gray-100">
-                  <Trash2 size={14} className="text-[#57423c]/40 mt-0.5 shrink-0" />
+                  <Trash2 size={14} className="text-[#57423c]/60 mt-0.5 shrink-0" />
                   <span className="text-base text-[#57423c]">업로드된 파일은 3시간 후 자동 삭제됩니다</span>
                 </div>
               </div>
@@ -783,7 +783,7 @@ export default function LandingPage() {
               >
                 무료로 시작하기 <ArrowRight size={17} />
               </Link>
-              <p className="text-sm text-[#57423c]/40 mt-3">
+              <p className="text-sm text-[#57423c]/60 mt-3">
                 <Clock size={10} className="inline mr-1" />
                 회원가입 없이 / HWP · HWPX · DOCX 지원
               </p>

@@ -84,11 +84,11 @@ export default function MappingManager() {
           </Link>
         </div>
       ) : loading ? (
-        <div className="text-center py-6 text-base text-[#57423c]/40"><Loader2 size={16} className="animate-spin inline" /> 불러오는 중...</div>
+        <div className="text-center py-6 text-base text-[#57423c]/60"><Loader2 size={16} className="animate-spin inline" /> 불러오는 중...</div>
       ) : mappings.length === 0 ? (
         <div className="text-center py-6">
           <p className="text-base text-[#57423c]/50 mb-2">아직 저장한 매핑이 없어요.</p>
-          <p className="text-sm text-[#57423c]/40">도구 페이지에서 AI 매핑 후 &apos;매핑 저장&apos; 버튼을 눌러보세요.</p>
+          <p className="text-sm text-[#57423c]/60">도구 페이지에서 AI 매핑 후 &apos;매핑 저장&apos; 버튼을 눌러보세요.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -103,22 +103,22 @@ export default function MappingManager() {
                     className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors ${
                       m.is_public
                         ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
-                        : "text-[#57423c]/40 hover:text-[#2563EB] hover:bg-[#EFF6FF]"
+                        : "text-[#57423c]/60 hover:text-[#2563EB] hover:bg-[#EFF6FF]"
                     }`}
                   >
                     {toggling === m.id ? <Loader2 size={10} className="animate-spin" /> : m.is_public ? <Globe size={10} /> : <Lock size={10} />}
                     {m.is_public ? "공개" : "비공개"}
                   </button>
-                  <button onClick={() => doDelete(m.id)} className="p-1 text-[#57423c]/30 hover:text-red-500"><Trash2 size={12} /></button>
+                  <button onClick={() => doDelete(m.id)} className="p-1 text-[#57423c]/50 hover:text-red-500"><Trash2 size={12} /></button>
                 </div>
               </div>
-              <div className="flex items-center gap-3 text-xs text-[#57423c]/40">
+              <div className="flex items-center gap-3 text-xs text-[#57423c]/60">
                 <span>{m.form_field_count}개 항목</span>
                 {m.likes > 0 && <span>{m.likes}명이 사용</span>}
                 <span>{new Date(m.created_at).toLocaleDateString("ko-KR")}</span>
               </div>
               {!m.is_public && (
-                <p className="text-xs text-[#57423c]/30 mt-1">공개하면 다른 사용자도 이 매핑을 사용할 수 있어요. 처음 공개 시 +25% 보상!</p>
+                <p className="text-xs text-[#57423c]/50 mt-1">공개하면 다른 사용자도 이 매핑을 사용할 수 있어요. 처음 공개 시 +25% 보상!</p>
               )}
             </div>
           ))}
@@ -128,7 +128,7 @@ export default function MappingManager() {
       {/* 한도 표시 */}
       {limit > 0 && (
         <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-          <span className="text-xs text-[#57423c]/40">{mappings.length}/{limit >= 9999 ? "무제한" : limit}개 사용 중</span>
+          <span className="text-xs text-[#57423c]/60">{mappings.length}/{limit >= 9999 ? "무제한" : limit}개 사용 중</span>
           {mappings.length >= limit && limit < 9999 && (
             <Link href="/pricing" className="text-xs text-[#2563EB] hover:underline">Pro로 업그레이드 →</Link>
           )}

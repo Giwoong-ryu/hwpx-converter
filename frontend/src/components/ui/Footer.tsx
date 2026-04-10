@@ -16,7 +16,7 @@ export default function Footer() {
           </div>
 
           {/* 신뢰 배지 */}
-          <div className="flex items-center gap-6 text-xs text-[#57423c]/40">
+          <div className="flex items-center gap-6 text-xs font-medium text-[#57423c]/70">
             <span className="flex items-center gap-1.5">
               <Shield size={12} /> 파일 3시간 후 자동 삭제
             </span>
@@ -29,16 +29,16 @@ export default function Footer() {
           </div>
 
           {/* 법적 링크 */}
-          <div className="flex items-center gap-4 text-xs text-[#57423c]/40">
+          <div className="flex items-center gap-4 text-xs font-medium text-[#57423c]/70">
             <Link href="/terms" className="hover:text-[#1a1c1b] transition-colors">이용약관</Link>
             <span>·</span>
             <Link href="/privacy" className="hover:text-[#1a1c1b] transition-colors">개인정보처리방침</Link>
             <span>·</span>
-            <a href="mailto:support@eazyhwpx.kr" className="hover:text-[#1a1c1b] transition-colors">문의</a>
+            <a href="mailto:eazypick.service@gmail.com" className="hover:text-[#1a1c1b] transition-colors">문의</a>
           </div>
         </div>
 
-        <div className="mt-6 pt-5 border-t border-gray-100 text-center text-xs text-[#57423c]/30">
+        <div className="mt-6 pt-5 border-t border-gray-100 text-center text-xs text-[#57423c]/50">
           © 2025 Eazy HWPX. HWP·HWPX는 한글과컴퓨터의 등록상표입니다.
         </div>
       </div>

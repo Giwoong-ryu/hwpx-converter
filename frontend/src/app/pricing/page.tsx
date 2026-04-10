@@ -112,7 +112,7 @@ export default function PricingPage() {
 
           {/* Free */}
           <div className="bg-white rounded-2xl border border-gray-200/80 p-6 flex flex-col">
-            <div className="text-sm font-bold text-[#57423c]/30 uppercase tracking-widest mb-3">Free</div>
+            <div className="text-sm font-bold text-[#57423c]/50 uppercase tracking-widest mb-3">Free</div>
             <div className="text-4xl font-black tracking-tight mb-1">0원</div>
             <p className="text-base text-[#57423c]/50 mb-5">가입 없이도 바로 사용</p>
             <ul className="space-y-3 mb-6 flex-1">
@@ -156,10 +156,10 @@ export default function PricingPage() {
 
           {/* Pro */}
           <div className="bg-white rounded-2xl border border-gray-200/80 p-6 flex flex-col">
-            <div className="text-sm font-bold text-[#57423c]/30 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+            <div className="text-sm font-bold text-[#57423c]/50 uppercase tracking-widest mb-3 flex items-center gap-1.5">
               <Crown size={14} /> Pro
             </div>
-            <div className="text-4xl font-black tracking-tight mb-1">9,900원<span className="text-lg font-normal text-[#57423c]/30">/월</span></div>
+            <div className="text-4xl font-black tracking-tight mb-1">9,900원<span className="text-lg font-normal text-[#57423c]/50">/월</span></div>
             <p className="text-base text-[#57423c]/50 mb-1.5">AI 무제한, 횟수 걱정 없이</p>
             <p className="text-sm text-[#57423c]/50 mb-4 leading-relaxed">매주 게이지 자동 리셋.<br />구독 중 요금 인상 없음.</p>
             <ul className="space-y-3 mb-6 flex-1">
@@ -224,7 +224,7 @@ export default function PricingPage() {
             ) : (
               /* Step 1: 코드 입력 */
               <div className="flex items-center gap-2">
-                <Ticket size={16} className="text-[#57423c]/30 shrink-0" />
+                <Ticket size={16} className="text-[#57423c]/50 shrink-0" />
                 <input
                   type="text"
                   value={couponCode}
@@ -246,7 +246,7 @@ export default function PricingPage() {
           </div>
 
           {/* 스크롤 힌트 */}
-          <div className="flex flex-col items-center gap-1 animate-bounce text-[#57423c]/40">
+          <div className="flex flex-col items-center gap-1 animate-bounce text-[#57423c]/60">
             <span className="text-xs uppercase font-bold tracking-widest">Scroll to explore</span>
             <ChevronDown size={14} />
           </div>
@@ -308,7 +308,7 @@ export default function PricingPage() {
         </div>
 
         {/* ── 신뢰 ── */}
-        <div className="flex items-center justify-center gap-8 text-base text-[#57423c]/30 pt-8 border-t border-gray-200/60">
+        <div className="flex items-center justify-center gap-8 text-base text-[#57423c]/50 pt-8 border-t border-gray-200/60">
           <span className="flex items-center gap-1.5"><Shield size={14} /> 광고 없음</span>
           <span className="flex items-center gap-1.5"><Shield size={14} /> 파일 즉시 삭제</span>
           <span className="flex items-center gap-1.5"><Shield size={14} /> 로그인 없이 사용 가능</span>
@@ -349,7 +349,7 @@ function FAQ({ q, a }: { q: string; a: string }) {
     <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
       <button onClick={() => setOpen(!open)} className="w-full p-5 flex items-center justify-between text-left">
         <span className="font-bold text-base text-[#1a1c1b]">{q}</span>
-        <ChevronDown size={18} className={`text-[#57423c]/30 transition-transform shrink-0 ml-4 ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={18} className={`text-[#57423c]/50 transition-transform shrink-0 ml-4 ${open ? "rotate-180" : ""}`} />
       </button>
       {open && <p className="px-5 pb-5 text-base text-[#57423c]/60 leading-relaxed -mt-1">{a}</p>}
     </div>

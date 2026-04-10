@@ -66,7 +66,7 @@ export default function LevelAchievements() {
                     ? `${l.bg} ring-2 ring-offset-2 ${l.ring} ${l.color}`
                     : isPast
                     ? `${l.bg} ${l.color}`
-                    : "bg-gray-50 text-[#57423c]/20"
+                    : "bg-gray-50 text-[#57423c]/40"
                 }`}>
                   {isLast ? (
                     <Trophy size={18} strokeWidth={isCurrent ? 2.5 : 1.8} />
@@ -109,7 +109,7 @@ export default function LevelAchievements() {
               {done ? (
                 <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
               ) : (
-                <Circle size={16} className="text-[#57423c]/40 shrink-0" />
+                <Circle size={16} className="text-[#57423c]/60 shrink-0" />
               )}
               <div className="flex-1 min-w-0">
                 <span className={`text-base ${done ? "text-[#1a1c1b] font-semibold" : "text-[#57423c]"}`}>

@@ -127,7 +127,7 @@ function GaugeBadge() {
   if (plan === "free") return (
     <Link href="/pricing" className="flex items-center gap-1.5 text-xs text-[#57423c]/50 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors">
       <Zap size={10} /> 무료 · <span className="text-[#2563EB] font-bold">업그레이드</span>
-      {streak > 0 && <span className="text-[#57423c]/30">· {streak}일</span>}
+      {streak > 0 && <span className="text-[#57423c]/50">· {streak}일</span>}
     </Link>
   );
 
@@ -157,7 +157,7 @@ function GaugeBadge() {
 
       {/* 단계 (2 이상만 표시) */}
       {level >= 2 && (
-        <span className="text-[#57423c]/30">{level}단계</span>
+        <span className="text-[#57423c]/50">{level}단계</span>
       )}
     </Link>
   );
@@ -184,7 +184,7 @@ function UserMenu({ onLoginClick }: { onLoginClick: () => void }) {
           <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-lg p-2 min-w-[160px] z-50">
             <div className="px-3 py-2 border-b border-gray-100 mb-1">
               <p className="text-xs font-bold text-[#1a1c1b]">{user.level || 1}단계 {user.level_title || "복붙 탈출"}</p>
-              <p className="text-xs text-[#57423c]/40">문서 {user.total_docs || 0}건 완성</p>
+              <p className="text-xs text-[#57423c]/60">문서 {user.total_docs || 0}건 완성</p>
             </div>
             <Link href="/mypage" className="flex items-center gap-2 px-3 py-2 text-sm text-[#57423c] hover:bg-[#f4f4f1] rounded-lg" onClick={() => setOpen(false)}>
               <User size={12} /> 마이페이지
@@ -194,7 +194,7 @@ function UserMenu({ onLoginClick }: { onLoginClick: () => void }) {
             </Link>
             {user.email && ["ryugw10@gmail.com"].includes(user.email) && (
               <div className="border-t border-gray-100 mt-1 pt-1">
-                <p className="px-3 py-1 text-[10px] text-[#57423c]/30 font-bold">OWNER</p>
+                <p className="px-3 py-1 text-[10px] text-[#57423c]/50 font-bold">OWNER</p>
                 {(["free", "plus", "pro"] as const).map((p) => (
                   <button key={p} onClick={async () => {
                     const API = process.env.NEXT_PUBLIC_API_URL || "/api";
@@ -312,7 +312,7 @@ function ShareFormButton({ file, filename, fieldCount }: { file: File | null; fi
               </div>
             </div>
 
-            <p className="text-xs text-[#57423c]/40 mb-4">
+            <p className="text-xs text-[#57423c]/60 mb-4">
               업로드한 콘텐츠의 저작권 책임은 사용자에게 있습니다.
             </p>
 

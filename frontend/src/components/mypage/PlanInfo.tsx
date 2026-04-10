@@ -68,7 +68,7 @@ export default function PlanInfo() {
         </Link>
       )}
       {plan === "pro" && (
-        <Link href="/pricing" className="text-xs text-[#57423c]/40 hover:text-[#2563EB] transition-colors">
+        <Link href="/pricing" className="text-xs text-[#57423c]/60 hover:text-[#2563EB] transition-colors">
           요금제 자세히 보기 →
         </Link>
       )}

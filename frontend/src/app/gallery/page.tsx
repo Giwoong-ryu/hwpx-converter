@@ -164,7 +164,7 @@ export default function GalleryPage() {
         {/* 검색 + 필터 */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <form onSubmit={handleSearch} className="flex-1 relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#57423c]/40" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#57423c]/60" />
             <input
               type="text"
               value={query}
@@ -214,7 +214,7 @@ export default function GalleryPage() {
           </div>
         ) : forms.length === 0 ? (
           <div className="text-center py-20">
-            <FileText size={40} className="mx-auto text-[#57423c]/20 mb-3" />
+            <FileText size={40} className="mx-auto text-[#57423c]/40 mb-3" />
             <p className="text-base text-[#57423c]/50">아직 공유된 양식이 없습니다</p>
             <Link href="/tool" className="text-sm text-[#2563EB] hover:underline mt-2 inline-block">
               첫 번째 양식을 공유해보세요
@@ -235,11 +235,11 @@ export default function GalleryPage() {
                     {form.category}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-[#57423c]/40">{timeAgo(form.created_at)}</span>
+                    <span className="text-xs text-[#57423c]/60">{timeAgo(form.created_at)}</span>
                     {user && form.user_id === user.user_id && (
                       <button
                         onClick={() => handleDelete(form.id)}
-                        className="text-[#57423c]/30 hover:text-red-500 transition-colors"
+                        className="text-[#57423c]/50 hover:text-red-500 transition-colors"
                         title="삭제"
                       >
                         <Trash2 size={13} />
@@ -265,13 +265,13 @@ export default function GalleryPage() {
                     <button
                       onClick={() => handleLike(form.id)}
                       className={`flex items-center gap-1 text-xs transition-colors ${
-                        form.liked ? "text-red-500" : "text-[#57423c]/40 hover:text-red-400"
+                        form.liked ? "text-red-500" : "text-[#57423c]/60 hover:text-red-400"
                       }`}
                     >
                       <Heart size={14} fill={form.liked ? "currentColor" : "none"} />
                       {form.likes}
                     </button>
-                    <span className="flex items-center gap-1 text-xs text-[#57423c]/40">
+                    <span className="flex items-center gap-1 text-xs text-[#57423c]/60">
                       <Download size={12} /> {form.downloads}
                     </span>
                   </div>

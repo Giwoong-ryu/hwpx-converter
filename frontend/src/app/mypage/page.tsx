@@ -82,7 +82,7 @@ export default function MyPage() {
       {/* 비로그인 */}
       {!loading && !user && (
         <div className="max-w-md mx-auto px-6 py-20 text-center">
-          <User size={48} className="text-[#57423c]/20 mx-auto mb-4" />
+          <User size={48} className="text-[#57423c]/40 mx-auto mb-4" />
           <p className="text-lg font-bold text-[#1a1c1b] mb-2">로그인이 필요해요</p>
           <p className="text-sm text-[#57423c] mb-6">마이페이지에서 내 사용 현황, 업적, 프리셋을 확인할 수 있어요.</p>
           <button

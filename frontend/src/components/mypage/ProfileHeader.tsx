@@ -52,7 +52,7 @@ export default function ProfileHeader() {
           <p className="font-bold text-[#1a1c1b]">{user.email}</p>
           <p className="text-base text-[#57423c]">
             {level}단계 {levelTitle}
-            <span className="mx-1.5 text-[#57423c]/30">·</span>
+            <span className="mx-1.5 text-[#57423c]/50">·</span>
             {plan === "free" ? (
               <span className="text-[#57423c]/60">Free 플랜</span>
             ) : plan === "pro" ? (
@@ -60,7 +60,7 @@ export default function ProfileHeader() {
             ) : (
               <span className="font-bold text-[#2563EB] bg-[#DBEAFE] px-1.5 py-0.5 rounded text-xs">PLUS</span>
             )}
-            <span className="mx-1.5 text-[#57423c]/30">·</span>
+            <span className="mx-1.5 text-[#57423c]/50">·</span>
             문서 {totalDocs}건 완성
           </p>
         </div>
@@ -92,10 +92,10 @@ export default function ProfileHeader() {
 
       {/* 스트릭 */}
       <div className="flex items-center gap-2 text-base">
-        <Flame size={16} className={streak >= 3 ? "text-orange-500" : "text-[#57423c]/30"} />
+        <Flame size={16} className={streak >= 3 ? "text-orange-500" : "text-[#57423c]/50"} />
         <span className="text-[#57423c]">{streakMessage(streak)}</span>
         {nextStreakReward && streak > 0 && (
-          <span className="text-xs text-[#57423c]/40 ml-auto">
+          <span className="text-xs text-[#57423c]/60 ml-auto">
             다음 보상: {nextStreakReward.days}일 (+{nextStreakReward.reward}%)
           </span>
         )}

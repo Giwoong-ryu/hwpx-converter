@@ -221,7 +221,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
 
           <p className="text-sm text-[#57423c]/60">
             내 자료를 입력하거나 파일을 올려주세요.
-            <span className="text-[#57423c]/40 ml-1">항목명: 값 형식이면 AI 없이도 채울 수 있습니다.</span>
+            <span className="text-[#57423c]/60 ml-1">항목명: 값 형식이면 AI 없이도 채울 수 있습니다.</span>
           </p>
         </div>
 
@@ -263,7 +263,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
                 이 기기에서 입력 내용 기억하기
               </span>
               {remember && (
-                <span className="text-xs text-[#57423c]/40">서버에 전송되지 않습니다</span>
+                <span className="text-xs text-[#57423c]/60">서버에 전송되지 않습니다</span>
               )}
             </label>
             </div>
@@ -285,7 +285,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
                       <span className="text-xs text-[#57423c] truncate">{f.name}</span>
                       <button
                         onClick={() => setContentFiles((prev) => prev.filter((_, j) => j !== i))}
-                        className="text-[#57423c]/40 hover:text-red-500 ml-2"
+                        className="text-[#57423c]/60 hover:text-red-500 ml-2"
                       >
                         <X size={12} />
                       </button>
@@ -293,7 +293,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
                   ))}
                 </div>
               )}
-              <p className="text-xs text-[#57423c]/40 mt-auto pt-2">텍스트 + 파일을 함께 사용 가능</p>
+              <p className="text-xs text-[#57423c]/60 mt-auto pt-2">텍스트 + 파일을 함께 사용 가능</p>
             </div>
           </div>
         </div>
@@ -451,7 +451,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
                       {isAi ? (
                         <span className="text-[#2563EB] font-medium">AI</span>
                       ) : (
-                        <span className="text-[#57423c]/40">내 자료</span>
+                        <span className="text-[#57423c]/60">내 자료</span>
                       )}
                     </td>
                   </tr>
@@ -481,7 +481,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
                       <p className="text-base font-semibold text-[#1a1c1b] truncate">{m.form_name}</p>
                       <p className="text-xs text-[#57423c]/50">{m.form_field_count}개 필드 · {new Date(m.created_at).toLocaleDateString("ko-KR")}</p>
                     </button>
-                    <button onClick={() => doDeleteMapping(m.id)} className="p-1.5 text-[#57423c]/30 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                    <button onClick={() => doDeleteMapping(m.id)} className="p-1.5 text-[#57423c]/50 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                   </div>
                 ))
               )}

@@ -63,7 +63,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
         <h2 className="text-xl font-extrabold tracking-tight mb-2">
           {TITLES[mode]}
         </h2>
-        <p className="text-sm text-[#57423c]/40 mb-6">{SUBTITLES[mode]}</p>
+        <p className="text-sm text-[#57423c]/60 mb-6">{SUBTITLES[mode]}</p>
 
         {/* 비밀번호 찾기 성공 */}
         {forgotSent ? (
@@ -103,7 +103,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
                 </div>
                 <div className="flex items-center gap-4 mb-6">
                   <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-xs text-[#57423c]/30">또는</span>
+                  <span className="text-xs text-[#57423c]/50">또는</span>
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
               </>
@@ -152,14 +152,14 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
             <div className="mt-4 text-center space-y-1.5">
               {mode === "login" && (
                 <>
-                  <p className="text-xs text-[#57423c]/40">
+                  <p className="text-xs text-[#57423c]/60">
                     계정이 없으신가요?{" "}
                     <button onClick={() => { setMode("signup"); setError(""); }} className="text-[#1a1c1b] font-bold">무료 가입</button>
                   </p>
                   <p className="text-xs">
                     <button
                       onClick={() => { setMode("forgot"); setError(""); }}
-                      className="text-[#57423c]/40 hover:text-[#1a1c1b] transition-colors"
+                      className="text-[#57423c]/60 hover:text-[#1a1c1b] transition-colors"
                     >
                       비밀번호를 잊으셨나요?
                     </button>
@@ -167,13 +167,13 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
                 </>
               )}
               {mode === "signup" && (
-                <p className="text-xs text-[#57423c]/40">
+                <p className="text-xs text-[#57423c]/60">
                   이미 계정이 있으신가요?{" "}
                   <button onClick={() => { setMode("login"); setError(""); }} className="text-[#1a1c1b] font-bold">로그인</button>
                 </p>
               )}
               {mode === "forgot" && (
-                <p className="text-xs text-[#57423c]/40">
+                <p className="text-xs text-[#57423c]/60">
                   <button onClick={() => { setMode("login"); setError(""); }} className="text-[#1a1c1b] font-bold">← 로그인으로 돌아가기</button>
                 </p>
               )}

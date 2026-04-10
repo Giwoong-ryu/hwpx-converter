@@ -17,14 +17,14 @@ export default function PrivacyPage() {
             </div>
             <span className="text-sm font-extrabold tracking-tighter">Eazy HWPX</span>
           </Link>
-          <span className="text-sm text-[#57423c]/40">/</span>
+          <span className="text-sm text-[#57423c]/60">/</span>
           <span className="text-sm text-[#57423c]/60">개인정보처리방침</span>
         </div>
       </nav>
 
       <main className="pt-24 pb-20 max-w-2xl mx-auto px-8">
         <h1 className="text-3xl font-extrabold tracking-tight mb-2">개인정보처리방침</h1>
-        <p className="text-sm text-[#57423c]/40 mb-10">최종 업데이트: 2025년 1월 1일</p>
+        <p className="text-sm text-[#57423c]/60 mb-10">최종 업데이트: 2025년 1월 1일</p>
 
         <div className="space-y-8 text-sm text-[#57423c]/70 leading-relaxed">
 
@@ -126,7 +126,7 @@ export default function PrivacyPage() {
               <li>• 개인정보 열람 요청</li>
               <li>• 개인정보 수정·삭제 요청</li>
               <li>• 회원 탈퇴 (마이페이지 → 계정 삭제)</li>
-              <li>• 위 요청은 <a href="mailto:support@eazyhwpx.kr" className="text-[#2563EB] hover:underline">support@eazyhwpx.kr</a>로 이메일 문의해주세요.</li>
+              <li>• 위 요청은 <a href="mailto:eazypick.service@gmail.com" className="text-[#2563EB] hover:underline">eazypick.service@gmail.com</a>으로 이메일 문의해주세요.</li>
             </ul>
           </section>
 
@@ -137,12 +137,12 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-base font-bold text-[#1a1c1b] mb-3">문의</h2>
-            <p>개인정보 관련 문의: <a href="mailto:support@eazyhwpx.kr" className="text-[#2563EB] hover:underline">support@eazyhwpx.kr</a></p>
+            <p>개인정보 관련 문의: <a href="mailto:eazypick.service@gmail.com" className="text-[#2563EB] hover:underline">eazypick.service@gmail.com</a></p>
           </section>
 
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-200/60 flex gap-6 text-sm text-[#57423c]/40">
+        <div className="mt-12 pt-8 border-t border-gray-200/60 flex gap-6 text-sm text-[#57423c]/60">
           <Link href="/terms" className="hover:text-[#1a1c1b] transition-colors">이용약관</Link>
           <Link href="/" className="hover:text-[#1a1c1b] transition-colors">홈으로</Link>
         </div>

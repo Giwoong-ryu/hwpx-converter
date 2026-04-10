@@ -64,7 +64,7 @@ export default function GaugeEmptyModal({ onClose, errorCode, plan, gaugePct }: 
             {isLoginRequired ? "무료로 가입하기" : "게이지 충전하기"}
           </Link>
 
-          <button onClick={onClose} className="mt-3 text-xs text-[#57423c]/40 hover:text-[#57423c]/60">
+          <button onClick={onClose} className="mt-3 text-xs text-[#57423c]/60 hover:text-[#1a1c1b]">
             나중에
           </button>
         </div>

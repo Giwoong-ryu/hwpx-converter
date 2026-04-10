@@ -41,7 +41,7 @@ AI 기능은 Gemini API를 통해 제공되며 응답 품질은 입력 내용에
 • 결제일로부터 7일 이내
 • AI 기능(게이지)을 사용하지 않은 경우
 
-환불 요청은 support@eazyhwpx.kr 로 이메일 문의해주세요. 영업일 기준 3일 이내 처리합니다.`,
+환불 요청은 eazypick.service@gmail.com 으로 이메일 문의해주세요. 영업일 기준 3일 이내 처리합니다.`,
   },
   {
     title: "제6조 (이용 제한)",
@@ -73,14 +73,14 @@ export default function TermsPage() {
             </div>
             <span className="text-sm font-extrabold tracking-tighter">Eazy HWPX</span>
           </Link>
-          <span className="text-sm text-[#57423c]/40">/</span>
+          <span className="text-sm text-[#57423c]/60">/</span>
           <span className="text-sm text-[#57423c]/60">이용약관</span>
         </div>
       </nav>
 
       <main className="pt-24 pb-20 max-w-2xl mx-auto px-8">
         <h1 className="text-3xl font-extrabold tracking-tight mb-2">이용약관</h1>
-        <p className="text-sm text-[#57423c]/40 mb-10">최종 업데이트: 2025년 1월 1일</p>
+        <p className="text-sm text-[#57423c]/60 mb-10">최종 업데이트: 2025년 1월 1일</p>
 
         <div className="space-y-8">
           {SECTIONS.map((s) => (
@@ -91,7 +91,7 @@ export default function TermsPage() {
           ))}
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-200/60 flex gap-6 text-sm text-[#57423c]/40">
+        <div className="mt-12 pt-8 border-t border-gray-200/60 flex gap-6 text-sm text-[#57423c]/60">
           <Link href="/privacy" className="hover:text-[#1a1c1b] transition-colors">개인정보처리방침</Link>
           <Link href="/" className="hover:text-[#1a1c1b] transition-colors">홈으로</Link>
         </div>
