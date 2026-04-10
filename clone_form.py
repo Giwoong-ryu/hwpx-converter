@@ -45,7 +45,7 @@ _FORM_SUB_LABELS = {
 
 
 def _parse_header_styles(header_bytes):
-    """header.xml에서 borderFill 배경색과 charPr bold 정보를 파싱한다."""
+    """header.xml에서 borderFill 배경색, charPr bold/크기 정보를 파싱한다."""
     root = etree.fromstring(header_bytes)
     bf_colors = {}
     for bf in root.findall('.//hh:borderFill', _NS):
@@ -55,11 +55,17 @@ def _parse_header_styles(header_bytes):
         bf_colors[bid] = fc not in ('none', '#FFFFFF', 'rgb(255, 255, 255)')
 
     cp_bold = {}
+    cp_sz = {}  # charPrIDRef -> font size in HWPUNIT (1pt = 100)
     for cp in root.findall('.//hh:charPr', _NS):
         cid = cp.get('id', '')
         cp_bold[cid] = cp.find('hh:bold', _NS) is not None
+        # height 속성이 폰트 크기 (HWPUNIT). 기본 1000 = 10pt
+        try:
+            cp_sz[cid] = int(cp.get('height', '1000'))
+        except (ValueError, TypeError):
+            cp_sz[cid] = 1000
 
-    return bf_colors, cp_bold
+    return bf_colors, cp_bold, cp_sz
 
 
 def _get_cell_text(tc):
@@ -72,8 +78,14 @@ def _get_cell_text(tc):
     return ' '.join(texts).strip()
 
 
-def _build_table_data(tbl, bf_colors, cp_bold):
-    """hp:tbl 요소에서 테이블 그리드를 구축한다. 병합 셀 처리 포함."""
+def _build_table_data(tbl, bf_colors, cp_bold, cp_sz=None):
+    """hp:tbl 요소에서 테이블 그리드를 구축한다. 병합 셀 처리 포함.
+
+    cp_sz: charPrIDRef -> 폰트 크기(HWPUNIT) 매핑. 없으면 기본 1000 사용.
+    각 셀에 width/height/font_sz (HWPUNIT) 정보를 포함한다.
+    """
+    if cp_sz is None:
+        cp_sz = {}
     row_cnt = int(tbl.get('rowCnt', '0'))
     col_cnt = int(tbl.get('colCnt', '0'))
     if row_cnt == 0 or col_cnt == 0:
@@ -96,13 +108,28 @@ def _build_table_data(tbl, bf_colors, cp_bold):
         bf_id = tc.get('borderFillIDRef', '')
         has_bg = bf_colors.get(bf_id, False)
 
+        # 폰트 크기: 첫 run의 charPrIDRef로 찾음. 없으면 1000(10pt) 기본
         run = tc.find('.//hp:run', _NS)
         is_bold = False
+        font_sz = 1000
         if run is not None:
             cp_id = run.get('charPrIDRef', '')
             is_bold = cp_bold.get(cp_id, False)
+            font_sz = cp_sz.get(cp_id, 1000)
 
-        cell = {"text": text, "bold": is_bold, "bg": has_bg}
+        # 셀 크기: <hp:cellSz width="..." height="..."/>
+        cellsz = tc.find('hp:cellSz', _NS)
+        cell_w = int(cellsz.get('width', '0')) if cellsz is not None else 0
+        cell_h = int(cellsz.get('height', '0')) if cellsz is not None else 0
+
+        cell = {
+            "text": text,
+            "bold": is_bold,
+            "bg": has_bg,
+            "width": cell_w,
+            "height": cell_h,
+            "font_sz": font_sz,
+        }
 
         # 병합 영역 채우기 (같은 셀 참조)
         for dr in range(rs):
@@ -128,10 +155,10 @@ def extract_structured_fields(hwpx_path):
     """
     with zipfile.ZipFile(hwpx_path, 'r') as zf:
         # header.xml에서 스타일 정보 파싱
-        bf_colors, cp_bold = {}, {}
+        bf_colors, cp_bold, cp_sz = {}, {}, {}
         if 'Contents/header.xml' in zf.namelist():
             try:
-                bf_colors, cp_bold = _parse_header_styles(zf.read('Contents/header.xml'))
+                bf_colors, cp_bold, cp_sz = _parse_header_styles(zf.read('Contents/header.xml'))
             except Exception:
                 pass  # 스타일 파싱 실패해도 텍스트 추출은 계속
 
@@ -164,7 +191,7 @@ def extract_structured_fields(hwpx_path):
                 if in_nested:
                     continue  # 중첩 테이블은 스킵 (부모에서 처리됨)
 
-                grid = _build_table_data(tbl, bf_colors, cp_bold)
+                grid = _build_table_data(tbl, bf_colors, cp_bold, cp_sz)
                 if grid is None:
                     continue
 
@@ -743,10 +770,10 @@ def build_header_slot_map(hwpx_path):
     result = {}
 
     with zipfile.ZipFile(hwpx_path, 'r') as zf:
-        bf_colors, cp_bold = {}, {}
+        bf_colors, cp_bold, cp_sz = {}, {}, {}
         if 'Contents/header.xml' in zf.namelist():
             try:
-                bf_colors, cp_bold = _parse_header_styles(zf.read('Contents/header.xml'))
+                bf_colors, cp_bold, cp_sz = _parse_header_styles(zf.read('Contents/header.xml'))
             except Exception:
                 pass
 
@@ -924,18 +951,6 @@ def inject_values_by_slot(src_path, dst_path, slot_assignments):
                                 tbl_text, sa["row"], sa["col"], sa["value"]
                             )
 
-                        # 테이블 전체 높이(hp:sz height)를 셀 높이 합산으로 재계산
-                        cell_heights = [int(h) for h in re.findall(
-                            r'<hp:cellSz\b[^>]*height="(\d+)"', tbl_text)]
-                        if cell_heights:
-                            total_h = sum(cell_heights)
-                            sz_m = re.search(
-                                r'(<hp:sz\b[^>]*height=")(\d+)(")', tbl_text)
-                            if sz_m and total_h > int(sz_m.group(2)):
-                                tbl_text = (tbl_text[:sz_m.start(2)]
-                                            + str(total_h)
-                                            + tbl_text[sz_m.end(2):])
-
                         return tbl_text
 
                     text = re.sub(
@@ -952,22 +967,6 @@ def inject_values_by_slot(src_path, dst_path, slot_assignments):
                 zout.writestr(item, data)
 
     os.replace(tmp_path, dst_path)
-
-
-def _expand_cell_height(tc_block, value):
-    """주입된 텍스트 길이에 맞게 셀 높이를 확장한다.
-    한글 11.5pt 기준 1줄 ≈ 500 HWPUNIT, 여유 포함 600으로 계산.
-    """
-    # 대략적 줄 수 추정: 한글 기준 1줄에 약 35자
-    line_count = max(len(value) // 35, 1) + 1  # 여유 +1줄
-    needed_height = line_count * 600  # 1줄당 600 HWPUNIT
-
-    m = re.search(r'(<hp:cellSz\b[^>]*height=")(\d+)(")', tc_block)
-    if m:
-        current = int(m.group(2))
-        if needed_height > current:
-            tc_block = tc_block[:m.start(2)] + str(needed_height) + tc_block[m.end(2):]
-    return tc_block
 
 
 def _inject_into_cell_xml(tbl_text, row_addr, col_addr, value):
@@ -1009,7 +1008,6 @@ def _inject_into_cell_xml(tbl_text, row_addr, col_addr, value):
         # ① 빈 <hp:t></hp:t> 이 있는 경우: 텍스트 주입
         if '<hp:t></hp:t>' in tc_block:
             new_block = tc_block.replace('<hp:t></hp:t>', f'<hp:t>{escaped}</hp:t>', 1)
-            new_block = _expand_cell_height(new_block, value)
             return tbl_text[:tc_start] + new_block + tbl_text[tc_end:]
 
         # ② self-closing <hp:run ... /> 이 있는 경우: <hp:t> 삽입
@@ -1020,7 +1018,6 @@ def _inject_into_cell_xml(tbl_text, row_addr, col_addr, value):
             open_run = orig_run[:-2] + '>'
             new_run = f'{open_run}<hp:t>{escaped}</hp:t></hp:run>'
             new_block = tc_block[:run_m.start()] + new_run + tc_block[run_m.end():]
-            new_block = _expand_cell_height(new_block, value)
             return tbl_text[:tc_start] + new_block + tbl_text[tc_end:]
 
         # ③ <hp:run>...</hp:run> 이 있지만 hp:t 없는 경우
@@ -1032,7 +1029,6 @@ def _inject_into_cell_xml(tbl_text, row_addr, col_addr, value):
                 '</hp:run>', f'<hp:t>{escaped}</hp:t></hp:run>', 1
             )
             new_block = tc_block[:run_m.start()] + new_run + tc_block[run_m.end():]
-            new_block = _expand_cell_height(new_block, value)
             return tbl_text[:tc_start] + new_block + tbl_text[tc_end:]
 
         break  # cellAddr 찾았지만 주입 패턴 없음 → 중단

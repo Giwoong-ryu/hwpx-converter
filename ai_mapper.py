@@ -45,9 +45,30 @@ def _classify_field_type(label: str) -> str:
     return ""
 
 
+def _calc_max_chars(width_hwpunit: int, height_hwpunit: int, font_sz_hwpunit: int = 1000) -> int:
+    """셀 크기(HWPUNIT) + 폰트 크기로부터 최대 허용 글자 수를 추정한다.
+
+    HWPUNIT 규칙:
+    - 1pt = 100 HWPUNIT, 1mm ≈ 283 HWPUNIT
+    - 한글 1글자 폭 ≈ 폰트 크기(정사각형)
+    - 줄 높이 ≈ 폰트 크기 × 1.6
+
+    여유율 0.85로 안전 마진 확보. 0이 반환되면 제약 없음으로 해석.
+    """
+    if width_hwpunit <= 0 or height_hwpunit <= 0 or font_sz_hwpunit <= 0:
+        return 0
+    # 영문은 한글의 약 0.5폭이지만 한글 기준으로 보수적 계산
+    char_w = max(font_sz_hwpunit, 500)  # 최소 5pt 방어
+    line_h = char_w * 1.6
+    chars_per_line = max(int(width_hwpunit / char_w), 1)
+    lines = max(int(height_hwpunit / line_h), 1)
+    return int(chars_per_line * lines * 0.85)
+
+
 def _strip_field_tags(key: str) -> str:
-    """AI 응답 키에서 [EXACT], [GEN] 태그를 제거한다."""
-    return re.sub(r"\[(EXACT|GEN)\]", "", key).strip()
+    """AI 응답 키에서 [EXACT], [GEN], [max=N] 태그를 제거한다."""
+    # 복합 태그 [EXACT,max=420] 또는 단일 태그 [GEN]/[max=100] 모두 처리
+    return re.sub(r"\[[A-Za-z0-9,=]+\]", "", key).strip()
 
 
 SYSTEM_PROMPT = """\
@@ -60,6 +81,8 @@ SYSTEM_PROMPT = """\
 - __N 접미사가 붙은 셀 = 같은 유형의 N번째 항목 (예: 회사명__1, 회사명__2)
 - [EXACT] 태그가 있는 셀 = 정밀 필드 (소스에서 정확히 복사, 변형/추측 금지)
 - [GEN] 태그가 있는 셀 = 서술 필드 (소스를 바탕으로 자연스럽게 작성)
+- [max=N] 태그 = 해당 셀의 최대 허용 글자 수. 공백 포함 N자 이내 필수.
+- 태그는 복합될 수 있음: [GEN,max=420], [EXACT,max=30]
 - 태그 없는 일반 셀 = 값 (교체 대상)
 
 규칙:
@@ -76,11 +99,15 @@ SYSTEM_PROMPT = """\
 6. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
 7. __N 접미사가 있는 셀은 JSON 키에도 반드시 __N을 포함하세요.
 8. 매핑 가능한 필드는 최대한 빠짐없이 채우세요.
-9. 섹션명__1, 섹션명__2 형태 셀은 자기소개서 등 섹션형 양식입니다.
-   - __1 = 해당 섹션의 소제목. 반드시 20자 이내의 짧은 한 줄 제목으로 작성하세요.
-     예: "카페 운영 경험을 살린 도전", "분석적 사고와 실행력"
-   - __2 = 해당 섹션의 본문 내용. 소스 자료를 바탕으로 상세하게 작성하세요.
-     내용이 길더라도 줄바꿈 없이 한 문자열로 작성하세요."""
+9. 섹션명__1 형태 셀은 자기소개서 등 섹션형 양식의 본문 슬롯입니다.
+   - 해당 섹션의 본문 내용을 소스 자료를 바탕으로 작성하세요.
+   - 내용이 길더라도 줄바꿈 없이 한 문자열로 작성하세요.
+   - [max=N]이 붙어 있으면 그 글자 수 이내로 핵심만 담아 작성하세요.
+   - 섹션당 __1만 존재합니다. __2, __3은 만들지 마세요.
+10. [max=N] 글자 수 제한 — 양식은 한 페이지에 담도록 설계되어 있습니다.
+    - N자 초과 절대 금지. 공백과 문장부호 모두 포함해서 N자 이내로 작성.
+    - 서술형([GEN]) 필드: N자 한도 내에서 핵심만 압축. 긴 문장보다 짧고 밀도 있게.
+    - 정밀([EXACT]) 필드: 소스 값이 N자를 초과하면 빈 문자열 반환 (임의 절단 금지)."""
 
 USER_PROMPT = """\
 [양식 구조]
@@ -95,6 +122,7 @@ USER_PROMPT = """\
 핵심 원칙:
 - [EXACT] 필드는 소스에서 정확히 복사. 없으면 빈 문자열.
 - [GEN] 필드는 소스를 이해하여 양식에 맞게 작성. 소스 밖 내용 금지.
+- [max=N] 태그: 공백 포함 N자 이내 필수. 초과 시 양식이 망가집니다.
 - [H] 라벨 텍스트는 절대 JSON 키로 쓰지 마세요.
 
 매핑 전략:
@@ -165,9 +193,19 @@ def _format_structured_fields(structured):
                         elif cell["bg"] and text:
                             seen_sublabel = True
                 else:
-                    # 인접 헤더 라벨 기반 필드 타입 태그 삽입
+                    # 인접 헤더 라벨 기반 필드 타입 태그 + 셀 크기 기반 max_chars
                     field_tag = _classify_field_type(last_header_label)
-                    tag_prefix = f"[{field_tag}]" if field_tag else ""
+                    max_chars = _calc_max_chars(
+                        cell.get("width", 0),
+                        cell.get("height", 0),
+                        cell.get("font_sz", 1000),
+                    )
+                    tag_parts = []
+                    if field_tag:
+                        tag_parts.append(field_tag)
+                    if max_chars > 0:
+                        tag_parts.append(f"max={max_chars}")
+                    tag_prefix = f"[{','.join(tag_parts)}]" if tag_parts else ""
 
                     if text_freq.get(text, 1) > 1:
                         text_seen[text] = text_seen.get(text, 0) + 1
@@ -175,17 +213,36 @@ def _format_structured_fields(structured):
                     else:
                         cells.append(f"{tag_prefix}{text}")
 
-            # 1컬럼 섹션형: bg 라벨을 본 뒤 등장하는 빈 셀에 섹션명__N 부여
+            # 1컬럼 섹션형: 섹션 헤더 뒤의 "본문 슬롯"을 하나만 매핑한다.
+            # 양식 구조: [헤더] → ["제목 :" 라벨] → [큰 본문 슬롯] → [작은 여백]
+            # 여백 셀(h가 작은 빈 셀)은 매핑 대상에서 제외해야 넘침 방지.
             if (is_single_col
                     and current_section
                     and seen_sublabel
                     and len(cells) == 1
                     and not cells[0]
                     and not row[0].get("bg", False)):  # bg=True 빈 행은 구분자 → 스킵
-                cnt = section_empty_count.get(current_section, 0) + 1
-                if cnt <= 2:  # 최대 2슬롯: __1(제목), __2(내용)
-                    section_empty_count[current_section] = cnt
-                    cells = [f"{current_section}__{cnt}"]
+                src_cell = row[0]
+                h = src_cell.get("height", 0)
+                # 본문 슬롯으로 인정할 최소 높이 임계값
+                # - 한글 10pt 기준 1줄 ≈ 1600 HWPUNIT, 2줄 이상이면 본문으로 판단
+                MIN_BODY_HEIGHT = 3000
+                already_has_body = section_empty_count.get(current_section, 0) >= 1
+
+                if h >= MIN_BODY_HEIGHT and not already_has_body:
+                    section_empty_count[current_section] = 1
+                    sec_max = _calc_max_chars(
+                        src_cell.get("width", 0),
+                        h,
+                        src_cell.get("font_sz", 1000),
+                    )
+                    sec_tag_parts = ["GEN"]
+                    if sec_max > 0:
+                        sec_tag_parts.append(f"max={sec_max}")
+                    sec_tag = f"[{','.join(sec_tag_parts)}]"
+                    # __1 = 본문 슬롯 (form.py __\d+$ 정규식 호환)
+                    cells = [f"{sec_tag}{current_section}__1"]
+                # else: 여백/구분 셀 → cells=[""] 유지 → 매핑 안 됨
 
             if any(c for c in cells):
                 lines.append("| " + " | ".join(cells) + " |")
@@ -256,20 +313,51 @@ def _call_cached_with_retry(client, model_name, cache_name, prompt, temperature,
                 raise
 
 
+def _truncate_smart(text: str, max_chars: int) -> str:
+    """max_chars 이내로 자른다. 가능하면 문장 경계에서 자연스럽게 자른다."""
+    if len(text) <= max_chars:
+        return text
+    truncated = text[:max_chars]
+    # 마지막 문장 부호에서 자르기 (60% 이상 위치 필요)
+    threshold = max_chars * 0.6
+    for sep in ['. ', '! ', '? ', '。', '다. ', '요. ', '다.', '요.']:
+        idx = truncated.rfind(sep)
+        if idx >= threshold:
+            return truncated[:idx + len(sep)].rstrip()
+    # 단어 경계에서 자르기
+    idx = truncated.rfind(' ')
+    if idx >= threshold:
+        return truncated[:idx].rstrip()
+    return truncated.rstrip()
+
+
 def _collect_results(parsed):
-    """파싱된 JSON에서 유효한 key-value 쌍만 수집. null/빈값은 제외."""
+    """파싱된 JSON에서 유효한 key-value 쌍만 수집. null/빈값은 제외.
+    [max=N] 태그가 있으면 초과분을 문장 경계에서 자른다 (방어선).
+    """
     results = {}
     for k, v in parsed.items():
         if not isinstance(k, str) or not k.strip():
             continue
-        k = _strip_field_tags(k.strip())  # [EXACT]/[GEN] 태그 제거
+        raw_key = k.strip()
+        # max 태그 파싱 (제거 전에 먼저 추출)
+        max_match = re.search(r"max=(\d+)", raw_key)
+        max_chars = int(max_match.group(1)) if max_match else 0
+
+        k = _strip_field_tags(raw_key)  # [EXACT]/[GEN]/[max=N] 태그 제거
         if v is None:
             continue  # null 값 = 소스에 없는 정보 → 스킵
         if isinstance(v, (int, float)):
             v = str(v)
         if not isinstance(v, str) or not v.strip():
             continue
-        results[k] = v.strip()
+        v = v.strip()
+        # max_chars 초과 시 절단 (AI가 프롬프트 규칙을 어긴 경우 방어)
+        if max_chars > 0 and len(v) > max_chars:
+            original_len = len(v)
+            v = _truncate_smart(v, max_chars)
+            print(f"[verify] max={max_chars} 초과({original_len}자), 절단: {k}")
+        results[k] = v
     return results
 
 
