@@ -227,18 +227,24 @@ def _call_with_retry(client, model_name, prompt, system_prompt, temperature,
                 raise
 
 
-def _call_cached_with_retry(client, model_name, cache_name, prompt, temperature, max_retries=2):
-    """캐시 사용 Gemini API 호출 + 429 재시도"""
+def _call_cached_with_retry(client, model_name, cache_name, prompt, temperature,
+                            response_schema=None, max_retries=2):
+    """캐시 사용 Gemini API 호출 + 429 재시도 + Structured Output"""
+    config_kwargs = {
+        "cached_content": cache_name,
+        "temperature": temperature,
+        "max_output_tokens": 32768,
+    }
+    if response_schema is not None:
+        config_kwargs["response_mime_type"] = "application/json"
+        config_kwargs["response_schema"] = response_schema
+
     for attempt in range(max_retries):
         try:
             return client.models.generate_content(
                 model=model_name,
                 contents=prompt,
-                config=types.GenerateContentConfig(
-                    cached_content=cache_name,
-                    temperature=temperature,
-                    max_output_tokens=32768,
-                )
+                config=types.GenerateContentConfig(**config_kwargs),
             )
         except Exception as e:
             if "429" in str(e) and attempt < max_retries - 1:
@@ -774,10 +780,11 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
     system_prompt = SYSTEM_PROMPT
     model_name = MODEL_NAME
 
-    # Gemini Structured Output: 동적 키 허용
+    # Gemini Structured Output: 동적 키 허용, null 반환 허용
     mapping_schema = {
         "type": "OBJECT",
         "properties": {},
+        "additionalProperties": {"type": "STRING", "nullable": True},
     }
 
     try:
@@ -879,8 +886,9 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
                             )
                         )
 
-                    response = _call_cached_with_retry(client, model_name, cache.name, prompt, temperature)
-                    parsed = _parse_json_response(response.text)
+                    response = _call_cached_with_retry(client, model_name, cache.name, prompt, temperature,
+                                                      response_schema=mapping_schema)
+                    parsed = _parse_json_response(response.text, structured_output=True)
                     if parsed:
                         for k, v in _collect_results(parsed).items():
                             all_results[k] = v
@@ -964,8 +972,7 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
                 start = rb * BATCH_SIZE
                 batch = unmapped[start:start + BATCH_SIZE]
                 fields_text = "\n".join(f"- {t}" for t in batch)
-                prompt_template = USER_PROMPT_GEN if is_gen else USER_PROMPT_MAP
-                retry_prompt = prompt_template.format(fields=fields_text, content=combined_content)
+                retry_prompt = USER_PROMPT.format(fields=fields_text, content=combined_content)
 
                 import time
                 time.sleep(1)
