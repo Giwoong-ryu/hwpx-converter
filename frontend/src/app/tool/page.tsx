@@ -109,7 +109,7 @@ function GaugeBadge() {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return (
-    <Link href="/pricing" className="flex items-center gap-1.5 text-xs text-[#57423c]/50 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors">
+    <Link href="/pricing" className="flex items-center gap-1.5 text-xs text-[#57423c]/65 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors">
       <Zap size={10} /> 무료 사용 중 · <span className="text-[#2563EB] font-bold">업그레이드</span>
     </Link>
   );
@@ -125,9 +125,9 @@ function GaugeBadge() {
   const barWidth = Math.min(gauge, 100);
 
   if (plan === "free") return (
-    <Link href="/pricing" className="flex items-center gap-1.5 text-xs text-[#57423c]/50 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors">
+    <Link href="/pricing" className="flex items-center gap-1.5 text-xs text-[#57423c]/65 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors">
       <Zap size={10} /> 무료 · <span className="text-[#2563EB] font-bold">업그레이드</span>
-      {streak > 0 && <span className="text-[#57423c]/50">· {streak}일</span>}
+      {streak > 0 && <span className="text-[#57423c]/65">· {streak}일</span>}
     </Link>
   );
 
@@ -157,7 +157,7 @@ function GaugeBadge() {
 
       {/* 단계 (2 이상만 표시) */}
       {level >= 2 && (
-        <span className="text-[#57423c]/50">{level}단계</span>
+        <span className="text-[#57423c]/65">{level}단계</span>
       )}
     </Link>
   );
@@ -194,7 +194,7 @@ function UserMenu({ onLoginClick }: { onLoginClick: () => void }) {
             </Link>
             {user.email && ["ryugw10@gmail.com"].includes(user.email) && (
               <div className="border-t border-gray-100 mt-1 pt-1">
-                <p className="px-3 py-1 text-[10px] text-[#57423c]/50 font-bold">OWNER</p>
+                <p className="px-3 py-1 text-[10px] text-[#57423c]/65 font-bold">OWNER</p>
                 {(["free", "plus", "pro"] as const).map((p) => (
                   <button key={p} onClick={async () => {
                     const API = process.env.NEXT_PUBLIC_API_URL || "/api";
@@ -673,7 +673,7 @@ function Main() {
       </div>
 
       {/* 푸터 */}
-      <footer className="max-w-screen-xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-center gap-4 text-base text-[#57423c]/50">
+      <footer className="max-w-screen-xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-center gap-4 text-base text-[#57423c]/65">
         <span>Eazy HWPX</span>
         <span>·</span>
         <Link href="/pricing" className="hover:text-[#1E40AF] transition-colors">요금제</Link>

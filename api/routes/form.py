@@ -124,6 +124,19 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
     except Exception as slot_e:
         print(f"[generate] 슬롯 맵 빌드 실패 (폴백): {slot_e}")
 
+    # ── 한국 포맷터 후처리 (금액 콤마, 날짜, 전화, 사업자번호) ──
+    formatted_replacements = dict(req.replacements)
+    try:
+        from kr_formatter import KrFormatter
+        fmt_result = KrFormatter.auto_detect_and_format(formatted_replacements)
+        formatted_replacements = fmt_result["formatted"]
+        for log_entry in fmt_result["log"]:
+            print(f"[generate] {log_entry}")
+    except ImportError:
+        print("[generate] kr_formatter 미설치, 포맷팅 스킵")
+    except Exception as fmt_err:
+        print(f"[generate] 포맷팅 실패 (원본 사용): {fmt_err}")
+
     # replacements를 슬롯 주입용 vs 일반 텍스트 치환으로 분리
     _base_re = re.compile(r'__\d+$')
     _ws_re = re.compile(r'\s+')
@@ -133,7 +146,7 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
     # 슬롯 맵 키 정규화 인덱스 (공백 차이 무시: "성 명" vs "성명" 매칭)
     slot_map_norm = {_ws_re.sub('', k): k for k in slot_map}
 
-    for key, value in req.replacements.items():
+    for key, value in formatted_replacements.items():
         base = _base_re.sub('', key)
         real_key = slot_map_norm.get(_ws_re.sub('', base))
         if real_key is not None and slot_map[real_key]:
@@ -201,7 +214,7 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
         cov_detail = ""
         coverage_data = {}
         try:
-            v = validate_result(path, out_path, replacements=req.replacements)
+            v = validate_result(path, out_path, replacements=formatted_replacements)
             coverage_data = v
             cov_detail = f"coverage={v['coverage_pct']:.1f}%, replaced={v['replaced']}/{v['total_originals']}, remaining={v['remaining']}"
         except Exception as ve:

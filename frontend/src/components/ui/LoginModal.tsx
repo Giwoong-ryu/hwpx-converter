@@ -74,7 +74,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
               </svg>
             </div>
             <p className="text-sm font-bold text-[#1a1c1b] mb-1">이메일을 확인해주세요</p>
-            <p className="text-xs text-[#57423c]/50 mb-5">{email}로 재설정 링크를 보냈습니다.</p>
+            <p className="text-xs text-[#57423c]/65 mb-5">{email}로 재설정 링크를 보냈습니다.</p>
             <button
               onClick={() => { setForgotSent(false); setMode("login"); }}
               className="text-sm text-[#2563EB] hover:underline"
@@ -103,7 +103,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
                 </div>
                 <div className="flex items-center gap-4 mb-6">
                   <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-xs text-[#57423c]/50">또는</span>
+                  <span className="text-xs text-[#57423c]/65">또는</span>
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
               </>

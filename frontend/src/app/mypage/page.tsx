@@ -126,7 +126,7 @@ export default function MyPage() {
                       </div>
                       <div>
                         <p className="text-sm font-extrabold text-[#1a1c1b]">{couponInfo.label}</p>
-                        <p className="text-xs text-[#57423c]/50">코드: {couponInfo.code} / {couponInfo.expires}까지</p>
+                        <p className="text-xs text-[#57423c]/65">코드: {couponInfo.code} / {couponInfo.expires}까지</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -180,7 +180,7 @@ export default function MyPage() {
       )}
 
       {/* 푸터 */}
-      <footer className="max-w-screen-xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-center gap-4 text-sm text-[#57423c]/50">
+      <footer className="max-w-screen-xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-center gap-4 text-sm text-[#57423c]/65">
         <span>Eazy HWPX</span>
         <span>·</span>
         <Link href="/pricing" className="hover:text-[#1E40AF] transition-colors">요금제</Link>

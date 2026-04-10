@@ -138,7 +138,7 @@ export default function PresetManager() {
                 value={v}
                 onChange={(e) => { const c = [...formData]; c[i] = [k, e.target.value]; setFormData(c); }}
               />
-              <button onClick={() => removeField(i)} className="text-[#57423c]/50 hover:text-red-500 p-1"><X size={14} /></button>
+              <button onClick={() => removeField(i)} className="text-[#57423c]/65 hover:text-red-500 p-1"><X size={14} /></button>
             </div>
           ))}
           <button onClick={addField} className="text-xs text-[#2563EB] hover:underline">+ 항목 추가</button>
@@ -158,7 +158,7 @@ export default function PresetManager() {
         <div className="text-center py-6 text-base text-[#57423c]/60"><Loader2 size={16} className="animate-spin inline" /> 불러오는 중...</div>
       ) : presets.length === 0 && !isEditing ? (
         <div className="text-center py-6">
-          <p className="text-base text-[#57423c]/50 mb-2">아직 저장한 프리셋이 없어요.</p>
+          <p className="text-base text-[#57423c]/65 mb-2">아직 저장한 프리셋이 없어요.</p>
           <p className="text-sm text-[#57423c]/60">도구 페이지에서 문서 작성 시 자주 쓰는 정보를 저장해보세요.</p>
         </div>
       ) : (
@@ -168,8 +168,8 @@ export default function PresetManager() {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-base font-semibold text-[#1a1c1b]">{p.name}</span>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => startEdit(p)} className="p-1 text-[#57423c]/50 hover:text-[#2563EB]"><Pencil size={12} /></button>
-                  <button onClick={() => doDelete(p.id)} className="p-1 text-[#57423c]/50 hover:text-red-500"><Trash2 size={12} /></button>
+                  <button onClick={() => startEdit(p)} className="p-1 text-[#57423c]/65 hover:text-[#2563EB]"><Pencil size={12} /></button>
+                  <button onClick={() => doDelete(p.id)} className="p-1 text-[#57423c]/65 hover:text-red-500"><Trash2 size={12} /></button>
                 </div>
               </div>
               <div className="space-y-0.5">

@@ -78,7 +78,7 @@ export default function MappingManager() {
       {/* Free 사용자 */}
       {plan === "free" && limit === 0 ? (
         <div className="text-center py-6">
-          <p className="text-base text-[#57423c]/50 mb-2">무료 플랜은 매핑 저장을 지원하지 않아요.</p>
+          <p className="text-base text-[#57423c]/65 mb-2">무료 플랜은 매핑 저장을 지원하지 않아요.</p>
           <Link href="/pricing" className="text-sm text-[#2563EB] font-semibold hover:underline">
             Plus로 업그레이드하면 10개까지 저장할 수 있어요 →
           </Link>
@@ -87,7 +87,7 @@ export default function MappingManager() {
         <div className="text-center py-6 text-base text-[#57423c]/60"><Loader2 size={16} className="animate-spin inline" /> 불러오는 중...</div>
       ) : mappings.length === 0 ? (
         <div className="text-center py-6">
-          <p className="text-base text-[#57423c]/50 mb-2">아직 저장한 매핑이 없어요.</p>
+          <p className="text-base text-[#57423c]/65 mb-2">아직 저장한 매핑이 없어요.</p>
           <p className="text-sm text-[#57423c]/60">도구 페이지에서 AI 매핑 후 &apos;매핑 저장&apos; 버튼을 눌러보세요.</p>
         </div>
       ) : (
@@ -109,7 +109,7 @@ export default function MappingManager() {
                     {toggling === m.id ? <Loader2 size={10} className="animate-spin" /> : m.is_public ? <Globe size={10} /> : <Lock size={10} />}
                     {m.is_public ? "공개" : "비공개"}
                   </button>
-                  <button onClick={() => doDelete(m.id)} className="p-1 text-[#57423c]/50 hover:text-red-500"><Trash2 size={12} /></button>
+                  <button onClick={() => doDelete(m.id)} className="p-1 text-[#57423c]/65 hover:text-red-500"><Trash2 size={12} /></button>
                 </div>
               </div>
               <div className="flex items-center gap-3 text-xs text-[#57423c]/60">
@@ -118,7 +118,7 @@ export default function MappingManager() {
                 <span>{new Date(m.created_at).toLocaleDateString("ko-KR")}</span>
               </div>
               {!m.is_public && (
-                <p className="text-xs text-[#57423c]/50 mt-1">공개하면 다른 사용자도 이 매핑을 사용할 수 있어요. 처음 공개 시 +25% 보상!</p>
+                <p className="text-xs text-[#57423c]/65 mt-1">공개하면 다른 사용자도 이 매핑을 사용할 수 있어요. 처음 공개 시 +25% 보상!</p>
               )}
             </div>
           ))}

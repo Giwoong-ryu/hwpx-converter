@@ -74,10 +74,10 @@ export default function LevelAchievements() {
                     <Award size={18} strokeWidth={isCurrent ? 2.5 : 1.8} />
                   )}
                 </div>
-                <span className={`text-xs leading-tight text-center ${isCurrent ? "font-bold text-[#1a1c1b]" : isPast ? "font-medium text-[#57423c]/70" : "text-[#57423c]/35"}`}>
+                <span className={`text-xs leading-tight text-center ${isCurrent ? "font-bold text-[#1a1c1b]" : isPast ? "font-medium text-[#57423c]/70" : "text-[#57423c]/60"}`}>
                   {l.title}
                 </span>
-                <span className={`text-xs ${isCurrent ? "font-semibold " + l.color : "text-[#57423c]/25"}`}>
+                <span className={`text-xs ${isCurrent ? "font-semibold " + l.color : "text-[#57423c]/65"}`}>
                   {l.medal}
                 </span>
               </div>
@@ -119,7 +119,7 @@ export default function LevelAchievements() {
                   +{def.reward}%
                 </span>
               </div>
-              <span className={`text-xs shrink-0 ${done ? "text-[#57423c]/50" : "text-[#2563EB]/70"}`}>
+              <span className={`text-xs shrink-0 ${done ? "text-[#57423c]/65" : "text-[#2563EB]/70"}`}>
                 {done && record
                   ? new Date(record.created_at).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })
                   : remaining}

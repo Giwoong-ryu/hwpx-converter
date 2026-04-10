@@ -87,7 +87,7 @@ export default function PricingPage() {
             <CouponBadge />
             <Link href="/tool" className="text-base text-[#57423c]/70 hover:text-[#1a1c1b] transition-colors">도구</Link>
             {user ? (
-              <span className="text-base text-[#57423c]/50">{user.email}</span>
+              <span className="text-base text-[#57423c]/65">{user.email}</span>
             ) : (
               <Link href="/tool" className="bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white px-5 py-2 rounded-lg font-semibold text-base hover:opacity-90 transition-all active:scale-95">
                 무료로 시작하기
@@ -112,9 +112,9 @@ export default function PricingPage() {
 
           {/* Free */}
           <div className="bg-white rounded-2xl border border-gray-200/80 p-6 flex flex-col">
-            <div className="text-sm font-bold text-[#57423c]/50 uppercase tracking-widest mb-3">Free</div>
+            <div className="text-sm font-bold text-[#57423c]/65 uppercase tracking-widest mb-3">Free</div>
             <div className="text-4xl font-black tracking-tight mb-1">0원</div>
-            <p className="text-base text-[#57423c]/50 mb-5">가입 없이도 바로 사용</p>
+            <p className="text-base text-[#57423c]/65 mb-5">가입 없이도 바로 사용</p>
             <ul className="space-y-3 mb-6 flex-1">
               <Li text="HWP/HWPX/DOCX 변환 무제한" />
               <Li text="문서 → 엑셀 추출 무제한" />
@@ -135,7 +135,7 @@ export default function PricingPage() {
             </div>
             <div className="text-4xl font-black tracking-tight mb-1">4,900원</div>
             <p className="text-base text-[#2563EB] font-bold mb-1.5">첫 구매 시 게이지 2배 충전</p>
-            <p className="text-sm text-[#57423c]/50 mb-4 leading-relaxed">한번 결제, 기간 만료 없이 사용.<br />부족하면 추가 구매.</p>
+            <p className="text-sm text-[#57423c]/65 mb-4 leading-relaxed">한번 결제, 기간 만료 없이 사용.<br />부족하면 추가 구매.</p>
             <ul className="space-y-3 mb-6 flex-1">
               <Li text="무료 기능 전부 포함" />
               <Li text="AI 사용량 게이지 충전" highlight />
@@ -156,12 +156,12 @@ export default function PricingPage() {
 
           {/* Pro */}
           <div className="bg-white rounded-2xl border border-gray-200/80 p-6 flex flex-col">
-            <div className="text-sm font-bold text-[#57423c]/50 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+            <div className="text-sm font-bold text-[#57423c]/65 uppercase tracking-widest mb-3 flex items-center gap-1.5">
               <Crown size={14} /> Pro
             </div>
-            <div className="text-4xl font-black tracking-tight mb-1">9,900원<span className="text-lg font-normal text-[#57423c]/50">/월</span></div>
-            <p className="text-base text-[#57423c]/50 mb-1.5">AI 무제한, 횟수 걱정 없이</p>
-            <p className="text-sm text-[#57423c]/50 mb-4 leading-relaxed">매주 게이지 자동 리셋.<br />구독 중 요금 인상 없음.</p>
+            <div className="text-4xl font-black tracking-tight mb-1">9,900원<span className="text-lg font-normal text-[#57423c]/65">/월</span></div>
+            <p className="text-base text-[#57423c]/65 mb-1.5">AI 무제한, 횟수 걱정 없이</p>
+            <p className="text-sm text-[#57423c]/65 mb-4 leading-relaxed">매주 게이지 자동 리셋.<br />구독 중 요금 인상 없음.</p>
             <ul className="space-y-3 mb-6 flex-1">
               <Li text="무료 기능 전부 포함" />
               <Li text="AI 매핑/작성 무제한" highlight />
@@ -202,7 +202,7 @@ export default function PricingPage() {
                   </div>
                   <div>
                     <p className="text-base font-extrabold text-[#1a1c1b]">{couponInfo.label}</p>
-                    <p className="text-xs text-[#57423c]/50">코드: {couponInfo.code} / {couponInfo.expires}까지</p>
+                    <p className="text-xs text-[#57423c]/65">코드: {couponInfo.code} / {couponInfo.expires}까지</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -224,7 +224,7 @@ export default function PricingPage() {
             ) : (
               /* Step 1: 코드 입력 */
               <div className="flex items-center gap-2">
-                <Ticket size={16} className="text-[#57423c]/50 shrink-0" />
+                <Ticket size={16} className="text-[#57423c]/65 shrink-0" />
                 <input
                   type="text"
                   value={couponCode}
@@ -255,7 +255,7 @@ export default function PricingPage() {
         {/* ── 이렇게 작동해요 (게이지 개념) ── */}
         <div className="max-w-3xl mx-auto mb-16 bg-white rounded-2xl border border-gray-200/80 p-8">
           <h2 className="text-2xl font-extrabold tracking-tight text-center mb-2">AI 사용량, 이렇게 작동해요</h2>
-          <p className="text-base text-[#57423c]/50 text-center mb-8">복잡한 구독이 아닙니다. 충전해두고, 쓸 때마다 차감됩니다.</p>
+          <p className="text-base text-[#57423c]/65 text-center mb-8">복잡한 구독이 아닙니다. 충전해두고, 쓸 때마다 차감됩니다.</p>
           <div className="grid md:grid-cols-3 gap-6 text-center">
             <div>
               <div className="w-14 h-14 rounded-xl bg-[#EFF6FF] flex items-center justify-center mx-auto mb-3">
@@ -284,7 +284,7 @@ export default function PricingPage() {
         {/* ── 쓸수록 혜택이 쌓여요 ── */}
         <div className="mb-20 max-w-2xl mx-auto">
           <h2 className="text-2xl font-extrabold tracking-tight text-center mb-3">쓸수록 혜택이 쌓여요</h2>
-          <p className="text-base text-[#57423c]/50 text-center mb-8 leading-relaxed">문서를 만들수록 보너스가 쌓여서 더 오래 쓸 수 있어요</p>
+          <p className="text-base text-[#57423c]/65 text-center mb-8 leading-relaxed">문서를 만들수록 보너스가 쌓여서 더 오래 쓸 수 있어요</p>
           <div className="space-y-4">
             <Step emoji={<Trophy size={20} className="text-[#2563EB]" />} title="첫 문서를 완성하면" desc="사업계획서 1건 완성 = 다음 1건 분량이 보너스로 자동 충전" />
             <Step emoji={<Flame size={20} className="text-orange-500" />} title="매일 꾸준히 사용하면" desc="3일 연속 사용부터 보너스가 쌓여요. 7일, 30일까지 보너스가 커져요." />
@@ -308,7 +308,7 @@ export default function PricingPage() {
         </div>
 
         {/* ── 신뢰 ── */}
-        <div className="flex items-center justify-center gap-8 text-base text-[#57423c]/50 pt-8 border-t border-gray-200/60">
+        <div className="flex items-center justify-center gap-8 text-base text-[#57423c]/65 pt-8 border-t border-gray-200/60">
           <span className="flex items-center gap-1.5"><Shield size={14} /> 광고 없음</span>
           <span className="flex items-center gap-1.5"><Shield size={14} /> 파일 즉시 삭제</span>
           <span className="flex items-center gap-1.5"><Shield size={14} /> 로그인 없이 사용 가능</span>
@@ -349,7 +349,7 @@ function FAQ({ q, a }: { q: string; a: string }) {
     <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
       <button onClick={() => setOpen(!open)} className="w-full p-5 flex items-center justify-between text-left">
         <span className="font-bold text-base text-[#1a1c1b]">{q}</span>
-        <ChevronDown size={18} className={`text-[#57423c]/50 transition-transform shrink-0 ml-4 ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={18} className={`text-[#57423c]/65 transition-transform shrink-0 ml-4 ${open ? "rotate-180" : ""}`} />
       </button>
       {open && <p className="px-5 pb-5 text-base text-[#57423c]/60 leading-relaxed -mt-1">{a}</p>}
     </div>

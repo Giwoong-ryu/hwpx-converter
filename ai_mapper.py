@@ -1,5 +1,9 @@
 """
-AI 매핑 모듈 - Gemini 3 Flash로 양식 필드와 내용을 자동 매핑
+AI 매핑 모듈 - 양식 필드를 사용자 자료 기반으로 자동 채움 (통합 파이프라인)
+
+필드 타입별 처리:
+  [EXACT] 정밀 필드 (숫자/날짜/이름/코드) - 소스에서 정확 복사, 변형 금지
+  [GEN]   서술 필드 (설명/소개/계획 등)   - 소스 기반으로 맥락에 맞게 작성
 """
 import json
 import os
@@ -8,114 +12,99 @@ import re
 from google import genai
 from google.genai import types
 
-MODELS = {
-    "mapping": "gemini-2.5-flash",       # 내용 매핑 (기존 내용 → 양식 채우기)
-    "generation": "gemini-3-flash-preview",  # 내용 생성 (AI가 작성)
-}
-MODEL_NAME = os.environ.get("DOCFLOW_MODEL", MODELS["mapping"])
+MODEL_NAME = os.environ.get("DOCFLOW_MODEL", "gemini-2.5-flash")
 
-SYSTEM_PROMPT_MAP = """\
+# ── 필드 타입 자동 분류 ──
+_EXACT_PATTERNS = re.compile(
+    r"금액|합계|총액|단가|비용|가격|원가|수수료|급여|수당|세금|부가세|공급가"
+    r"|일자|날짜|일시|기간|발행일|작성일|시작일|종료일|마감|납기"
+    r"|전화|연락|핸드폰|휴대|팩스|FAX|H\.P|HP"
+    r"|사업자|등록번호|주민등록|법인번호"
+    r"|성명|이름|대표자|담당자"
+    r"|주소|소재지|우편번호|계좌|은행|예금주"
+    r"|수량|단위|규격|품명|품목"
+    r"|E-MAIL|EMAIL|이메일", re.IGNORECASE)
+
+_GEN_PATTERNS = re.compile(
+    r"내용|설명|비고|특기|소개|목적|사유|의견|요약|개요"
+    r"|지원동기|자기소개|경력기술|직무|역할|성과|포부"
+    r"|비전|전략|계획|방안|제안|결론"
+    r"|성장과정|장단점|입사", re.IGNORECASE)
+
+
+def _classify_field_type(label: str) -> str:
+    """양식 라벨을 분석하여 필드 타입을 반환한다.
+    Returns: "EXACT" / "GEN" / "" (분류 불가)
+    """
+    if not label:
+        return ""
+    if _EXACT_PATTERNS.search(label):
+        return "EXACT"
+    if _GEN_PATTERNS.search(label):
+        return "GEN"
+    return ""
+
+
+def _strip_field_tags(key: str) -> str:
+    """AI 응답 키에서 [EXACT], [GEN] 태그를 제거한다."""
+    return re.sub(r"\[(EXACT|GEN)\]", "", key).strip()
+
+
+SYSTEM_PROMPT = """\
 당신은 한글 문서 양식 작성 도우미입니다.
-사용자가 양식(HWP/HWPX)의 테이블 구조와 내용을 제공하면, 값 필드에 적절한 내용을 매핑합니다.
+사용자가 양식(HWP/HWPX)의 테이블 구조와 참고 자료를 제공하면,
+자료를 이해하여 양식의 값 필드를 채웁니다.
 
 양식은 테이블 구조로 제공됩니다. 각 행에서:
 - [H] 표시가 있는 셀 = 라벨/헤더 (절대 교체 금지)
 - __N 접미사가 붙은 셀 = 같은 유형의 N번째 항목 (예: 회사명__1, 회사명__2)
-- 일반 글씨 셀 = 값 (교체 대상)
+- [EXACT] 태그가 있는 셀 = 정밀 필드 (소스에서 정확히 복사, 변형/추측 금지)
+- [GEN] 태그가 있는 셀 = 서술 필드 (소스를 바탕으로 자연스럽게 작성)
+- 태그 없는 일반 셀 = 값 (교체 대상)
 
 규칙:
-1. 라벨/헤더 셀은 절대 교체하지 마세요.
-2. 값 셀만 사용자 내용에서 찾아 매핑하세요. 인접한 [H] 라벨을 단서로 활용하여 사용자 내용의 어떤 부분이 해당 값 셀에 해당하는지 추론하세요.
-3. 사용자 내용에서 직접 확인 가능한 정보만 매핑하세요. [H] 라벨과 내용의 문맥을 종합하여 명확히 대응되는 경우 추론 매핑을 허용합니다. 근거 없이 추측한 내용은 삽입하지 마세요.
-4. __N 접미사 셀은 사용자 내용에 실제로 있는 N번째 항목만 채우세요.
-   - 사용자 내용에서 해당 항목의 개수를 먼저 세세요. N개라면 __1~__N만 생성합니다.
-   - 사용자 내용에 없는 N번째 항목은 JSON에 포함하지 마세요.
-   - 예: 경력이 1개뿐이라면 회사명__1만 채우고 회사명__2, 회사명__3은 절대 생략.
-   - 예: 직업훈련이 1개뿐이라면 교육기간__2, 교육 명__2 등 __2 이상 전부 생략.
-   - 절대 같은 항목을 __2, __3에 복사하지 마세요. 양식에 슬롯이 많다고 다 채우지 않습니다.
+1. 라벨/헤더 셀([H])은 절대 교체하지 마세요.
+2. [EXACT] 필드: 소스 자료에서 정확히 찾아 복사하세요. 숫자, 날짜, 코드, 이름 등은
+   한 글자도 변형하지 마세요. 소스에 없으면 빈 문자열("")을 반환하세요.
+3. [GEN] 필드: 소스 자료를 이해하고 양식 맥락에 맞게 작성하세요.
+   소스에 없는 내용을 추가하거나 날조하지 마세요.
+4. __N 접미사 셀은 소스에 실제로 있는 N번째 항목만 채우세요.
+   - 소스에서 해당 항목의 개수를 먼저 세세요. N개라면 __1~__N만 생성합니다.
+   - 소스에 없는 N번째 항목은 JSON에 포함하지 마세요.
+   - 절대 같은 항목을 __2, __3에 복사하지 마세요.
 5. 경력, 학력처럼 시기/날짜가 있는 항목은 과거(오래된 순)에서 현재 순으로 위(__1)부터 채우세요.
 6. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
-7. __N 접미사가 있는 셀은 JSON 키에도 반드시 __N을 포함하세요. 예: {"회사명__1": "A사", "회사명__2": "B사"}
+7. __N 접미사가 있는 셀은 JSON 키에도 반드시 __N을 포함하세요.
 8. 매핑 가능한 필드는 최대한 빠짐없이 채우세요.
 9. 섹션명__1, 섹션명__2 형태 셀은 자기소개서 등 섹션형 양식입니다.
    - __1 = 해당 섹션의 제목(소제목), __2 = 해당 섹션의 본문 내용
-   - 사용자 내용을 바탕으로 각 섹션에 맞는 내용을 작성하세요.
-   - 예: 지원동기__1 = "카페 운영 경험을 살린 도전", 지원동기__2 = "8년간의 카페 운영 경험을..."
+   - 소스 자료를 바탕으로 각 섹션에 맞는 내용을 작성하세요.
    - 내용이 길더라도 줄바꿈 없이 한 문자열로 작성하세요."""
 
-SYSTEM_PROMPT_GEN = """\
-당신은 한글 문서 양식 작성 도우미입니다.
-사용자가 양식(HWP/HWPX)의 테이블 구조와 간단한 지시를 제공하면, 값 필드를 새로 작성합니다.
-
-양식은 테이블 구조로 제공됩니다. 각 행에서:
-- [H] 표시가 있는 셀 = 라벨/헤더 (절대 교체 금지)
-- __N 접미사가 붙은 셀 = 같은 유형의 N번째 항목 (예: 회사명__1, 회사명__2)
-- 일반 글씨 셀 = 값 (교체 대상)
-
-규칙:
-1. 라벨/헤더 셀은 절대 교체하지 마세요. 테이블 구조를 보고 판단하세요.
-2. 값 셀만 사용자 요청 주제에 맞게 새로 작성하세요.
-3. 현실적이고 구체적인 내용을 작성하세요.
-4. __N 접미사 셀은 N번째 해당 항목을 작성하세요. 빠짐없이 모두 포함하세요.
-5. 경력, 학력처럼 시기/날짜가 있는 항목은 과거(오래된 순)에서 현재 순으로 위(__1)부터 채우세요.
-6. 반드시 JSON만 반환하세요. 설명이나 마크다운 없이.
-7. __N 접미사가 있는 셀은 JSON 키에도 반드시 __N을 포함하세요. 예: {"회사명__1": "A사", "회사명__2": "B사"}
-8. 가능한 한 많은 값 필드를 채우세요. 빠뜨리지 마세요."""
-
-USER_PROMPT_MAP = """\
+USER_PROMPT = """\
 [양식 구조]
 {fields}
 
-[사용자 제공 내용]
+[사용자 제공 자료]
 {content}
 
-위 양식의 빈 셀을 사용자 내용으로 채워 JSON으로 반환하세요.
+위 양식의 빈 셀을 사용자 자료를 바탕으로 채워 JSON으로 반환하세요.
 형식: {{"필드명": "채울 내용", ...}}
 
-핵심 원칙: 이 양식은 빈 칸을 채우는 방식입니다. [H] 라벨 텍스트는 절대 JSON 키로 쓰지 마세요.
+핵심 원칙:
+- [EXACT] 필드는 소스에서 정확히 복사. 없으면 빈 문자열.
+- [GEN] 필드는 소스를 이해하여 양식에 맞게 작성. 소스 밖 내용 금지.
+- [H] 라벨 텍스트는 절대 JSON 키로 쓰지 마세요.
 
 매핑 전략:
 0. [반복 항목 선추출 — 필수] 경력/학력/직업훈련처럼 여러 행이 있는 항목은
    JSON 맨 앞에 "_목록" 키로 전체 목록을 먼저 나열한 뒤 슬롯을 채우세요.
    이 키는 실제 양식에 삽입되지 않으므로 빠짐없이 정직하게 나열하세요.
-   예) {{"_경력목록": ["대은인테리어 (2014~2017)", "ABC건설 (2020~2023)"],
-         "_학력목록": ["전북대학교 생물환경화학과 (2014~2018 중퇴)"],
-         "회사명__1": "대은인테리어", ...}}
-1. [H] 라벨(성명, 생년월일, 회사명 등)을 JSON 키로 사용해 해당 빈 칸에 넣을 값을 지정하세요.
-   예) [H]성명 옆 빈 칸 → {{"성명": "홍길동"}}
-       [H]연락처 옆 H.P 옆 빈 칸 → {{"연락처": "010-1234-5678"}}
-       [H]E-MAIL 옆 빈 칸 → {{"E-MAIL": "hong@email.com"}}
-2. 경력/학력처럼 여러 행이 있는 경우 __N 접미사로 구분하세요.
-   - 0번 단계에서 나열한 목록 수만큼만 __N 키를 생성합니다.
-   - N번째 항목이 없으면 __N 키를 생략하세요 (절대 복사 금지).
-   - 양식에 3개 슬롯이 있어도 사용자 데이터가 1개라면 __1만 생성합니다.
-   예) 경력 2개 → {{"회사명__1": "A사", "기간__1": "2020~2023", "회사명__2": "B사", "기간__2": "2018~2020"}}
-       직업훈련 1개 → {{"교육기간(이수시간)__1": "2024.09~", "교육 명__1": "...", "교육 내 용__1": "..."}}
-3. 셀에 이미 텍스트가 있는 경우(날짜 형식 힌트 등)는 그 텍스트를 키로 쓰세요.
-   예) "년 월~ 년 월" 셀 → {{"년 월~ 년 월": "2014년 02월 ~ 2017년 01월"}}
-4. 내용에 명시적 라벨이 없어도 문맥상 명확하면 추론하여 채우세요.
+1. [H] 라벨을 JSON 키로 사용해 해당 빈 칸에 넣을 값을 지정하세요.
+2. __N 접미사로 여러 항목 구분. 0번 단계에서 나열한 목록 수만큼만 생성.
+3. 셀에 이미 텍스트가 있는 경우 그 텍스트를 키로 쓰세요.
+4. 문맥상 명확하면 추론하여 채우세요.
 5. 매핑 가능한 모든 필드를 최대한 빠짐없이 채우세요."""
-
-USER_PROMPT_GEN = """\
-[양식 구조]
-{fields}
-
-[사용자 요청]
-{content}
-
-위 양식에서 [H] 태그가 없는 값 셀을 사용자 요청 주제로 새로 작성하세요.
-라벨/헤더 셀은 절대 교체하지 마세요. 값 셀만 교체하세요.
-__N 접미사 셀은 각각 별도로 작성하세요 (예: {{"회사명__1": "A사", "회사명__2": "B사"}}).
-가능한 한 빠짐없이 교체하세요.
-
-형식: {{"원본 텍스트": "새로 작성한 텍스트", ...}}"""
-
-# 생성 요청 감지 키워드
-_GEN_KEYWORDS = [
-    "써줘", "작성해줘", "만들어줘", "채워줘", "생성해줘", "작성해",
-    "만들어", "채워", "생성해", "써", "작성", "통합으로", "간략히",
-    "쓰게끔", "으로 써", "으로 작성", "내용을 넣어", "정리해줘",
-]
 
 
 def _format_structured_fields(structured):
@@ -155,6 +144,8 @@ def _format_structured_fields(structured):
         section_empty_count: dict[str, int] = {}
         seen_sublabel: bool = False  # 섹션 헤더 뒤 bg 라벨(제목 :)을 봤는지
 
+        last_header_label = ""  # 직전 헤더 라벨 (필드 타입 분류용)
+
         for row in table["rows"]:
             cells = []
             for cell in row:
@@ -164,22 +155,24 @@ def _format_structured_fields(structured):
                     continue
                 if cell["bold"] or cell["bg"] or text in _SUB_LABELS:
                     cells.append(f"[H]{text}")
+                    last_header_label = text  # 헤더 라벨 추적
                     if is_single_col:
                         if cell["bold"]:
-                            # 새 섹션 헤더 → 상태 리셋
                             current_section = text
                             section_empty_count[text] = 0
                             seen_sublabel = False
                         elif cell["bg"] and text:
-                            # bg 라벨(제목 :) 확인 → 이후 빈 셀은 슬롯 대상
                             seen_sublabel = True
                 else:
+                    # 인접 헤더 라벨 기반 필드 타입 태그 삽입
+                    field_tag = _classify_field_type(last_header_label)
+                    tag_prefix = f"[{field_tag}]" if field_tag else ""
+
                     if text_freq.get(text, 1) > 1:
-                        # 중복 셀: __N 인덱스 추가 (AI가 각각 구분하도록)
                         text_seen[text] = text_seen.get(text, 0) + 1
-                        cells.append(f"{text}__{text_seen[text]}")
+                        cells.append(f"{tag_prefix}{text}__{text_seen[text]}")
                     else:
-                        cells.append(text)
+                        cells.append(f"{tag_prefix}{text}")
 
             # 1컬럼 섹션형: bg 라벨을 본 뒤 등장하는 빈 셀에 섹션명__N 부여
             if (is_single_col
@@ -206,18 +199,24 @@ def _format_structured_fields(structured):
     return "\n".join(lines)
 
 
-def _call_with_retry(client, model_name, prompt, system_prompt, temperature, max_retries=2):
-    """Gemini API 호출 + 429 재시도"""
+def _call_with_retry(client, model_name, prompt, system_prompt, temperature,
+                     response_schema=None, max_retries=2):
+    """Gemini API 호출 + 429 재시도 + Structured Output"""
+    config_kwargs = {
+        "system_instruction": system_prompt,
+        "temperature": temperature,
+        "max_output_tokens": 32768,
+    }
+    if response_schema is not None:
+        config_kwargs["response_mime_type"] = "application/json"
+        config_kwargs["response_schema"] = response_schema
+
     for attempt in range(max_retries):
         try:
             return client.models.generate_content(
                 model=model_name,
                 contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    temperature=temperature,
-                    max_output_tokens=32768,
-                )
+                config=types.GenerateContentConfig(**config_kwargs),
             )
         except Exception as e:
             if "429" in str(e) and attempt < max_retries - 1:
@@ -251,12 +250,14 @@ def _call_cached_with_retry(client, model_name, cache_name, prompt, temperature,
 
 
 def _collect_results(parsed):
-    """파싱된 JSON에서 유효한 key-value 쌍만 수집"""
+    """파싱된 JSON에서 유효한 key-value 쌍만 수집. null/빈값은 제외."""
     results = {}
     for k, v in parsed.items():
         if not isinstance(k, str) or not k.strip():
             continue
-        k = k.strip()
+        k = _strip_field_tags(k.strip())  # [EXACT]/[GEN] 태그 제거
+        if v is None:
+            continue  # null 값 = 소스에 없는 정보 → 스킵
         if isinstance(v, (int, float)):
             v = str(v)
         if not isinstance(v, str) or not v.strip():
@@ -265,11 +266,38 @@ def _collect_results(parsed):
     return results
 
 
-def _is_generation_request(text):
-    """사용자 입력이 생성 요청인지 판단한다."""
-    if not text:
-        return False
-    return any(kw in text for kw in _GEN_KEYWORDS)
+def _verify_exact_fields(mappings: dict, source_text: str) -> None:
+    """정밀 필드([EXACT] 패턴)의 값이 소스에 실제 존재하는지 검증한다.
+    소스에 없는 값은 경고 로그를 남기고 제거한다 (할루시네이션 방지).
+    """
+    if not source_text:
+        return
+    source_normalized = re.sub(r"\s+", "", source_text.lower())
+
+    to_remove = []
+    for key, value in mappings.items():
+        if not _EXACT_PATTERNS.search(key):
+            continue
+        value_str = str(value)
+        value_digits = re.sub(r"[^0-9]", "", value_str)
+        value_normalized = re.sub(r"\s+", "", value_str.lower())
+
+        if len(value_digits) >= 4:
+            # 숫자 기반 검증 (금액, 전화번호, 사업자번호 등)
+            source_digits = re.sub(r"[^0-9]", "", source_text)
+            if value_digits not in source_digits:
+                print(f"[verify] 정밀 필드 불일치, 제거: {key}={value_str}")
+                to_remove.append(key)
+        elif len(value_normalized) >= 2:
+            # 텍스트 기반 검증 (이름, 주소 등)
+            if value_normalized not in source_normalized:
+                print(f"[verify] 정밀 필드 불일치, 제거: {key}={value_str}")
+                to_remove.append(key)
+
+    for k in to_remove:
+        del mappings[k]
+    if to_remove:
+        print(f"[verify] 정밀 필드 {len(to_remove)}개 제거됨")
 
 
 def _get_api_key():
@@ -288,8 +316,17 @@ def _get_api_key():
     return key
 
 
-def _parse_json_response(text):
+def _parse_json_response(text, structured_output=False):
     """Gemini 응답에서 JSON을 추출한다. 잘린 JSON도 최대한 복구한다."""
+    text = text.strip()
+
+    # Structured Output 모드: 이미 유효한 JSON이므로 바로 파싱
+    if structured_output:
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass  # 폴백: 기존 복구 로직
+
     # 마크다운 코드블록 제거
     text = re.sub(r"```json\s*", "", text)
     text = re.sub(r"```\s*", "", text)
@@ -714,10 +751,7 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
     combined_content = "\n\n".join(content_parts)
     print(f"[ai/map] 콘텐츠 합산: {len(content_parts)}개 소스, {len(combined_content):,}자")
 
-    # 생성 요청 vs 매핑 요청 판단: 반드시 사용자 입력 텍스트만으로 판단
-    # (파일 내용에 "써줘", "채워줘" 등이 포함될 수 있어 오판 방지)
-    is_gen = _is_generation_request(user_content)
-    print(f"[ai/map] is_gen={is_gen} (user_content 기준, len={len(user_content)})")
+    print(f"[ai/map] 통합 모드 (user_content len={len(user_content)})")
 
     # 구조화된 필드가 있으면 테이블 형식 프롬프트 사용
     use_structured = structured is not None and len(structured.get("tables", [])) > 0
@@ -727,11 +761,7 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
 
     # 양식 필드 필터링 (평면 리스트 - 구조화 미사용 시 폴백)
     _SKIP = {"□", "☑", "※", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "☐", "○", "●"}
-    if is_gen:
-        filtered_fields = [t for t in form_texts if len(t) > 4 and t.strip() not in _SKIP]
-        filtered_fields = [t[:200] if len(t) > 200 else t for t in filtered_fields]
-    else:
-        filtered_fields = [t for t in form_texts if 1 < len(t) <= 120 and t.strip() not in _SKIP]
+    filtered_fields = [t for t in form_texts if 1 < len(t) <= 200 and t.strip() not in _SKIP]
 
     # 필드 상한: 3000개 (약 100장 분량)
     MAX_FIELDS = 3000
@@ -741,16 +771,18 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
 
     # 배치 분할 호출 (150개씩 나눠서 전체 커버)
     BATCH_SIZE = 150
-    if is_gen:
-        system_prompt = SYSTEM_PROMPT_GEN
-        model_name = MODELS["generation"]
-    else:
-        system_prompt = SYSTEM_PROMPT_MAP
-        model_name = MODELS["mapping"]
+    system_prompt = SYSTEM_PROMPT
+    model_name = MODEL_NAME
+
+    # Gemini Structured Output: 동적 키 허용
+    mapping_schema = {
+        "type": "OBJECT",
+        "properties": {},
+    }
 
     try:
         client = genai.Client(api_key=api_key)
-        temperature = 0.3 if is_gen else 0.1
+        temperature = 0.1
 
         all_results = {}
 
@@ -783,16 +815,26 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
 
         # 소형 문서 (1배치): 캐시 없이 1회 호출
         if not need_cache:
-            prompt_template = USER_PROMPT_GEN if is_gen else USER_PROMPT_MAP
-            prompt = prompt_template.format(fields=field_batches[0], content=combined_content)
+            prompt = USER_PROMPT.format(fields=field_batches[0], content=combined_content)
             print(f"[ai/map] 1회 호출 (캐시 불필요, 필드 {len(filtered_fields)}개, use_structured={use_structured})")
-            # 디버그: 실제 전달 내용 앞부분 확인
             print(f"[ai/map] fields 앞부분:\n{field_batches[0][:500]}")
             print(f"[ai/map] content 앞부분:\n{combined_content[:500]}")
 
-            response = _call_with_retry(client, model_name, prompt, system_prompt, temperature)
+            # response_schema 사용 시도 → 실패하면 텍스트 모드 폴백
+            use_schema = True
+            try:
+                response = _call_with_retry(client, model_name, prompt, system_prompt,
+                                            temperature, response_schema=mapping_schema)
+            except Exception as schema_err:
+                if "schema" in str(schema_err).lower() or "mime" in str(schema_err).lower():
+                    print(f"[ai/map] response_schema 미지원, 텍스트 모드 폴백: {schema_err}")
+                    use_schema = False
+                    response = _call_with_retry(client, model_name, prompt, system_prompt, temperature)
+                else:
+                    raise
+
             print(f"[ai/map] AI 응답 앞부분:\n{response.text[:800]}")
-            parsed = _parse_json_response(response.text)
+            parsed = _parse_json_response(response.text, structured_output=use_schema)
             if parsed:
                 all_results = _collect_results(parsed)
                 print(f"[ai/map] 파싱 결과: {len(all_results)}개 키")
@@ -813,7 +855,7 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
                 print(f"[ai/map] 캐시 생성 완료: {total_batches}배치, TTL=10분")
 
                 for batch_idx, batch_text in enumerate(field_batches):
-                    prompt_template = USER_PROMPT_GEN if is_gen else USER_PROMPT_MAP
+                    prompt_template = USER_PROMPT
                     # 캐시에 콘텐츠가 있으므로 프롬프트에서는 양식만
                     prompt = prompt_template.format(fields=batch_text, content="(위에 제공된 내용 참조)")
 
@@ -848,7 +890,7 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
                     # 캐시 기능 실패 → 폴백: 캐시 없이 반복 전송
                     print(f"[ai/map] 캐시 실패, 폴백 모드: {cache_err}")
                     for batch_idx, batch_text in enumerate(field_batches):
-                        prompt_template = USER_PROMPT_GEN if is_gen else USER_PROMPT_MAP
+                        prompt_template = USER_PROMPT
                         prompt = prompt_template.format(fields=batch_text, content=combined_content)
                         print(f"[ai/map] fallback batch {batch_idx+1}/{total_batches}")
                         if batch_idx > 0:
@@ -943,6 +985,21 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
                     print(f"[ai/map] 재시도 batch {rb+1}: +{len(retry_parsed or {})}개")
                 except Exception as retry_e:
                     print(f"[ai/map] 재시도 실패: {retry_e}")
+
+        # ── 한국 포맷터 후처리 (금액 콤마, 날짜 년월일, 전화 하이픈, 사업자번호) ──
+        try:
+            from kr_formatter import KrFormatter
+            fmt_result = KrFormatter.auto_detect_and_format(normalized)
+            normalized = fmt_result["formatted"]
+            for log_entry in fmt_result["log"]:
+                print(f"[ai/map] {log_entry}")
+        except ImportError:
+            print("[ai/map] kr_formatter 미설치, 포맷팅 스킵")
+        except Exception as fmt_err:
+            print(f"[ai/map] 포맷팅 실패 (원본 유지): {fmt_err}")
+
+        # ── 정밀 필드 소스 대조 검증 (할루시네이션 방지) ──
+        _verify_exact_fields(normalized, combined_content)
 
         return normalized, None
 

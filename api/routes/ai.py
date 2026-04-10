@@ -36,8 +36,7 @@ async def ai_map(
         except Exception:
             pass  # 만료/유효하지 않은 토큰 → 비로그인으로 처리
 
-    from ai_mapper import _is_generation_request
-    action = "generation" if _is_generation_request(text) else "mapping"
+    action = "mapping"  # 통합 모드: 항상 매핑 비용
 
     gauge_cost = 0.0
     if not use_direct:
@@ -133,7 +132,7 @@ async def ai_map(
     content_path = content_paths[0] if len(content_paths) == 1 else None
     extra_paths = content_paths[1:] if len(content_paths) > 1 else []
 
-    action_mode = "direct" if use_direct else ("generate" if action == "generation" else "mapping")
+    action_mode = "direct" if use_direct else "mapping"
     with Timer() as t:
         try:
             print(f"[ai/map] mode={action_mode}, fields={len(fields)}, text_len={len(text or '')}, files={len(content_paths)}")

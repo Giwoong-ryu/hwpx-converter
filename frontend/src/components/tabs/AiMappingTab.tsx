@@ -5,7 +5,7 @@ import { useForm } from "@/context/FormContext";
 import { useAuth } from "@/context/AuthContext";
 import { aiMap, generateDoc, downloadBlob, GaugeEmptyError, saveMapping, listMyMappings, loadMapping, deleteMapping, listPublicMappings, toggleLike, updateMappingPublic } from "@/lib/api";
 import FileUpload from "@/components/ui/FileUpload";
-import { Wand2, Download, Loader2, CheckCircle2, ChevronDown, ChevronUp, ImageOff, Sparkles, Save, FolderOpen, Trash2, X, AlertTriangle } from "lucide-react";
+import { Wand2, Download, Loader2, CheckCircle2, ChevronDown, ChevronUp, ImageOff, Sparkles, Save, FolderOpen, Trash2, X } from "lucide-react";
 
 interface AiMappingTabProps {
   onGaugeEmpty?: (data: { errorCode: string; plan: string; gaugePct: number }) => void;
@@ -71,7 +71,6 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
   const [showDetail, setShowDetail] = useState(false);
   const [stripImages, setStripImages] = useState(false);
   const [outputFormat, setOutputFormat] = useState<"hwpx" | "hwp" | "docx">("hwpx");
-  const [isGeneration, setIsGeneration] = useState(false);
   const [coverage, setCoverage] = useState<{ total_fields: number; mapped: number; coverage_pct: number; ai_filled?: number } | null>(null);
   const [sources, setSources] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -91,7 +90,6 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
       const apiMode = useAi ? "ai" : "direct";
       const res = await aiMap(fileId, prompt, contentFiles.length > 0 ? contentFiles : undefined, apiMode);
       setMappings(Object.entries(res.mappings));
-      setIsGeneration(res.is_generation || false);
       setCoverage(res.coverage || null);
       setSources(res.sources || {});
       // AI 보완 항목이 있으면 상세 보기 자동 펼침
@@ -310,17 +308,6 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
 
       {error && <div className="text-base text-red-600 bg-red-50 p-3 rounded-xl">{error}</div>}
 
-      {/* AI 초안 작성 경고 배너 */}
-      {isGeneration && mappings.length > 0 && (
-        <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-          <AlertTriangle size={15} className="text-amber-500 shrink-0 mt-0.5" />
-          <div>
-            <span className="text-sm font-bold text-amber-800">AI 초안 작성 결과입니다.</span>
-            <span className="text-sm text-amber-700/80 ml-1">중요 문서는 반드시 내용을 검토한 후 사용하세요.</span>
-          </div>
-        </div>
-      )}
-
       {mappings.length > 0 && (
         <div className="border border-[#93C5FD]/50 rounded-xl overflow-hidden">
           {/* 커버리지 + AI 보완 안내 */}
@@ -337,7 +324,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
               </div>
               {(coverage.ai_filled || 0) > 0 && (
                 <p className="text-sm text-[#2563EB] mt-1.5">
-                  {coverage.ai_filled}개 항목은 AI가 보완했어요. <span className="text-[#57423c]/50">아래에서 파란 배경 항목을 확인해보세요.</span>
+                  {coverage.ai_filled}개 항목은 AI가 보완했어요. <span className="text-[#57423c]/65">아래에서 파란 배경 항목을 확인해보세요.</span>
                 </p>
               )}
             </div>
@@ -469,7 +456,7 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 max-h-[60vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h3 className="font-bold text-[#1a1c1b]">저장된 매핑</h3>
-              <button onClick={() => setShowLoadModal(false)} className="text-[#57423c]/50 hover:text-[#1a1c1b]"><X size={18} /></button>
+              <button onClick={() => setShowLoadModal(false)} className="text-[#57423c]/65 hover:text-[#1a1c1b]"><X size={18} /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {savedList.length === 0 ? (
@@ -479,9 +466,9 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
                   <div key={m.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-[#93C5FD]/50 transition-colors">
                     <button onClick={() => doApplyMapping(m.id)} className="flex-1 text-left">
                       <p className="text-base font-semibold text-[#1a1c1b] truncate">{m.form_name}</p>
-                      <p className="text-xs text-[#57423c]/50">{m.form_field_count}개 필드 · {new Date(m.created_at).toLocaleDateString("ko-KR")}</p>
+                      <p className="text-xs text-[#57423c]/65">{m.form_field_count}개 필드 · {new Date(m.created_at).toLocaleDateString("ko-KR")}</p>
                     </button>
-                    <button onClick={() => doDeleteMapping(m.id)} className="p-1.5 text-[#57423c]/50 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                    <button onClick={() => doDeleteMapping(m.id)} className="p-1.5 text-[#57423c]/65 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                   </div>
                 ))
               )}

@@ -90,7 +90,7 @@ function PopularForms() {
         <div key={f.id} className="scroll-fade bg-[#f9f9f6] rounded-2xl border border-[#93C5FD]/30 p-5 hover:border-[#2563EB]/40 hover:shadow-md transition-all group" data-delay={i * 80}>
           <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${COLORS[f.category] || "bg-gray-100 text-gray-600"}`}>{f.category}</span>
           <h3 className="text-sm font-bold text-[#1a1c1b] mt-2 mb-1 line-clamp-1 group-hover:text-[#2563EB] transition-colors">{f.title}</h3>
-          <p className="text-sm text-[#57423c]/50 mb-3">{f.field_count}개 필드</p>
+          <p className="text-sm text-[#57423c]/65 mb-3">{f.field_count}개 필드</p>
           <div className="flex items-center justify-between">
             <span className="text-sm text-[#57423c]/60">{f.likes} 좋아요 · {f.downloads}명 사용</span>
             <Link
@@ -216,7 +216,7 @@ export default function LandingPage() {
               >
                 무료로 시작하기 <ArrowRight size={17} />
               </Link>
-              <span className="text-sm text-[#57423c]/50">회원가입 없이 바로 사용</span>
+              <span className="text-sm text-[#57423c]/65">회원가입 없이 바로 사용</span>
             </div>
             <div className="hero-stagger hero-s4 mb-6">
               <Link
@@ -527,29 +527,29 @@ export default function LandingPage() {
             <div className="scroll-fade relative flex flex-col items-center text-center p-6 rounded-2xl bg-[#f9f9f6] border border-gray-100" data-delay="0">
               <div className="w-10 h-10 rounded-xl bg-[#1a1c1b] text-white flex items-center justify-center font-black text-lg mb-4">1</div>
               <h3 className="font-bold text-base text-[#1a1c1b] mb-1.5">양식 파일 올리기</h3>
-              <p className="text-sm text-[#57423c]/55 leading-relaxed">사업계획서, 견적서, 이력서 등<br />채워야 할 HWP·HWPX·DOCX 양식</p>
-              <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white border border-gray-200 items-center justify-center text-[#57423c]/50 text-xs font-bold">→</div>
+              <p className="text-sm text-[#57423c]/70 leading-relaxed">사업계획서, 견적서, 이력서 등<br />채워야 할 HWP·HWPX·DOCX 양식</p>
+              <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white border border-gray-200 items-center justify-center text-[#57423c]/65 text-xs font-bold">→</div>
             </div>
             {/* Step 2 */}
             <div className="scroll-fade relative flex flex-col items-center text-center p-6 rounded-2xl bg-[#f9f9f6] border border-gray-100" data-delay="100">
               <div className="w-10 h-10 rounded-xl bg-[#2563EB] text-white flex items-center justify-center font-black text-lg mb-4">2</div>
               <h3 className="font-bold text-base text-[#1a1c1b] mb-1.5">내 자료 올리기</h3>
-              <p className="text-sm text-[#57423c]/55 leading-relaxed">엑셀, 워드, 텍스트<br />— 어떤 형식이든.</p>
-              <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white border border-gray-200 items-center justify-center text-[#57423c]/50 text-xs font-bold">→</div>
+              <p className="text-sm text-[#57423c]/70 leading-relaxed">엑셀, 워드, 텍스트<br />— 어떤 형식이든.</p>
+              <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white border border-gray-200 items-center justify-center text-[#57423c]/65 text-xs font-bold">→</div>
             </div>
             {/* Step 3 */}
             <div className="scroll-fade flex flex-col items-center text-center p-6 rounded-2xl bg-[#f9f9f6] border border-gray-100" data-delay="200">
               <div className="w-10 h-10 rounded-xl bg-[#1E40AF] text-white flex items-center justify-center font-black text-lg mb-4">3</div>
               <h3 className="font-bold text-base text-[#1a1c1b] mb-1.5">완성!</h3>
-              <p className="text-sm text-[#57423c]/55 leading-relaxed">AI가 양식에 맞춰 넣어드립니다.<br />HWP·HWPX·DOCX·엑셀로 다운로드.</p>
+              <p className="text-sm text-[#57423c]/70 leading-relaxed">AI가 양식에 맞춰 넣어드립니다.<br />HWP·HWPX·DOCX·엑셀로 다운로드.</p>
             </div>
           </div>
           {/* 신뢰 배지 라인 */}
-          <div className="flex items-center justify-center gap-8 mt-10 text-xs text-[#57423c]/35">
+          <div className="flex items-center justify-center gap-8 mt-10 text-xs text-[#57423c]/60">
             <span>파일 3시간 후 자동 삭제</span>
-            <span className="w-1 h-1 rounded-full bg-[#57423c]/20" />
+            <span className="w-1 h-1 rounded-full bg-[#57423c]/40" />
             <span>AI 학습에 사용 안 함</span>
-            <span className="w-1 h-1 rounded-full bg-[#57423c]/20" />
+            <span className="w-1 h-1 rounded-full bg-[#57423c]/40" />
             <span>로그인 없이 무료 체험</span>
           </div>
         </div>
@@ -597,7 +597,7 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-[#1a1c1b] tracking-tight">대량 생성</h3>
-                  <p className="text-xs text-[#57423c]/50 mt-0.5">엑셀에 100명 데이터 → 문서 100개 한번에</p>
+                  <p className="text-xs text-[#57423c]/65 mt-0.5">엑셀에 100명 데이터 → 문서 100개 한번에</p>
                 </div>
               </div>
               <div className="flex gap-2 flex-wrap">

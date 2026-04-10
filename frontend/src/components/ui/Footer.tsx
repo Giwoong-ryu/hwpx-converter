@@ -38,7 +38,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-6 pt-5 border-t border-gray-100 text-center text-xs text-[#57423c]/50">
+        <div className="mt-6 pt-5 border-t border-gray-100 text-center text-xs text-[#57423c]/65">
           © 2025 Eazy HWPX. HWP·HWPX는 한글과컴퓨터의 등록상표입니다.
         </div>
       </div>
