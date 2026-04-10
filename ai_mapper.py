@@ -780,13 +780,6 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
     system_prompt = SYSTEM_PROMPT
     model_name = MODEL_NAME
 
-    # Gemini Structured Output: 동적 키 허용, null 반환 허용
-    mapping_schema = {
-        "type": "OBJECT",
-        "properties": {},
-        "additionalProperties": {"type": "STRING", "nullable": True},
-    }
-
     try:
         client = genai.Client(api_key=api_key)
         temperature = 0.1
@@ -827,21 +820,10 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
             print(f"[ai/map] fields 앞부분:\n{field_batches[0][:500]}")
             print(f"[ai/map] content 앞부분:\n{combined_content[:500]}")
 
-            # response_schema 사용 시도 → 실패하면 텍스트 모드 폴백
-            use_schema = True
-            try:
-                response = _call_with_retry(client, model_name, prompt, system_prompt,
-                                            temperature, response_schema=mapping_schema)
-            except Exception as schema_err:
-                if "schema" in str(schema_err).lower() or "mime" in str(schema_err).lower():
-                    print(f"[ai/map] response_schema 미지원, 텍스트 모드 폴백: {schema_err}")
-                    use_schema = False
-                    response = _call_with_retry(client, model_name, prompt, system_prompt, temperature)
-                else:
-                    raise
+            response = _call_with_retry(client, model_name, prompt, system_prompt, temperature)
 
             print(f"[ai/map] AI 응답 앞부분:\n{response.text[:800]}")
-            parsed = _parse_json_response(response.text, structured_output=use_schema)
+            parsed = _parse_json_response(response.text)
             if parsed:
                 all_results = _collect_results(parsed)
                 print(f"[ai/map] 파싱 결과: {len(all_results)}개 키")
@@ -886,9 +868,8 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
                             )
                         )
 
-                    response = _call_cached_with_retry(client, model_name, cache.name, prompt, temperature,
-                                                      response_schema=mapping_schema)
-                    parsed = _parse_json_response(response.text, structured_output=True)
+                    response = _call_cached_with_retry(client, model_name, cache.name, prompt, temperature)
+                    parsed = _parse_json_response(response.text)
                     if parsed:
                         for k, v in _collect_results(parsed).items():
                             all_results[k] = v
