@@ -126,23 +126,23 @@ export default function GalleryPage() {
     <div className="min-h-screen bg-[#f9f9f6]">
       {/* 헤더 */}
       <header className="sticky top-0 z-50 bg-[#f9f9f6]/80 backdrop-blur-xl border-b border-[#93C5FD]/50">
-        <div className="max-w-screen-xl mx-auto px-6 lg:px-10 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-1 text-[#57423c] hover:text-[#1E40AF] transition-colors">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-10 py-3.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <Link href="/" className="flex items-center gap-1 text-[#57423c] hover:text-[#1E40AF] transition-colors shrink-0">
               <ChevronLeft size={16} />
             </Link>
-            <Link href="/" className="flex items-center gap-2.5">
+            <Link href="/" className="flex items-center gap-2.5 shrink-0">
               <div className="w-7 h-7 rounded-lg bg-[#1a1c1b] flex items-center justify-center">
                 <FileText size={14} className="text-white" strokeWidth={2.2} />
               </div>
-              <span className="text-lg font-extrabold tracking-tighter text-[#1a1c1b]">Eazy HWPX</span>
+              <span className="text-lg font-extrabold tracking-tighter text-[#1a1c1b] whitespace-nowrap">Eazy HWPX</span>
             </Link>
-            <span className="text-sm font-bold text-[#1a1c1b]">양식 갤러리</span>
+            <span className="text-sm font-bold text-[#1a1c1b] whitespace-nowrap hidden sm:block">양식 갤러리</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <Link
               href="/tool"
-              className="text-sm font-semibold text-[#2563EB] hover:text-[#1E40AF] transition-colors"
+              className="text-sm font-semibold text-[#2563EB] hover:text-[#1E40AF] transition-colors whitespace-nowrap"
             >
               도구로 이동
             </Link>

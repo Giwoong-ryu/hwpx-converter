@@ -151,23 +151,24 @@ export default function LandingPage() {
 
       {/* ── 네비게이션 ── */}
       <nav className="fixed top-0 w-full z-50 bg-[#f9f9f6]/80 backdrop-blur-xl border-b border-[#BFDBFE]/40">
-        <div className="flex justify-between items-center px-8 lg:px-12 py-4 max-w-screen-2xl mx-auto">
-          <Link href="/" className="flex items-center gap-2.5">
+        <div className="flex justify-between items-center px-4 sm:px-8 lg:px-12 py-4 max-w-screen-2xl mx-auto">
+          <Link href="/" className="flex items-center gap-2.5 shrink-0">
             <div className="w-7 h-7 rounded-lg bg-[#1a1c1b] flex items-center justify-center">
               <FileText size={14} className="text-white" strokeWidth={2.2} />
             </div>
-            <span className="text-lg font-extrabold tracking-tighter">Eazy HWPX</span>
+            <span className="text-lg font-extrabold tracking-tighter whitespace-nowrap">Eazy HWPX</span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <CouponBadge />
-            <Link href="/pricing" className="text-sm text-[#57423c]/70 hover:text-[#1a1c1b] transition-colors">
+            <Link href="/pricing" className="text-sm text-[#57423c]/70 hover:text-[#1a1c1b] transition-colors whitespace-nowrap">
               요금제
             </Link>
             <Link
               href="/tool"
-              className="bg-linear-to-r from-[#2563EB] to-[#1E40AF] text-white px-5 py-2 rounded-lg font-semibold text-sm hover:opacity-90 transition-all active:scale-95"
+              className="bg-linear-to-r from-[#2563EB] to-[#1E40AF] text-white px-3 sm:px-5 py-2 rounded-lg font-semibold text-sm hover:opacity-90 transition-all active:scale-95 whitespace-nowrap"
             >
-              무료로 시작하기
+              <span className="hidden sm:inline">무료로 시작하기</span>
+              <span className="sm:hidden">시작하기</span>
             </Link>
           </div>
         </div>
@@ -545,12 +546,12 @@ export default function LandingPage() {
             </div>
           </div>
           {/* 신뢰 배지 라인 */}
-          <div className="flex items-center justify-center gap-8 mt-10 text-xs text-[#57423c]/60">
-            <span>파일 3시간 후 자동 삭제</span>
-            <span className="w-1 h-1 rounded-full bg-[#57423c]/40" />
-            <span>AI 학습에 사용 안 함</span>
-            <span className="w-1 h-1 rounded-full bg-[#57423c]/40" />
-            <span>로그인 없이 무료 체험</span>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-10 text-xs text-[#57423c]/60">
+            <span className="whitespace-nowrap">파일 3시간 후 자동 삭제</span>
+            <span className="w-1 h-1 rounded-full bg-[#57423c]/40 hidden sm:block" />
+            <span className="whitespace-nowrap">AI 학습에 사용 안 함</span>
+            <span className="w-1 h-1 rounded-full bg-[#57423c]/40 hidden sm:block" />
+            <span className="whitespace-nowrap">로그인 없이 무료 체험</span>
           </div>
         </div>
       </section>
