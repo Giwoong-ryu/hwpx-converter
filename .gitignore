@@ -23,6 +23,10 @@ frontend/.env.local
 # Plans (로컬 전용)
 plans/
 
+# Test results (로컬 보관)
+test-forms/results/
+uploads/
+
 # Logs
 *.log
 ai_error.log

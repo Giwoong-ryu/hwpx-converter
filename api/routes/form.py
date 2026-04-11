@@ -115,12 +115,31 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
     except Exception:
         pass  # 실패해도 label_counts={} 로 계속 (치환 순서만 약간 어긋날 수 있음)
 
-    # ── 슬롯 맵 빌드: [H] 헤더 → 인접 빈 셀 좌표 (빈칸형 양식 지원) ──
+    # ── 양식 타입 분류 (invoice/section/legacy) ──
+    form_type = "legacy"
+    invoice_label_set: set[str] = set()
+    try:
+        from processors.form_classifier import classify_form
+        form_type = classify_form(structured_data) if structured_data else "legacy"
+        print(f"[classify] form_type={form_type}")
+    except Exception as cls_e:
+        print(f"[classify] 분류 실패 (legacy 폴백): {cls_e}")
+
+    # ── 슬롯 맵 빌드: form_type에 따라 분기 ──
     slot_map: dict = {}
     try:
-        slot_map = build_header_slot_map(path)
-        if slot_map:
-            print(f"[generate] 슬롯 맵: {len(slot_map)}개 헤더 탐지")
+        if form_type == "invoice_style":
+            # 인보이스형: 일반 텍스트 라벨 인식 + 라벨 치환 보호
+            from processors.invoice_processor import InvoiceProcessor, INVOICE_LABELS
+            proc = InvoiceProcessor(path, structured_data)
+            slot_map = proc.build_slot_map()
+            invoice_label_set = {lbl.strip() for lbl in INVOICE_LABELS}
+            print(f"[generate] invoice_style 슬롯 맵: {len(slot_map)}개 라벨 탐지")
+        else:
+            # 기존 경로 (legacy / section_based)
+            slot_map = build_header_slot_map(path)
+            if slot_map:
+                print(f"[generate] 슬롯 맵: {len(slot_map)}개 헤더 탐지")
     except Exception as slot_e:
         print(f"[generate] 슬롯 맵 빌드 실패 (폴백): {slot_e}")
 
@@ -138,7 +157,9 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
         print(f"[generate] 포맷팅 실패 (원본 사용): {fmt_err}")
 
     # replacements를 슬롯 주입용 vs 일반 텍스트 치환으로 분리
-    _base_re = re.compile(r'__\d+$')
+    # __N 접미사는 연속 가능: 월일__1__2 → base=월일, indices=[1,2]
+    _base_re = re.compile(r'(__\d+)+$')
+    _idx_re = re.compile(r'__(\d+)')
     _ws_re = re.compile(r'\s+')
     slot_assignments: list = []
     normal_repl: dict[str, str] = {}
@@ -146,26 +167,41 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
     # 슬롯 맵 키 정규화 인덱스 (공백 차이 무시: "성 명" vs "성명" 매칭)
     slot_map_norm = {_ws_re.sub('', k): k for k in slot_map}
 
+    # invoice_style 전용: 라벨 텍스트 정규화 집합 (치환 보호 체크용)
+    invoice_label_norm = {_ws_re.sub('', lbl) for lbl in invoice_label_set} if invoice_label_set else set()
+
     for key, value in formatted_replacements.items():
-        base = _base_re.sub('', key)
+        base = _base_re.sub('', key)  # 모든 __N 접미사 제거
+        suffix_match = _base_re.search(key)
+        indices = [int(x) for x in _idx_re.findall(suffix_match.group(0))] if suffix_match else []
         real_key = slot_map_norm.get(_ws_re.sub('', base))
         if real_key is not None and slot_map[real_key]:
-            suffix_m = re.search(r'__(\d+)$', key)
             slots = slot_map[real_key]
-            if suffix_m:
-                # __N suffix: 특정 인덱스 슬롯에만 주입
-                slot_idx = int(suffix_m.group(1)) - 1
-                if slot_idx < len(slots):
-                    sa = dict(slots[slot_idx])
+            if indices:
+                # 복수 인덱스 → 평탄화 슬롯 인덱스로 변환 (2분할 양식 지원)
+                if len(indices) == 1:
+                    flat_idx = indices[0] - 1
+                else:
+                    n = len(slots) // max(indices[0], 2)
+                    flat_idx = (indices[0] - 1) * n + (indices[-1] - 1)
+                if 0 <= flat_idx < len(slots):
+                    sa = dict(slots[flat_idx])
                     sa["value"] = value
                     slot_assignments.append(sa)
             else:
-                # suffix 없음: 연속된 모든 슬롯에 동일 값 주입 (합쳐진 빈칸 전체 채우기)
+                # suffix 없음: 연속된 모든 슬롯에 동일 값 주입
                 for slot in slots:
                     sa = dict(slot)
                     sa["value"] = value
                     slot_assignments.append(sa)
         else:
+            # invoice_style에서 key가 라벨 텍스트와 일치하면 normal_repl 제외
+            # (라벨 원본 텍스트를 AI 값으로 덮어쓰는 것 방지 — 견적서 TC-02 회귀 방지)
+            if invoice_label_norm:
+                base_norm = _ws_re.sub('', base)
+                if base_norm in invoice_label_norm:
+                    print(f"[generate] invoice 라벨 치환 차단: {key}={value[:30]}...")
+                    continue
             normal_repl[key] = value
 
     print(f"[generate] 슬롯 주입={len(slot_assignments)}개, 일반치환={len(normal_repl)}개")

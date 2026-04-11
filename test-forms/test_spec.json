@@ -1,0 +1,189 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "created": "2026-04-12",
+    "purpose": "AI 매핑 품질 검증 — 자동 채점용 기계어 스펙",
+    "cross_check_status": "all_70_verified",
+    "cross_check_notes": [
+      "70/70 기대값이 입력 txt에 실제로 존재 확인됨",
+      "부분 매치 7건: 기대값(핵심)은 txt(확장)의 substring. 양방향 substring 매치로 처리",
+      "TC-05#8 근무 요일: 원래 가이드 기대값 '화·수·목·토' → txt 원문 포맷 '화요일, 수요일, 목요일, 토요일'로 수정"
+    ]
+  },
+
+  "scoring_rules": {
+    "match_mode": "substring_bidirectional",
+    "match_mode_description": "AI 값이 기대값을 포함하거나 기대값이 AI 값을 포함하면 정답. 공백 정규화 후 비교.",
+    "critical_rule": {
+      "behavior": "demote_to_D",
+      "description": "critical=true 필드가 하나라도 틀리면 등급을 자동 D로 강등. 점수와 무관."
+    },
+    "grade_thresholds": {
+      "A": 90,
+      "B": 75,
+      "C": 50,
+      "D": 0
+    },
+    "field_count_rule": "expected_only",
+    "field_count_description": "분모 = 이 스펙에 정의된 기대값 개수 (양식 전체 빈칸 개수 아님)"
+  },
+
+  "test_cases": [
+    {
+      "id": "TC-01",
+      "name": "세금계산서",
+      "form_file": "세금계산서_국세청자동계산.hwp",
+      "input_file": "test-inputs/세금계산서_입력데이터.txt",
+      "features_tested": ["공급자/공급받는자 분리", "금액 포맷", "날짜 포맷", "사업자번호 포맷"],
+      "risk_profile": "supplier_buyer_confusion",
+      "uses_append_slot": false,
+      "uses_max_chars_constraint": false,
+      "fields": [
+        {"id": 1, "label": "공급자 사업자번호", "expected": "123-45-67890", "critical": true, "notes": "공급자/공급받는자 혼동 금지"},
+        {"id": 2, "label": "공급자 상호", "expected": "주식회사 이지솔루션", "critical": true},
+        {"id": 3, "label": "공급받는자 사업자번호", "expected": "987-65-43210", "critical": true},
+        {"id": 4, "label": "공급받는자 상호", "expected": "현대건설 주식회사", "critical": true},
+        {"id": 5, "label": "품목1", "expected": "웹사이트 유지보수 용역", "critical": false},
+        {"id": 6, "label": "품목1 공급가액", "expected": "1,500,000", "critical": false},
+        {"id": 7, "label": "품목2", "expected": "서버 호스팅 비용", "critical": false},
+        {"id": 8, "label": "합계 공급가액", "expected": "2,100,000", "critical": true, "notes": "금액 오류=세무 리스크"},
+        {"id": 9, "label": "합계 세액", "expected": "210,000", "critical": true},
+        {"id": 10, "label": "작성일", "expected": "2026년 4월 12일", "critical": false}
+      ]
+    },
+    {
+      "id": "TC-02",
+      "name": "견적서",
+      "form_file": "견적서_간이영수증형.hwp",
+      "input_file": "test-inputs/견적서_입력데이터.txt",
+      "features_tested": ["다품목 반복 행", "금액 집계", "고객/업체 분리"],
+      "risk_profile": "repeating_rows",
+      "uses_append_slot": false,
+      "uses_max_chars_constraint": false,
+      "fields": [
+        {"id": 1, "label": "고객명", "expected": "홍길동", "critical": false},
+        {"id": 2, "label": "시공 주소", "expected": "서울특별시 강남구 테헤란로 456, 201호", "critical": false},
+        {"id": 3, "label": "업체명", "expected": "인테리어 하우스", "critical": false},
+        {"id": 4, "label": "품목1 내용", "expected": "거실 도배", "critical": false, "notes": "txt는 '거실 도배 (합지)' — substring 매치"},
+        {"id": 5, "label": "품목1 단가", "expected": "35,000", "critical": false, "notes": "'35,000원/평' 일부 매치"},
+        {"id": 6, "label": "품목2 내용", "expected": "화장실 타일 교체", "critical": false, "notes": "'화장실 타일 교체 (욕실 2개)'"},
+        {"id": 7, "label": "품목3 내용", "expected": "주방 시트지 시공", "critical": false},
+        {"id": 8, "label": "품목4 내용", "expected": "방문 교체", "critical": false, "notes": "'방문 교체 (3개)'"},
+        {"id": 9, "label": "공급가액 합계", "expected": "3,215,000", "critical": true, "notes": "견적 금액은 치명 필드"},
+        {"id": 10, "label": "총 견적 금액", "expected": "3,536,500", "critical": true}
+      ]
+    },
+    {
+      "id": "TC-03",
+      "name": "정부공문",
+      "form_file": "정부공문_행정안전부양식.hwp",
+      "input_file": "test-inputs/정부공문_입력데이터.txt",
+      "features_tested": ["결재선 3필드 분리", "수신/발신 구분", "본문 숫자 정확성"],
+      "risk_profile": "approval_chain_confusion",
+      "uses_append_slot": false,
+      "uses_max_chars_constraint": false,
+      "fields": [
+        {"id": 1, "label": "수신", "expected": "서울특별시장", "critical": false, "notes": "'서울특별시장 (경제진흥본부장 경유)' substring"},
+        {"id": 2, "label": "제목", "expected": "2026년 1분기 소상공인 지원 사업 추진 실적 보고", "critical": false},
+        {"id": 3, "label": "발신 기관", "expected": "강남구청", "critical": false},
+        {"id": 4, "label": "담당자", "expected": "이은지", "critical": false},
+        {"id": 5, "label": "시행일자", "expected": "2026년 4월 12일", "critical": false},
+        {"id": 6, "label": "기안자", "expected": "이은지", "critical": true, "notes": "결재선 3필드 교차 금지"},
+        {"id": 7, "label": "검토자", "expected": "김현수", "critical": true},
+        {"id": 8, "label": "결재자", "expected": "박인호", "critical": true},
+        {"id": 9, "label": "본문 첫 항목", "expected": "경영 컨설팅 지원", "critical": false},
+        {"id": 10, "label": "지원 건수", "expected": "47건", "critical": false}
+      ]
+    },
+    {
+      "id": "TC-04",
+      "name": "사업제안서",
+      "form_file": "사업제안서_구매제안서.hwp",
+      "input_file": "test-inputs/사업제안서_입력데이터.txt",
+      "features_tested": ["반복 회사명 일관성", "다페이지 분산 필드", "실적 목록"],
+      "risk_profile": "repeated_value_consistency",
+      "uses_append_slot": false,
+      "uses_max_chars_constraint": true,
+      "uses_max_chars_notes": "사업제안서는 분량 제약 있는 셀이 있음",
+      "fields": [
+        {"id": 1, "label": "제안사 회사명", "expected": "주식회사 한국종합건설", "critical": true, "notes": "반복 일관성"},
+        {"id": 2, "label": "사업자등록번호", "expected": "110-81-23456", "critical": true},
+        {"id": 3, "label": "대표자", "expected": "정우성", "critical": false},
+        {"id": 4, "label": "담당자명", "expected": "최지훈", "critical": false},
+        {"id": 5, "label": "발주처", "expected": "한국토지주택공사", "critical": false, "notes": "'한국토지주택공사 (LH)' substring"},
+        {"id": 6, "label": "사업명", "expected": "2026년 마곡지구 복합문화시설 신축공사", "critical": false},
+        {"id": 7, "label": "제안 금액", "expected": "15,700,000,000", "critical": true, "notes": "'15,700,000,000원 (157억 원)' substring"},
+        {"id": 8, "label": "착공 예정일", "expected": "2026년 7월 1일", "critical": false},
+        {"id": 9, "label": "실적1", "expected": "서울시 은평구 복합행정타운 신축", "critical": false},
+        {"id": 10, "label": "회사명 반복 일관성", "expected": "주식회사 한국종합건설", "critical": true, "notes": "전 페이지 동일값"}
+      ]
+    },
+    {
+      "id": "TC-05",
+      "name": "표준근로계약서",
+      "form_file": "표준근로계약서_2025.hwp",
+      "input_file": "test-inputs/표준근로계약서_입력데이터.txt",
+      "features_tested": ["갑/을 구분", "임금 정확성", "날짜 포맷"],
+      "risk_profile": "parties_confusion",
+      "uses_append_slot": false,
+      "uses_max_chars_constraint": false,
+      "fields": [
+        {"id": 1, "label": "사업장명 (갑)", "expected": "브레인 수학학원", "critical": true, "notes": "갑=사업자"},
+        {"id": 2, "label": "사업자등록번호 (갑)", "expected": "333-44-55566", "critical": true},
+        {"id": 3, "label": "근로자 성명 (을)", "expected": "김태양", "critical": true, "notes": "을=근로자, 갑↔을 혼동 금지"},
+        {"id": 4, "label": "계약 시작일", "expected": "2026년 5월 1일", "critical": true, "notes": "계약 기간 법적 효력"},
+        {"id": 5, "label": "계약 종료일", "expected": "2027년 4월 30일", "critical": true},
+        {"id": 6, "label": "기본급", "expected": "2,800,000", "critical": true, "notes": "'월 2,800,000원' substring"},
+        {"id": 7, "label": "총 급여", "expected": "3,000,000", "critical": true},
+        {"id": 8, "label": "근무 요일", "expected": "화요일, 수요일, 목요일, 토요일", "critical": false, "notes": "txt 원문 포맷으로 수정됨 (원 가이드: 화·수·목·토)"},
+        {"id": 9, "label": "근무 시간", "expected": "오후 2시", "critical": false, "notes": "'오후 2시 ~ 오후 10시' 시작 시각만 substring"},
+        {"id": 10, "label": "4대보험", "expected": "국민연금", "critical": false, "notes": "4개 보험 중 하나라도 매칭되면 OK"}
+      ]
+    },
+    {
+      "id": "TC-06",
+      "name": "납품확인서",
+      "form_file": "납품확인서.hwp",
+      "input_file": "test-inputs/납품확인서_입력데이터.txt",
+      "features_tested": ["납품처/공급자 구분", "다품목 번역 단가", "총액 계산"],
+      "risk_profile": "supplier_buyer_confusion",
+      "uses_append_slot": false,
+      "uses_max_chars_constraint": false,
+      "fields": [
+        {"id": 1, "label": "납품처 회사명", "expected": "주식회사 글로벌콘텐츠", "critical": true},
+        {"id": 2, "label": "납품처 담당자", "expected": "한소희", "critical": false},
+        {"id": 3, "label": "공급자 성명", "expected": "서지원", "critical": true},
+        {"id": 4, "label": "품목1", "expected": "제품 사용 설명서 한→영 번역", "critical": false},
+        {"id": 5, "label": "품목1 금액", "expected": "900,000", "critical": false},
+        {"id": 6, "label": "품목2", "expected": "마케팅 브로셔 영→한 번역", "critical": false},
+        {"id": 7, "label": "품목3", "expected": "특허 명세서 한→영 번역", "critical": false},
+        {"id": 8, "label": "공급가액 합계", "expected": "1,746,000", "critical": true},
+        {"id": 9, "label": "청구 총액", "expected": "1,920,600", "critical": true, "notes": "청구금액 오류=결제 분쟁"},
+        {"id": 10, "label": "납품 완료일", "expected": "2026년 4월 10일", "critical": false}
+      ]
+    },
+    {
+      "id": "TC-07",
+      "name": "상담일지",
+      "form_file": "상담일지_양식.hwp",
+      "input_file": "test-inputs/상담일지_입력데이터.txt",
+      "features_tested": ["복수 인물 구분 (학생/교사/학부모)", "서술 요약", "날짜 복수"],
+      "risk_profile": "multi_person_fields",
+      "uses_append_slot": false,
+      "uses_max_chars_constraint": true,
+      "uses_max_chars_notes": "상담 내용 요약 셀이 글자 수 제약 대상 가능",
+      "fields": [
+        {"id": 1, "label": "학원명", "expected": "브레인 수학학원", "critical": false},
+        {"id": 2, "label": "학생명", "expected": "박서연", "critical": true, "notes": "인물 혼동 금지"},
+        {"id": 3, "label": "학년", "expected": "중학교 2학년", "critical": false},
+        {"id": 4, "label": "담당 교사", "expected": "김태양", "critical": true, "notes": "'김태양 강사' substring"},
+        {"id": 5, "label": "상담 일시", "expected": "2026년 4월 12일", "critical": false},
+        {"id": 6, "label": "보호자 성명", "expected": "박미영", "critical": true, "notes": "'박미영 (모)' substring, 학생과 혼동 금지"},
+        {"id": 7, "label": "보호자 연락처", "expected": "010-7777-8888", "critical": false},
+        {"id": 8, "label": "상담 주제", "expected": "2학기 수행평가 대비 및 중간고사 성적 점검", "critical": false},
+        {"id": 9, "label": "취약 단원", "expected": "이차방정식", "critical": false},
+        {"id": 10, "label": "다음 상담 예정일", "expected": "2026년 6월 14일", "critical": false}
+      ]
+    }
+  ]
+}

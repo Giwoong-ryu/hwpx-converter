@@ -144,11 +144,16 @@ USER_PROMPT = """\
 5. 매핑 가능한 모든 필드를 최대한 빠짐없이 채우세요."""
 
 
-def _format_structured_fields(structured):
+def _format_structured_fields(structured, extra_labels=None):
     """구조화된 필드 데이터를 AI 프롬프트용 텍스트로 변환한다.
 
     테이블은 마크다운 테이블 형태, bold/bg 셀은 [H] 태그로 표시.
     중복 값 셀에는 __N 인덱스를 붙여 AI가 순서대로 개별 매핑하도록 한다.
+
+    Args:
+        structured: extract_structured_fields 결과
+        extra_labels: 일반 텍스트로 되어있지만 [H]로 취급할 추가 라벨 집합
+            (invoice_style 양식에서 InvoiceProcessor의 INVOICE_LABELS를 넘긴다)
     """
     _SKIP = {"□", "☑", "※", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "☐", "○", "●"}
 
@@ -159,13 +164,26 @@ def _format_structured_fields(structured):
         "상", "중", "하", "상/중/하",
     }
 
+    # extra_labels (invoice 라벨)도 소라벨로 취급 - 정규화해서 매칭용 캐시 생성
+    extra_labels_norm: set[str] = set()
+    if extra_labels:
+        extra_labels_norm = {re.sub(r"\s+", "", lbl).lower() for lbl in extra_labels}
+
+    def _is_extra_label(text: str) -> bool:
+        if not extra_labels_norm:
+            return False
+        t_norm = re.sub(r"\s+", "", text).lower()
+        return t_norm in extra_labels_norm
+
     # 1패스: 값 셀 텍스트 빈도 계산 (중복 여부 파악)
     text_freq: dict[str, int] = {}
     for table in structured["tables"]:
         for row in table["rows"]:
             for cell in row:
                 t = cell["text"].strip()
-                if t and t not in _SKIP and t not in _SUB_LABELS and not cell["bold"] and not cell["bg"]:
+                if (t and t not in _SKIP and t not in _SUB_LABELS
+                        and not cell["bold"] and not cell["bg"]
+                        and not _is_extra_label(t)):
                     text_freq[t] = text_freq.get(t, 0) + 1
 
     # "X:" 패턴 (예: "제목 :") 라벨 append 슬롯 카운터 (섹션마다 증가)
@@ -194,7 +212,7 @@ def _format_structured_fields(structured):
                 if not text or text in _SKIP:
                     cells.append("")
                     continue
-                if cell["bold"] or cell["bg"] or text in _SUB_LABELS:
+                if cell["bold"] or cell["bg"] or text in _SUB_LABELS or _is_extra_label(text):
                     # "X:" 패턴 append 라벨: 기존 텍스트 뒤에 값을 이어붙이는 슬롯
                     # 예: "제목 : " → 섹션별 소제목이 콜론 뒤로 들어감
                     is_append_label = (
@@ -843,7 +861,8 @@ def direct_map(form_texts: list[str], content_paths: list[str], text: str = "") 
     return result, None
 
 
-def map_content(form_texts, user_content, content_file=None, structured=None, extra_content_files=None):
+def map_content(form_texts, user_content, content_file=None, structured=None,
+                extra_content_files=None, extra_labels=None):
     """양식 필드와 사용자 내용을 AI로 매핑한다.
 
     Args:
@@ -852,6 +871,8 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
         content_file: 내용이 담긴 파일 경로 (선택)
         structured: extract_structured_fields()의 결과 (테이블 구조, 선택)
         extra_content_files: 추가 내용 파일 경로 리스트 (선택, 복수 파일)
+        extra_labels: invoice_style 양식에서 일반 텍스트로 된 라벨을 [H]로
+            취급하도록 추가 라벨 집합 전달 (InvoiceProcessor.INVOICE_LABELS)
 
     Returns:
         dict: {원본텍스트: 새텍스트} 또는 에러 시 None
@@ -887,7 +908,7 @@ def map_content(form_texts, user_content, content_file=None, structured=None, ex
     # 구조화된 필드가 있으면 테이블 형식 프롬프트 사용
     use_structured = structured is not None and len(structured.get("tables", [])) > 0
     if use_structured:
-        structured_text = _format_structured_fields(structured)
+        structured_text = _format_structured_fields(structured, extra_labels=extra_labels)
         print(f"[ai/map] 구조화 모드: 표 {len(structured['tables'])}개, 본문 {len(structured.get('paragraphs', []))}개")
 
     # 양식 필드 필터링 (평면 리스트 - 구조화 미사용 시 폴백)

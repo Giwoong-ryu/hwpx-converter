@@ -82,6 +82,19 @@ async def ai_map(
         mlog("ai_map", success=False, error=f"양식 분석: {e}")
         raise HTTPException(status_code=500, detail=f"양식 파일을 분석할 수 없습니다: {e}")
 
+    # 양식 타입 분류: invoice_style이면 라벨 사전을 AI에게 전달 (일반 텍스트 라벨 인식)
+    ai_extra_labels = None
+    if structured:
+        try:
+            from processors.form_classifier import classify_form
+            form_type = classify_form(structured)
+            print(f"[ai/map] form_type={form_type}")
+            if form_type == "invoice_style":
+                from processors.invoice_processor import INVOICE_LABELS
+                ai_extra_labels = INVOICE_LABELS
+        except Exception as cls_e:
+            print(f"[ai/map] 분류 실패 (기본 경로): {cls_e}")
+
     # 복수 파일 처리 (content_files 우선, 없으면 content_file 단일)
     all_files = []
     if content_files:
@@ -144,6 +157,7 @@ async def ai_map(
                     fields, text or "", content_path,
                     structured=structured,
                     extra_content_files=extra_paths if extra_paths else None,
+                    extra_labels=ai_extra_labels,
                 )
             print(f"[ai/map] result={'OK' if result else 'None'}, error={error}")
         except Exception as e:
