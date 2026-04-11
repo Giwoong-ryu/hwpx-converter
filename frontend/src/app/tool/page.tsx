@@ -169,7 +169,8 @@ function UserMenu({ onLoginClick }: { onLoginClick: () => void }) {
   if (loading) return null;
   if (!user) return (
     <button onClick={onLoginClick} className="text-sm text-white bg-gradient-to-r from-[#2563EB] to-[#1E40AF] px-3 py-1.5 rounded-lg font-semibold hover:opacity-90 transition-all active:scale-95 whitespace-nowrap shrink-0">
-      로그인 / 가입
+      <span className="hidden sm:inline">로그인 / 가입</span>
+      <span className="sm:hidden">로그인</span>
     </button>
   );
 
