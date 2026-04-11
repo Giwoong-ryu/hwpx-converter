@@ -28,10 +28,10 @@ import {
 } from "lucide-react";
 
 const MAIN_TABS = [
-  { id: "ai", group: ["ai"], label: "AI 자동 채우기", mobileLabel: "AI채우기", icon: Wand2 },
-  { id: "excel_doc", group: ["batch", "extract"], label: "문서 ⇄ 엑셀 쌍방향", mobileLabel: "문서↔엑셀", icon: Layers },
-  { id: "excel", group: ["excel"], label: "엑셀 빈칸 채우기", mobileLabel: "빈칸채우기", icon: FileSpreadsheet },
-  { id: "special", group: ["periodic", "stamp", "merge"], label: "특수 기능 더보기", mobileLabel: "특수기능", icon: Settings2 },
+  { id: "ai", group: ["ai"], label: "AI 자동 채우기", icon: Wand2 },
+  { id: "excel_doc", group: ["batch", "extract"], label: "문서 ⇄ 엑셀 쌍방향", icon: Layers },
+  { id: "excel", group: ["excel"], label: "엑셀 빈칸 채우기", icon: FileSpreadsheet },
+  { id: "special", group: ["periodic", "stamp", "merge"], label: "특수 기능 더보기", icon: Settings2 },
 ];
 
 const SUB_TABS: Record<string, { id: string; label: string; icon: any }[]> = {
@@ -522,15 +522,14 @@ function Main() {
                     onClick={() => {
                       if (!isActive) setActiveTab(mainTab.group[0]);
                     }}
-                    className={`shrink-0 sm:flex-1 flex items-center justify-center gap-1.5 py-3.5 px-2 sm:px-3 rounded-xl text-[13px] sm:text-[14px] font-bold transition-all whitespace-nowrap ${
+                    className={`shrink-0 flex items-center justify-center gap-1.5 py-3 px-3.5 rounded-xl text-[13px] font-bold transition-all whitespace-nowrap ${
                       isActive
                         ? "bg-gradient-to-r from-[#2563EB] to-[#1E40AF] text-white shadow-md"
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     }`}
                   >
-                    <Icon size={17} />
-                    <span className="hidden sm:block">{mainTab.label}</span>
-                    <span className="sm:hidden">{mainTab.mobileLabel}</span>
+                    <Icon size={15} />
+                    <span>{mainTab.label}</span>
                   </button>
                 );
               })}
