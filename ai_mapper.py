@@ -104,7 +104,15 @@ SYSTEM_PROMPT = """\
    - 내용이 길더라도 줄바꿈 없이 한 문자열로 작성하세요.
    - [max=N]이 붙어 있으면 그 글자 수 이내로 핵심만 담아 작성하세요.
    - 섹션당 __1만 존재합니다. __2, __3은 만들지 마세요.
-10. [max=N] 글자 수 제한 — 양식은 한 페이지에 담도록 설계되어 있습니다.
+10. "제목 :__N", "X :__N" 형태 셀은 append 라벨 슬롯입니다.
+    - 양식의 "X : ___" 패턴에서 콜론 뒤 공백에 들어갈 값입니다.
+    - JSON 키를 그대로 써야 하며 값에는 "X :" 라벨을 포함하지 마세요.
+      (예: 키 "제목 :__1", 값 "현장 실무와 자동화 역량의 결합")
+    - 섹션마다 __1, __2, __3, __4로 번호가 붙으므로 소스 자료와 섹션명을
+      매칭해서 각기 다른 값을 생성하세요. 같은 값 복사 금지.
+    - 자기소개서의 경우 __1~__4는 순서대로 성장과정/성격/지원동기/포부 소제목입니다.
+    - [max=N]이 붙으므로 반드시 그 한도 내 짧고 인상적인 한 줄 제목으로.
+11. [max=N] 글자 수 제한 — 양식은 한 페이지에 담도록 설계되어 있습니다.
     - N자 초과 절대 금지. 공백과 문장부호 모두 포함해서 N자 이내로 작성.
     - 서술형([GEN]) 필드: N자 한도 내에서 핵심만 압축. 긴 문장보다 짧고 밀도 있게.
     - 정밀([EXACT]) 필드: 소스 값이 N자를 초과하면 빈 문자열 반환 (임의 절단 금지)."""
@@ -160,6 +168,10 @@ def _format_structured_fields(structured):
                 if t and t not in _SKIP and t not in _SUB_LABELS and not cell["bold"] and not cell["bg"]:
                     text_freq[t] = text_freq.get(t, 0) + 1
 
+    # "X:" 패턴 (예: "제목 :") 라벨 append 슬롯 카운터 (섹션마다 증가)
+    _APPEND_PAT = re.compile(r'[:：]\s*$')
+    label_append_seen: dict[str, int] = {}
+
     # 2패스: 마크다운 테이블 생성 (중복 셀만 __N 추가)
     lines = []
     text_seen: dict[str, int] = {}
@@ -183,6 +195,30 @@ def _format_structured_fields(structured):
                     cells.append("")
                     continue
                 if cell["bold"] or cell["bg"] or text in _SUB_LABELS:
+                    # "X:" 패턴 append 라벨: 기존 텍스트 뒤에 값을 이어붙이는 슬롯
+                    # 예: "제목 : " → 섹션별 소제목이 콜론 뒤로 들어감
+                    is_append_label = (
+                        cell["bg"] and not cell["bold"]
+                        and _APPEND_PAT.search(text)
+                        and len(text) <= 20
+                    )
+                    if is_append_label:
+                        cell_cap = _calc_max_chars(
+                            cell.get("width", 0),
+                            cell.get("height", 0),
+                            cell.get("font_sz", 1000),
+                        )
+                        free_chars = max(cell_cap - len(text), 0)
+                        if free_chars >= 5:  # 5자 이상 여유 있어야 append 슬롯으로 승격
+                            label_append_seen[text] = label_append_seen.get(text, 0) + 1
+                            idx = label_append_seen[text]
+                            tag = f"[GEN,max={free_chars}]"
+                            cells.append(f"{tag}{text}__{idx}")
+                            # 섹션형 로직에 본문 슬롯 생성 신호
+                            if is_single_col:
+                                seen_sublabel = True
+                            continue  # last_header_label 갱신 스킵 (섹션명 유지)
+
                     cells.append(f"[H]{text}")
                     last_header_label = text  # 헤더 라벨 추적
                     if is_single_col:

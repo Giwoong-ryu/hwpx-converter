@@ -823,9 +823,17 @@ def build_header_slot_map(hwpx_path):
                 header_positions = {(r, c) for (r, c, t, h) in phys_cells if h}
 
                 # 헤더 셀별 슬롯 탐색
+                _COLON_LABEL_RE = re.compile(r'[:：]\s*$')
                 for hr, hc, ht, is_h in phys_cells:
                     if not (is_h and ht.strip()):
                         continue
+
+                    # "X :" 콜론 라벨은 append 모드로만 등록, 세로 스캔 제외
+                    # (그렇지 않으면 아래 본문 셀들이 잘못 슬롯으로 등록됨)
+                    is_colon_label = bool(
+                        _COLON_LABEL_RE.search(ht.strip())
+                        and len(ht.strip()) <= 20
+                    )
 
                     # ─ 방향 1: 같은 행 오른쪽 빈 셀 탐색 (가로형)
                     # 서브라벨(비헤더 텍스트)은 건너뛰고, 다른 헤더 셀에서만 중단
@@ -852,6 +860,10 @@ def build_header_slot_map(hwpx_path):
                         # else: 첫 빈 셀 전 서브라벨 → 건너뜀 (H.P 등 그냥 통과)
 
                     if found_right:
+                        continue
+
+                    # 콜론 라벨은 세로 스캔 생략 (아래 본문 셀 오등록 방지)
+                    if is_colon_label:
                         continue
 
                     # ─ 방향 2: 같은 열 아래에서 빈 셀들 탐색 (세로형)
@@ -895,6 +907,26 @@ def build_header_slot_map(hwpx_path):
                             break  # 서브라벨은 바로 다음 빈 셀 하나만
                         elif (sr, rc) in header_positions:
                             break  # 헤더 경계 = 종료
+
+                # ─ "X :" 패턴 라벨 셀에 append 슬롯 등록
+                #   양식의 'X : ___' 패턴 (콜론 뒤 공백에 값 append)
+                #   예: "제목 : ", "연락처 : ", "지원부서 : "
+                for hr, hc, ht, is_h in phys_cells:
+                    if not is_h:
+                        continue
+                    stripped = ht.strip()
+                    # 콜론으로 끝나는 짧은 라벨 (20자 이내)
+                    if not re.search(r'[:：]\s*$', stripped):
+                        continue
+                    if len(stripped) > 20:
+                        continue
+                    slot = {
+                        "file": fname, "tbl": tbl_idx,
+                        "row": hr, "col": hc, "mode": "append",
+                    }
+                    result.setdefault(stripped, [])
+                    if slot not in result[stripped]:
+                        result[stripped].append(slot)
 
     return result
 
@@ -947,9 +979,14 @@ def inject_values_by_slot(src_path, dst_path, slot_assignments):
                             return tbl_text
 
                         for sa in _by_tbl[ti]:
-                            tbl_text = _inject_into_cell_xml(
-                                tbl_text, sa["row"], sa["col"], sa["value"]
-                            )
+                            if sa.get("mode") == "append":
+                                tbl_text = _append_to_label_cell_xml(
+                                    tbl_text, sa["row"], sa["col"], sa["value"]
+                                )
+                            else:
+                                tbl_text = _inject_into_cell_xml(
+                                    tbl_text, sa["row"], sa["col"], sa["value"]
+                                )
 
                         return tbl_text
 
@@ -1032,6 +1069,72 @@ def _inject_into_cell_xml(tbl_text, row_addr, col_addr, value):
             return tbl_text[:tc_start] + new_block + tbl_text[tc_end:]
 
         break  # cellAddr 찾았지만 주입 패턴 없음 → 중단
+
+    return tbl_text
+
+
+def _append_to_label_cell_xml(tbl_text, row_addr, col_addr, suffix_value):
+    """라벨 셀(예: '제목 : ')의 마지막 <hp:t> 뒤에 텍스트를 append한다.
+
+    빈 셀 주입과 달리 기존 텍스트를 유지하고 그 뒤에 이어 붙인다.
+    'X : ___' 패턴 양식에서 콜론 뒤 공백에 값을 넣을 때 사용.
+
+    안전 규칙:
+    - 기존 텍스트가 콜론(':' 또는 '：')으로 끝나거나 콜론+공백으로 끝나야만 append
+    - 기존 텍스트에 이미 append된 내용이 있으면 (콜론 뒤 글자 5+) 스킵
+    - <hp:t> 태그가 없으면 스킵
+    """
+    if not suffix_value:
+        return tbl_text
+
+    cell_addr_patterns = [
+        rf'<hp:cellAddr\s+colAddr="{col_addr}"\s+rowAddr="{row_addr}"\s*/>',
+        rf'<hp:cellAddr\s+rowAddr="{row_addr}"\s+colAddr="{col_addr}"\s*/>',
+    ]
+
+    for pat in cell_addr_patterns:
+        m = re.search(pat, tbl_text)
+        if not m:
+            continue
+
+        tc_start = tbl_text.rfind('<hp:tc ', 0, m.start())
+        if tc_start == -1:
+            continue
+        tc_end = tbl_text.find('</hp:tc>', m.end())
+        if tc_end == -1:
+            continue
+        tc_end += len('</hp:tc>')
+
+        tc_block = tbl_text[tc_start:tc_end]
+
+        # 현재 셀 텍스트 합산 (인라인 태그 제거)
+        existing_texts = re.findall(r'<hp:t>(.*?)</hp:t>', tc_block, re.DOTALL)
+        plain = ''.join(re.sub(r'<[^>]+>', '', t) for t in existing_texts)
+
+        # 'X:' / 'X：' / 'X: ' 패턴 매칭
+        colon_match = re.search(r'[:：]\s*$', plain)
+        if not colon_match:
+            return tbl_text  # 콜론으로 끝나지 않음 → append 대상 아님
+
+        # 이미 이전 실행에서 append 된 경우 방어 (콜론 뒤에 글자가 많으면 스킵)
+        # (사용자가 같은 키로 재실행 시 중복 append 방지)
+        after_colon_idx = colon_match.start()
+        # 실제로는 우리가 감지한 콜론이 '끝'이므로 plain이 'X: '로 끝나야 정상
+        if len(plain.rstrip()) - len(plain.rstrip().rstrip(':：')) > 0:
+            # 끝 공백 제거 후에도 콜론이 맨 끝이면 비어있는 상태 OK
+            pass
+
+        escaped = saxutils.escape(suffix_value)
+
+        # 마지막 <hp:t>...</hp:t>을 찾아서 내부에 append
+        # - 내용 tag는 보존해야 하므로 </hp:t> 직전에 삽입
+        # rfind로 마지막 </hp:t> 위치 찾기
+        last_close = tc_block.rfind('</hp:t>')
+        if last_close == -1:
+            return tbl_text  # <hp:t> 없음 → 스킵 (이론상 도달 안 함)
+
+        new_block = tc_block[:last_close] + escaped + tc_block[last_close:]
+        return tbl_text[:tc_start] + new_block + tbl_text[tc_end:]
 
     return tbl_text
 
