@@ -109,7 +109,7 @@ function GaugeBadge() {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return (
-    <Link href="/pricing" className="flex items-center gap-1.5 text-xs text-[#57423c]/65 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors">
+    <Link href="/pricing" className="flex items-center gap-1.5 text-xs text-[#57423c]/65 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors whitespace-nowrap">
       <Zap size={10} /> 무료 사용 중 · <span className="text-[#2563EB] font-bold">업그레이드</span>
     </Link>
   );
@@ -125,7 +125,7 @@ function GaugeBadge() {
   const barWidth = Math.min(gauge, 100);
 
   if (plan === "free") return (
-    <Link href="/pricing" className="flex items-center gap-1.5 text-xs text-[#57423c]/65 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors">
+    <Link href="/pricing" className="flex items-center gap-1.5 text-xs text-[#57423c]/65 bg-[#f4f4f1] px-2.5 py-1 rounded-lg hover:bg-[#e2e3e0] transition-colors whitespace-nowrap">
       <Zap size={10} /> 무료 · <span className="text-[#2563EB] font-bold">업그레이드</span>
       {streak > 0 && <span className="text-[#57423c]/65">· {streak}일</span>}
     </Link>
@@ -674,12 +674,12 @@ function Main() {
       </div>
 
       {/* 푸터 */}
-      <footer className="max-w-screen-xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-center gap-4 text-base text-[#57423c]/65">
-        <span>Eazy HWPX</span>
+      <footer className="max-w-screen-xl mx-auto px-6 lg:px-10 py-4 flex flex-wrap items-center justify-center gap-3 text-sm text-[#57423c]/65">
+        <span className="whitespace-nowrap">Eazy HWPX</span>
         <span>·</span>
-        <Link href="/pricing" className="hover:text-[#1E40AF] transition-colors">요금제</Link>
+        <Link href="/pricing" className="hover:text-[#1E40AF] transition-colors whitespace-nowrap">요금제</Link>
         <span>·</span>
-        <span>HTTPS 암호화 통신</span>
+        <span className="whitespace-nowrap">HTTPS 암호화 통신</span>
       </footer>
 
       {/* 로그인 모달 */}

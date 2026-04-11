@@ -16,14 +16,14 @@ export default function Footer() {
           </div>
 
           {/* 신뢰 배지 */}
-          <div className="flex items-center gap-6 text-xs font-medium text-[#57423c]/70">
-            <span className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-6 text-xs font-medium text-[#57423c]/70">
+            <span className="flex items-center gap-1.5 whitespace-nowrap">
               <Shield size={12} /> 파일 3시간 후 자동 삭제
             </span>
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 whitespace-nowrap">
               <Shield size={12} /> 광고 없음
             </span>
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 whitespace-nowrap">
               <Shield size={12} /> 개인정보 최소 수집
             </span>
           </div>
