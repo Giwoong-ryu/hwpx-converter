@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* ─── 스크롤바 숨김 유틸리티 ─── */
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* ─── 기본 타이포그래피 ─── */
 body {
   font-family: 'Pretendard Variable', 'Pretendard', -apple-system, 'Segoe UI', sans-serif;
