@@ -520,7 +520,7 @@ export default function LandingPage() {
           <p className="text-sm text-[#57423c]/60 text-center mb-10">
             사업자번호, 상호명, 대표자명, 주소. 지난달이랑 거래처 하나도 안 바뀌었는데 왜 또 처음부터.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {/* 카드 1 — 세무·회계 */}
             <div className="scroll-fade p-6" data-delay="0">
               <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">세무 · 회계</p>
@@ -546,6 +546,15 @@ export default function LandingPage() {
                 &ldquo;미팅 끝나고 주차장에서<br />
                 파일 열어서 이름이랑 주소<br />
                 바꾸고 있는 나&rdquo;
+              </p>
+            </div>
+            {/* 카드 4 — 프리랜서 */}
+            <div className="scroll-fade p-6" data-delay="300">
+              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">프리랜서 · 외주</p>
+              <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
+                &ldquo;거래처 10개인데<br />
+                이름만 다른 서류를<br />
+                10번 처음부터 만들기&rdquo;
               </p>
             </div>
           </div>
