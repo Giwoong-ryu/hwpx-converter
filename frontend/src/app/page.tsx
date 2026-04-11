@@ -187,11 +187,11 @@ export default function LandingPage() {
           <div className="lg:col-span-6">
             {/* HWP/HWPX 호환 배지 */}
             <div className="hero-stagger hero-s1 mb-8">
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[3rem] lg:text-[4rem] font-black text-[#1E40AF] leading-none tracking-tighter">HWP</span>
-                  <span className="text-[2rem] text-[#BFDBFE] font-light">/</span>
-                  <span className="text-[3rem] lg:text-[4rem] font-black text-[#1E40AF] leading-none tracking-tighter">HWPX</span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[2.5rem] sm:text-[3rem] lg:text-[4rem] font-black text-[#1E40AF] leading-none tracking-tighter">HWP</span>
+                  <span className="text-[1.5rem] sm:text-[2rem] text-[#BFDBFE] font-light">/</span>
+                  <span className="text-[2.5rem] sm:text-[3rem] lg:text-[4rem] font-black text-[#1E40AF] leading-none tracking-tighter">HWPX</span>
                 </div>
                 <div className="flex flex-col gap-0.5">
                   <span className="text-sm font-bold text-[#1a1c1b]">+ DOCX 완벽 지원</span>
@@ -217,7 +217,7 @@ export default function LandingPage() {
               >
                 무료로 시작하기 <ArrowRight size={17} />
               </Link>
-              <span className="text-sm text-[#57423c]/65">회원가입 없이 바로 사용</span>
+              <span className="text-sm text-[#57423c]/65 whitespace-nowrap">회원가입 없이 바로 사용</span>
             </div>
             <div className="hero-stagger hero-s4 mb-6">
               <Link
@@ -231,12 +231,12 @@ export default function LandingPage() {
             </div>
 
             {/* 핵심 수치 */}
-            <div className="hero-stagger hero-s4 flex items-center gap-6 text-base text-[#57423c]/60">
-              <span><strong className="text-[#1a1c1b]">7가지</strong> 자동화 도구</span>
-              <span className="text-[#BFDBFE]">|</span>
-              <span>평균 <strong className="text-[#1a1c1b]">3분</strong> 완성</span>
-              <span className="text-[#BFDBFE]">|</span>
-              <span><strong className="text-[#1a1c1b]">무료</strong> 사용</span>
+            <div className="hero-stagger hero-s4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm sm:text-base text-[#57423c]/60">
+              <span className="whitespace-nowrap"><strong className="text-[#1a1c1b]">7가지</strong> 자동화 도구</span>
+              <span className="text-[#BFDBFE] hidden sm:inline">|</span>
+              <span className="whitespace-nowrap">평균 <strong className="text-[#1a1c1b]">3분</strong> 완성</span>
+              <span className="text-[#BFDBFE] hidden sm:inline">|</span>
+              <span className="whitespace-nowrap"><strong className="text-[#1a1c1b]">무료</strong> 사용</span>
             </div>
           </div>
 
