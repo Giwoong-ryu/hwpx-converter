@@ -179,12 +179,12 @@ export default function LandingPage() {
           왼쪽: 핵심 가치 (매핑) + CTA
           오른쪽: AI 매핑 플로우 시각화
       ══════════════════════════════════════════ */}
-      <section className="relative pt-28 pb-16 lg:pb-12 lg:min-h-[90vh] flex items-center">
+      <section className="relative pt-28 pb-16 md:pb-12 md:min-h-[90vh] flex items-center">
         <div className="absolute inset-0 warm-hero-bg" />
-        <div className="relative w-full max-w-screen-2xl mx-auto px-8 lg:px-16 grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+        <div className="relative w-full max-w-screen-2xl mx-auto px-8 lg:px-16 grid grid-cols-1 md:grid-cols-12 gap-16 items-center">
 
           {/* 왼쪽: 카피 */}
-          <div className="lg:col-span-6">
+          <div className="md:col-span-6">
             {/* HWP/HWPX 호환 배지 */}
             <div className="hero-stagger hero-s1 mb-8">
               <div className="flex items-center gap-4 flex-wrap">
@@ -241,7 +241,7 @@ export default function LandingPage() {
           </div>
 
           {/* 오른쪽: 버블 프레임 + Before/After 스캔 애니메이션 */}
-          <div className="lg:col-span-6 relative hidden lg:flex items-center justify-center h-[460px] scale-[0.85] origin-center translate-x-44">
+          <div className="md:col-span-6 relative hidden md:flex items-center justify-center h-[460px] md:scale-[0.55] lg:scale-[0.85] origin-center md:translate-x-8 lg:translate-x-44">
 
             {/* ── 입체 버블들 (배경) ── */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
