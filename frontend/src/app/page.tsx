@@ -185,29 +185,25 @@ export default function LandingPage() {
 
           {/* 왼쪽: 카피 */}
           <div className="lg:col-span-6">
-            {/* HWP/HWPX 호환 배지 */}
-            <div className="hero-stagger hero-s1 mb-8">
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-[2.5rem] sm:text-[3rem] lg:text-[4rem] font-black text-[#1E40AF] leading-none tracking-tighter">HWP</span>
-                  <span className="text-[1.5rem] sm:text-[2rem] text-[#BFDBFE] font-light">/</span>
-                  <span className="text-[2.5rem] sm:text-[3rem] lg:text-[4rem] font-black text-[#1E40AF] leading-none tracking-tighter">HWPX</span>
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-bold text-[#1a1c1b]">+ DOCX 완벽 지원</span>
-                  <span className="text-sm text-[#57423c]/60">표, 수식, 개조식까지 깨짐 없이</span>
-                </div>
-              </div>
+            {/* 태그라인 — 타겟 호명 */}
+            <div className="hero-stagger hero-s1 mb-4">
+              <span className="text-sm text-[#57423c]/60 tracking-wide">월말마다 HWP 야근하는 분들을 위해</span>
             </div>
 
-            <h1 className="hero-stagger hero-s2 text-[2.4rem] lg:text-[3rem] font-extrabold leading-[1.15] tracking-tight mb-5">
-              또 양식에 하나하나<br />
-              <span className="text-[#1E40AF]">복사 붙여넣기</span> 하실 건가요?
+            {/* H1 — 수치 충격 */}
+            <h1 className="hero-stagger hero-s2 text-[2.4rem] lg:text-[3rem] font-extrabold leading-[1.15] tracking-tight mb-4">
+              세금계산서 50건<br />
+              <span className="text-[#1E40AF]">수동 3시간 → AI 8분</span>
             </h1>
 
-            <p className="hero-stagger hero-s3 text-lg text-[#57423c] leading-relaxed max-w-lg mb-8">
+            {/* 공감 줄 — H1 바로 아래, 내 얘기다 반응 */}
+            <p className="hero-stagger hero-s3 text-base text-[#57423c]/70 mb-4">
+              엑셀에 다 있는 정보를 왜 또 손으로 치고 있나
+            </p>
+
+            <p className="hero-stagger hero-s3 text-base text-[#57423c] leading-relaxed max-w-lg mb-8">
               내 자료만 올리면 <strong className="text-[#1a1c1b]">양식에 맞춰 AI가 넣어드립니다.</strong><br />
-              엑셀, 워드, 텍스트 — 어떤 자료든.
+              엑셀, 워드, 텍스트 — HWP·HWPX·DOCX 모두.
             </p>
 
             <div className="hero-stagger hero-s4 flex flex-wrap items-center gap-4 mb-3">
@@ -215,9 +211,9 @@ export default function LandingPage() {
                 href="/tool"
                 className="cta-warm bg-linear-to-r from-[#2563EB] to-[#1E40AF] text-white px-8 py-3.5 rounded-xl text-base font-bold shadow-lg shadow-[#1E40AF]/20 hover:shadow-xl transition-all active:scale-95 flex items-center gap-2"
               >
-                무료로 시작하기 <ArrowRight size={17} />
+                무료로 먼저 해보기 <ArrowRight size={17} />
               </Link>
-              <span className="text-sm text-[#57423c]/65 whitespace-nowrap">회원가입 없이 바로 사용</span>
+              <span className="text-sm text-[#57423c]/65 whitespace-nowrap">카드 등록 불필요 · 3회 무료 · 파일 3시간 후 자동 삭제</span>
             </div>
             <div className="hero-stagger hero-s4 mb-6">
               <Link
@@ -513,9 +509,53 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════════════════════
+          섹션 1.5: 공감 — "내 얘기다" 카드 3개
+          아이콘/배경 없음. 텍스트만. 꾸미면 마케팅 문구처럼 보인다.
+      ══════════════════════════════════════════ */}
+      <section className="py-14 bg-white border-t border-gray-100">
+        <div className="max-w-screen-xl mx-auto px-8 lg:px-12">
+          <h2 className="text-2xl font-extrabold tracking-tight text-center mb-2">
+            HWP를 쓰는 한,<br className="sm:hidden" /> 이 반복은 끝나지 않습니다
+          </h2>
+          <p className="text-sm text-[#57423c]/60 text-center mb-10">
+            사업자번호, 상호명, 대표자명, 주소. 지난달이랑 거래처 하나도 안 바뀌었는데 왜 또 처음부터.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {/* 카드 1 — 세무·회계 */}
+            <div className="scroll-fade p-6" data-delay="0">
+              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">세무 · 회계</p>
+              <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
+                &ldquo;다 치고 나서<br />
+                오타 있는지<br />
+                처음부터 다시 검수&rdquo;
+              </p>
+            </div>
+            {/* 카드 2 — 공무원 */}
+            <div className="scroll-fade p-6" data-delay="100">
+              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">공무원 · 공공기관</p>
+              <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
+                &ldquo;지난달이랑 수신처 하나도<br />
+                안 바뀌었는데<br />
+                왜 또 처음부터 치고 있나&rdquo;
+              </p>
+            </div>
+            {/* 카드 3 — 소상공인 */}
+            <div className="scroll-fade p-6" data-delay="200">
+              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">소상공인 · 자영업</p>
+              <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
+                &ldquo;미팅 끝나고 주차장에서<br />
+                파일 열어서 이름이랑 주소<br />
+                바꾸고 있는 나&rdquo;
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
           섹션 2: 이렇게 동작합니다 (3단계)
       ══════════════════════════════════════════ */}
-      <section className="py-16 bg-white border-t border-gray-100">
+      <section className="py-16 bg-[#f9f9f6] border-t border-gray-100">
         <div className="max-w-screen-xl mx-auto px-8 lg:px-12">
           <h2 className="text-2xl font-extrabold tracking-tight text-center mb-2">
             이렇게 동작합니다
