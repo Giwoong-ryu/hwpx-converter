@@ -518,46 +518,46 @@ export default function LandingPage() {
       <section className="py-14 bg-white border-t border-gray-100">
         <div className="max-w-screen-xl mx-auto px-8 lg:px-12">
           <h2 className="text-2xl font-extrabold tracking-tight text-center mb-2">
-            기관은 달라도,<br className="sm:hidden" /> 내용은 같습니다
+            어딘가에 이미 있는 정보를<br />왜 또 손으로 치고 있나요
           </h2>
           <p className="text-sm text-[#57423c]/60 text-center mb-10">
-            협력기관, 지자체, 상위기관 — 요구하는 양식이 다 달라서 같은 내용을 몇 번이나 다시 치고 있나요.
+            양식이 달라서, 사람이 달라서, 달마다 달라서 — 이유는 달라도 반복은 똑같습니다
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            {/* 카드 1 — 복지관 실무자 */}
+            {/* 카드 1 — 기관 간 양식 변환 */}
             <div className="scroll-fade p-6" data-delay="0">
-              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">복지관 · 복지재단 실무자</p>
+              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">복지관 · 공공기관 실무자</p>
               <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
-                &ldquo;협력기관 보고 양식이<br />
-                7종인데 내용은<br />
-                전부 같습니다&rdquo;
+                &ldquo;협력기관마다 양식이 달라서<br />
+                같은 내용을<br />
+                5번 다시 치고 있어요&rdquo;
               </p>
             </div>
-            {/* 카드 2 — 공공기관 담당자 */}
+            {/* 카드 2 — 기관 간 양식 변환 */}
             <div className="scroll-fade p-6" data-delay="100">
-              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">공공기관 · 지자체 담당자</p>
+              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">지자체 · 비영리단체 담당자</p>
               <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
                 &ldquo;상위기관 양식 따로<br />
                 내부 결재 양식 따로<br />
                 두 번 치는 게 일이 됐어요&rdquo;
               </p>
             </div>
-            {/* 카드 3 — 비영리단체 */}
+            {/* 카드 3 — 대량 생성 */}
             <div className="scroll-fade p-6" data-delay="200">
-              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">비영리단체 · NGO 사무국</p>
+              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">총무 · 인사 담당자</p>
               <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
-                &ldquo;지자체 보조금 양식이<br />
-                또 바뀌었네<br />
-                처음부터 다시&rdquo;
+                &ldquo;급여명세서 85장<br />
+                이름이랑 숫자만 다른 걸<br />
+                한 장씩 열어서 바꾸고 있는 나&rdquo;
               </p>
             </div>
-            {/* 카드 4 — 사회복지사 */}
+            {/* 카드 4 — 대량 생성 */}
             <div className="scroll-fade p-6" data-delay="300">
-              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">사회복지사 · 케어매니저</p>
+              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">교육기관 · 학원 담당자</p>
               <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
-                &ldquo;케이스 기록은 똑같은데<br />
-                제출처마다<br />
-                서식이 달라요&rdquo;
+                &ldquo;수료증 50장<br />
+                이름만 다른 걸<br />
+                50번 처음부터 만들기&rdquo;
               </p>
             </div>
           </div>
