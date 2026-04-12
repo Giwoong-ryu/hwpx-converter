@@ -14,6 +14,7 @@ interface AiMappingTabProps {
 export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
   const { fileId, isAnalyzed, filename, fieldCount, docType, smartFields } = useForm();
   const { user } = useAuth();
+  const [mapMode, setMapMode] = useState<"direct" | "ai">("direct");
   const [text, setText] = useState("");
   const [textInitialized, setTextInitialized] = useState(false);
   const [contentFiles, setContentFiles] = useState<File[]>([]);
@@ -296,13 +297,47 @@ export default function AiMappingTab({ onGaugeEmpty }: AiMappingTabProps = {}) {
           </div>
         </div>
 
+        {/* 모드 선택 */}
+        <div className="flex gap-2 p-1 bg-[#F0F4FF] rounded-xl">
+          <button
+            type="button"
+            onClick={() => setMapMode("direct")}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+              mapMode === "direct"
+                ? "bg-white text-[#1E40AF] shadow-sm"
+                : "text-[#57423c]/60 hover:text-[#57423c]"
+            }`}
+          >
+            직접 채우기
+            <span className="ml-1 text-xs opacity-60">AI 없음</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMapMode("ai")}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+              mapMode === "ai"
+                ? "bg-white text-[#1E40AF] shadow-sm"
+                : "text-[#57423c]/60 hover:text-[#57423c]"
+            }`}
+          >
+            AI 매핑
+            <span className="ml-1 text-xs opacity-60">자동 분석</span>
+          </button>
+        </div>
+
+        {mapMode === "direct" && (
+          <p className="text-xs text-[#57423c]/60 -mt-1">
+            <span className="font-medium text-[#1E40AF]">항목명: 값</span> 형식으로 입력하면 AI 없이 정확하게 채웁니다. 크레딧 소모 없음.
+          </p>
+        )}
+
         <button
-          onClick={() => doMap(true)}
+          onClick={() => doMap(mapMode === "ai")}
           disabled={loading || !isAnalyzed || (!text.trim() && contentFiles.length === 0)}
           className="w-full bg-linear-to-r from-[#2563EB] to-[#1E40AF] text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
         >
           {loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-          {loading ? "채우는 중..." : "AI로 채우기"}
+          {loading ? "채우는 중..." : mapMode === "direct" ? "직접 채우기" : "AI로 채우기"}
         </button>
       </div>
 
