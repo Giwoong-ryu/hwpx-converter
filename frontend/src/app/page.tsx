@@ -185,16 +185,17 @@ export default function LandingPage() {
 
           {/* 왼쪽: 카피 */}
           <div className="lg:col-span-6">
-            {/* 태그라인 — 페인 질문 */}
-            <div className="hero-stagger hero-s1 mb-4">
-              <span className="text-sm text-[#57423c]/60 tracking-wide">언제까지 HWP를 직접 입력하실건가요?</span>
-            </div>
-
-            {/* H1 */}
-            <h1 className="hero-stagger hero-s2 text-[2.4rem] lg:text-[3rem] font-extrabold leading-[1.15] tracking-tight mb-6">
-              이젠 AI가<br />
-              <span className="text-[#1E40AF]">다 채워드립니다</span>
+            {/* H1 — 페인 질문이 훅 */}
+            <h1 className="hero-stagger hero-s1 text-[2.4rem] lg:text-[3rem] font-extrabold leading-[1.2] tracking-tight mb-4">
+              언제까지<br />
+              HWP를 직접<br />
+              입력하실건가요?
             </h1>
+
+            {/* 서브 — 게인 */}
+            <p className="hero-stagger hero-s2 text-xl font-bold text-[#1E40AF] mb-6">
+              이젠 AI가 다 채워드립니다
+            </p>
 
             {/* 즉시 이해 예시 — 아이콘 없이 두 줄 */}
             <div className="hero-stagger hero-s3 mb-8 flex flex-col gap-2">
