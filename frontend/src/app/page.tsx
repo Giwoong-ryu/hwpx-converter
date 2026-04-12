@@ -188,7 +188,7 @@ export default function LandingPage() {
             {/* H1 — 페인 질문이 훅 */}
             <h1 className="hero-stagger hero-s1 text-[2.4rem] lg:text-[3rem] font-extrabold leading-[1.2] tracking-tight mb-4">
               언제까지<br />
-              HWP를 직접<br />
+              <span className="text-[#1E40AF]">HWP</span>를 직접<br />
               입력하실건가요?
             </h1>
 
