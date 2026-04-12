@@ -159,7 +159,7 @@ hwpx-converter/
 | 1 | TC-01 세금계산서: 병합 셀 구조 → 슬롯 주입 불가 | 구조적 한계 | - |
 | 2 | TC-03 정부공문: COM 의존 → 한컴 없는 환경 ERROR | 환경 의존 | - |
 | 3 | TC-05 근로계약서: 단락 빈칸 → 슬롯 탐지 불가 | 구조적 한계 | - |
-| 4 | invoice_style 라벨 손상 (P1): Step 1+2 완료 (e4f6b21). Step 3 (form.py 차단) 보류 | P1 | Step 3 적용 시점 검토 필요 |
+| 4 | invoice_style 라벨 손상 (P1): Step 1+2+3 완료. slot_map 미매칭 INVOICE_LABEL → normal_repl 차단 | 해결됨 | - |
 | 5 | TC-07 상담일지: AI 변동성으로 5-6/10 편차 | AI 특성 | 프롬프트 개선 |
 | 6 | TC-02 total 필드: 합  계 셀 1개에 공급가액합계/총견적금액 중 하나만 들어감 → field 9 항상 실패 | 양식 구조 한계 | - (8/10 B가 최대치) |
 
@@ -174,7 +174,8 @@ hwpx-converter/
   1. [완료 e4f6b21] _is_total_label() + Phase 1+2 2단계 스캔
      합  계, 총 견적 금액 등 비표준 합계 라벨 → slot_map 포함
   2. [완료] TC-02 slot injection 경로 확인
-  3. [보류] form.py INVOICE_LABELS 차단 — slot_map 불완전 시 값 미삽입 위험
+  3. [완료] form.py: invoice_style에서 slot_map 미매칭 INVOICE_LABEL 키 →
+     normal_repl 차단 + 로그 출력 (라벨 손상 방지, silent failure 방지)
 
 TC-02 total 필드 (해결됨 b1625ac):
   SYSTEM_PROMPT Rule 13 + USER_PROMPT rule 6으로 합  계 셀에 총견적금액(3,536,500) 안정화.
@@ -187,6 +188,7 @@ TC-02 total 필드 (해결됨 b1625ac):
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-04-13 | form.py: P1 Step 3 완료 — invoice_style slot_map 미매칭 INVOICE_LABEL normal_repl 차단 (라벨 손상 방지) |
 | 2026-04-13 | [2c10e80] ai_mapper.py Rule 14(학년단축형) + test_spec TC-07 field8 기대값 완화(중간고사). TC-07 예측 +1~+2 개선 (5-7/10 C) |
 | 2026-04-13 | [b1625ac] ai_mapper.py: Rule 12(섹션접두사금지) + Rule 13(라벨텍스트그대로) + 품목선추출 + 합계최종총액. TC-02 8/10 B 안정화, TC-04 8/10 B 개선 |
 | 2026-04-12 | [e4f6b21] InvoiceProcessor: _is_total_label() + Phase 1+2 2단계 스캔 (P1 Step 1 완료) |

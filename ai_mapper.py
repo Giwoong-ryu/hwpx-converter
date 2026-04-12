@@ -934,7 +934,7 @@ def map_content(form_texts, user_content, content_file=None, structured=None,
     combined_content = "\n\n".join(content_parts)
     print(f"[ai/map] 콘텐츠 합산: {len(content_parts)}개 소스, {len(combined_content):,}자")
 
-    print(f"[ai/map] 통합 모드 (user_content len={len(user_content)})")
+    print(f"[ai/map] 통합 모드 (user_content len={len(user_content or '')})")
 
     # 구조화된 필드가 있으면 테이블 형식 프롬프트 사용
     use_structured = structured is not None and len(structured.get("tables", [])) > 0

@@ -98,6 +98,7 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
     # 라벨 셀 카운트 추출: 같은 텍스트가 라벨(bold/bg)과 값 셀에 모두 있을 때
     # __N 치환 시 라벨 셀을 건너뛰기 위해 사용 (A1 수정)
     label_counts: dict[str, int] = {}
+    structured_data: dict | None = None
     try:
         from clone_form import extract_structured_fields
         structured_data = extract_structured_fields(path)
@@ -140,6 +141,17 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
                 print(f"[generate] 슬롯 맵: {len(slot_map)}개 헤더 탐지")
     except Exception as slot_e:
         print(f"[generate] 슬롯 맵 빌드 실패 (폴백): {slot_e}")
+
+    # ── P1 Step 3: invoice_style 라벨 보호 ──
+    # AI가 slot_map에 없는 키를 반환하면 normal_repl → clone이 라벨 셀을 값으로 교체 → 라벨 손상
+    # invoice_style에서 INVOICE_LABEL 키를 normal_repl에서 차단하여 라벨 보호
+    _protect_invoice_labels = False
+    if form_type == "invoice_style":
+        try:
+            from processors.invoice_processor import is_invoice_label, _is_total_label
+            _protect_invoice_labels = True
+        except ImportError:
+            pass
 
     # ── 한국 포맷터 후처리 (금액 콤마, 날짜, 전화, 사업자번호) ──
     formatted_replacements = dict(req.replacements)
@@ -199,6 +211,8 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
                     sa = dict(slots[flat_idx])
                     sa["value"] = value
                     slot_assignments.append(sa)
+                else:
+                    print(f"[generate] 슬롯 인덱스 초과: '{key}' idx={flat_idx} (슬롯 {len(slots)}개)")
             else:
                 # suffix 없음: 연속된 모든 슬롯에 동일 값 주입
                 for slot in slots:
@@ -206,6 +220,11 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
                     sa["value"] = value
                     slot_assignments.append(sa)
         else:
+            # P1 Step 3: invoice_style INVOICE_LABEL 라벨 보호
+            # slot_map 미매칭 라벨 키 → normal_repl 차단 (라벨 손상 방지)
+            if _protect_invoice_labels and (is_invoice_label(base.strip()) or _is_total_label(base.strip())):
+                print(f"[generate] [P1] 라벨 보호: '{key}' 차단 (slot_map 미매칭, 값='{value}')")
+                continue
             normal_repl[key] = value
 
     print(f"[generate] 슬롯 주입={len(slot_assignments)}개, 일반치환={len(normal_repl)}개")
