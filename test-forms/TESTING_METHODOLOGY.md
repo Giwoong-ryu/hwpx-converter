@@ -87,21 +87,62 @@ for t in s['tables']:
 " | grep -i "찾는 텍스트"
 ```
 
-### 11. invoice_style 라벨 손상 (P1 — 미해결 Known Issue)
-invoice_style 양식에서 InvoiceProcessor가 일부 라벨(합계금액, 총액 등)을 slot_map에 포함하지 못하면, AI가 반환한 키가 normal_repl 경로로 흘러 라벨 셀 텍스트를 값으로 교체한다.
+### 11. invoice_style 라벨 손상 (P1 — Step 1+2 완료, Step 3 보류)
+invoice_style 양식에서 InvoiceProcessor가 일부 라벨을 slot_map에 포함하지 못하면, AI 반환 키가 normal_repl 경로로 흘러 라벨 셀을 값으로 교체한다.
 
 ```
 재현 경로:
   AI 반환: "합계금액__1": "3,536,500"
   slot_map 누락 → normal_repl["합계금액__1"] = "3,536,500"
-  clone_form: "합계금액" 첫 번째 출현 = 라벨 셀 → "3,536,500"으로 교체
-  결과: 라벨 "합계금액" 사라짐, 값은 들어가지만 문서 구조 손상
+  clone_form: "합계금액" 라벨 셀 → "3,536,500"으로 교체 (라벨 사라짐)
 ```
 
-**현재 상태**: TC-02 견적서 8/10 B를 유지하면서 이 버그를 동시에 해결하는 fix가 아직 없음.
-→ 올바른 수정 순서: InvoiceProcessor.build_slot_map() 보강 (합계 라벨 슬롯 추가) → 이후 normal_repl 차단 적용.
+**현재 상태 (2026-04-13)**:
+- Step 1 완료 (e4f6b21): _is_total_label() + Phase 1+2 2단계 스캔 — 비표준 합계 라벨 slot_map 포함
+- Step 2 완료: TC-02 slot injection 경로 정상 확인
+- Step 3 보류: form.py normal_repl INVOICE_LABELS 차단 — InvoiceProcessor가 모든 케이스 커버 후 적용
 
-→ 관련 work-log: `memory/work-logs/20260412-sim-p1-investigation.json`
+### 12. AI 섹션 접두사 할루시네이션 (2026-04-13 발견, 해결됨)
+두 벌 양식(공급받는자용/공급자용)에서 AI가 섹션 이름을 키 접두사로 붙이는 버그.
+
+```
+증상: AI 반환 키 = '공급받는자용_귀하', '공급자용_품 목'
+원인: AI가 양식의 두 사본(공급받는자용/공급자용)을 구분하려다 섹션 접두사 생성
+결과: slot_map_norm에서 키 매칭 실패 → 전체 slot injection 실패
+영향: TC-02가 7-8/10에서 5/10으로 급락
+```
+
+**Fix**: SYSTEM_PROMPT Rule 12 — 섹션 접두사 절대 금지. `라벨명__N` 형식만 허용.
+`commit 55f4fef`
+
+### 13. AI 라벨 의미론적 재명명 (2026-04-13 발견, 해결됨)
+AI가 [H] 라벨의 의미를 해석해서 존재하지 않는 새 키를 생성하는 버그.
+
+```
+증상 1: [H]합  계 → AI 키 = '총 견적 금액', '공급가액합계'
+  원인: AI가 합계 셀의 의미를 파악하고 더 "정확한" 이름으로 재명명
+  결과: slot_map에 '총 견적 금액' 없음 → normal_repl → 양식에 없는 라벨 치환 실패
+
+증상 2: [H]귀하 앞 빈 셀 → AI가 귀하__N 키를 생성하지 않음
+  원인: AI가 귀하를 fillable 필드가 아닌 존칭어/데코레이터로 인식
+  결과: 수신인 이름(홍길동) 미주입
+```
+
+**Fix**: SYSTEM_PROMPT Rule 13 — [H] 라벨 텍스트 그대로 키 사용. 귀하 슬롯 수신인 명시.
+`commit b1625ac`
+
+### 14. 합  계 셀에 소계/총계 혼용 (2026-04-13 발견, 해결됨)
+양식에 합  계 셀이 1개인데, 입력 데이터에 공급가액합계(소계)와 총견적금액(VAT포함)이 둘 다 있으면 AI가 임의로 선택한다.
+
+```
+증상: 합  계 셀에 실행마다 3,215,000(소계) 또는 3,536,500(총액) 혼재
+영향: critical 필드(총 견적 금액)가 AI 실행마다 PASS/FAIL 뒤바뀜
+```
+
+**Fix**: USER_PROMPT rule 6 — "합  계/합계 셀에는 VAT 포함 최종 총액을 넣으세요."
+`commit b1625ac`
+
+**구조적 한계**: 슬롯이 1개이므로 field 9(공급가액합계)는 항상 실패. 8/10 B가 최대치.
 
 ---
 
