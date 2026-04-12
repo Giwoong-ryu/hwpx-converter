@@ -69,6 +69,25 @@ def _normalize(text: str) -> str:
 # 정규화된 라벨 집합 (매칭용 캐시)
 _NORMALIZED_LABELS = {_normalize(lbl) for lbl in INVOICE_LABELS}
 
+# 합계/총액류 비표준 라벨 패턴
+# "총 견적 금 액", "견적 총액", "합계 금액" 등 INVOICE_LABELS 미등재 변형 커버
+_TOTAL_LABEL_RE = re.compile(r"합계|총액|소계|견적금액|총금액")
+
+
+def _is_total_label(text: str) -> bool:
+    """합계/총액류 라벨 판정 — INVOICE_LABELS 미등재 변형 포함.
+
+    Examples: '총 견적 금 액', '견적 총액', '합계 금액'
+    표준 라벨('합계금액', '총액' 등)도 True 반환하므로 is_invoice_label과 OR 조합.
+    """
+    if not text:
+        return False
+    t = text.strip()
+    if len(t) > 20:
+        return False
+    norm = _normalize(t)
+    return bool(_TOTAL_LABEL_RE.search(norm))
+
 
 def is_invoice_label(text: str) -> bool:
     """텍스트가 인보이스 라벨인지 판정."""
@@ -156,26 +175,41 @@ class InvoiceProcessor:
             by_row[r].sort(key=lambda x: x[0])
 
         # ─ 단계 1: 라벨 → 인접 빈 셀 매핑 (가로형)
+        #
+        # Phase 1: 기존 알고리즘 — 첫 번째 빈 셀, 다른 라벨에서 스캔 중단
+        # Phase 2 (합계류 전용): Phase 1 실패 시 → 전체 행 재스캔 → 마지막 빈 셀
+        #   대상: '합계금액', '총 견적 금 액', '소계' 등 합계/총액 라벨
+        #   이유: 다른 라벨(예: '부가세')이 사이에 있어 Phase 1이 중단된 경우 커버
         for r, cells in by_row.items():
             for idx, (c, text) in enumerate(cells):
-                if not is_invoice_label(text):
+                is_std = is_invoice_label(text)
+                is_total = _is_total_label(text)
+                if not is_std and not is_total:
                     continue
-                # 같은 행에서 오른쪽의 다음 빈 셀 찾기
+
+                # Phase 1: 첫 번째 빈 셀 탐색 (기존 동작 유지)
+                target_col: int | None = None
                 for c2, text2 in cells[idx + 1:]:
                     if not text2.strip():
-                        # 빈 셀 발견 → 슬롯 등록
-                        slot = {
-                            "file": fname, "tbl": tbl_idx,
-                            "row": r, "col": c2,
-                        }
-                        key = text.strip()
-                        if slot not in result.setdefault(key, []):
-                            result[key].append(slot)
+                        target_col = c2
                         break
                     elif is_invoice_label(text2):
-                        # 다른 라벨 = 경계, 스캔 종료
-                        break
-                    # else: 값 셀 (이미 채워짐) → 스킵
+                        break  # 다른 라벨 = 경계, 스캔 종료
+
+                # Phase 2: 합계류 라벨 + Phase 1 실패 → 전체 행 재스캔 (마지막 빈 셀)
+                if target_col is None and is_total:
+                    empties = [c2 for c2, t2 in cells[idx + 1:] if not t2.strip()]
+                    if empties:
+                        target_col = empties[-1]
+
+                if target_col is not None:
+                    slot = {
+                        "file": fname, "tbl": tbl_idx,
+                        "row": r, "col": target_col,
+                    }
+                    key = text.strip()
+                    if slot not in result.setdefault(key, []):
+                        result[key].append(slot)
 
         # ─ 단계 2: 품목 반복 행 감지 + 슬롯화
         self._detect_item_rows(by_row, tbl_idx, fname, result)
