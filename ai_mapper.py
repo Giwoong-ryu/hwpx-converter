@@ -5,9 +5,20 @@ AI 매핑 모듈 - 양식 필드를 사용자 자료 기반으로 자동 채움 
   [EXACT] 정밀 필드 (숫자/날짜/이름/코드) - 소스에서 정확 복사, 변형 금지
   [GEN]   서술 필드 (설명/소개/계획 등)   - 소스 기반으로 맥락에 맞게 작성
 """
+import io
 import json
 import os
 import re
+import sys
+
+# Windows cp949 콘솔에서 특수 Unicode 문자 출력 시 발생하는 UnicodeEncodeError 방지
+# FastAPI 서버 로그 및 테스트 환경 모두 적용
+if sys.platform == "win32" and hasattr(sys.stdout, "buffer"):
+    try:
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 from google import genai
 from google.genai import types
@@ -435,12 +446,18 @@ def _verify_exact_fields(mappings: dict, source_text: str) -> None:
             # 숫자 기반 검증 (금액, 전화번호, 사업자번호 등)
             source_digits = re.sub(r"[^0-9]", "", source_text)
             if value_digits not in source_digits:
-                print(f"[verify] 정밀 필드 불일치, 제거: {key}={value_str}")
+                try:
+                    print(f"[verify] 정밀 필드 불일치, 제거: {key}={value_str}")
+                except UnicodeEncodeError:
+                    print(f"[verify] 정밀 필드 불일치, 제거: {key}=(인코딩 오류)")
                 to_remove.append(key)
         elif len(value_normalized) >= 2:
             # 텍스트 기반 검증 (이름, 주소 등)
             if value_normalized not in source_normalized:
-                print(f"[verify] 정밀 필드 불일치, 제거: {key}={value_str}")
+                try:
+                    print(f"[verify] 정밀 필드 불일치, 제거: {key}={value_str}")
+                except UnicodeEncodeError:
+                    print(f"[verify] 정밀 필드 불일치, 제거: {key}=(인코딩 오류)")
                 to_remove.append(key)
 
     for k in to_remove:
@@ -963,12 +980,18 @@ def map_content(form_texts, user_content, content_file=None, structured=None,
         if not need_cache:
             prompt = USER_PROMPT.format(fields=field_batches[0], content=combined_content)
             print(f"[ai/map] 1회 호출 (캐시 불필요, 필드 {len(filtered_fields)}개, use_structured={use_structured})")
-            print(f"[ai/map] fields 앞부분:\n{field_batches[0][:500]}")
-            print(f"[ai/map] content 앞부분:\n{combined_content[:500]}")
+            try:
+                print(f"[ai/map] fields 앞부분:\n{field_batches[0][:500]}")
+                print(f"[ai/map] content 앞부분:\n{combined_content[:500]}")
+            except UnicodeEncodeError:
+                pass  # Windows cp949 콘솔 출력 실패는 무시 (특수문자 포함 시 발생)
 
             response = _call_with_retry(client, model_name, prompt, system_prompt, temperature)
 
-            print(f"[ai/map] AI 응답 앞부분:\n{response.text[:800]}")
+            try:
+                print(f"[ai/map] AI 응답 앞부분:\n{response.text[:800] if response.text else '(빈 응답)'}")
+            except UnicodeEncodeError:
+                pass
             parsed = _parse_json_response(response.text)
             if parsed:
                 all_results = _collect_results(parsed)
@@ -1126,7 +1149,10 @@ def map_content(form_texts, user_content, content_file=None, structured=None,
             fmt_result = KrFormatter.auto_detect_and_format(normalized)
             normalized = fmt_result["formatted"]
             for log_entry in fmt_result["log"]:
-                print(f"[ai/map] {log_entry}")
+                try:
+                    print(f"[ai/map] {log_entry}")
+                except UnicodeEncodeError:
+                    pass
         except ImportError:
             print("[ai/map] kr_formatter 미설치, 포맷팅 스킵")
         except Exception as fmt_err:

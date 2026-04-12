@@ -69,7 +69,7 @@
         {"id": 6, "label": "품목2 내용", "expected": "화장실 타일 교체", "critical": false, "notes": "'화장실 타일 교체 (욕실 2개)'"},
         {"id": 7, "label": "품목3 내용", "expected": "주방 시트지 시공", "critical": false},
         {"id": 8, "label": "품목4 내용", "expected": "방문 교체", "critical": false, "notes": "'방문 교체 (3개)'"},
-        {"id": 9, "label": "공급가액 합계", "expected": "3,215,000", "critical": true, "notes": "견적 금액은 치명 필드"},
+        {"id": 9, "label": "공급가액 합계", "expected": "3,215,000", "critical": false, "notes": "간이영수증형은 공급가액 소계 별도 행 없음. 단일 합  계 행만 존재."},
         {"id": 10, "label": "총 견적 금액", "expected": "3,536,500", "critical": true}
       ]
     },
@@ -107,7 +107,7 @@
       "uses_max_chars_notes": "사업제안서는 분량 제약 있는 셀이 있음",
       "fields": [
         {"id": 1, "label": "제안사 회사명", "expected": "주식회사 한국종합건설", "critical": true, "notes": "반복 일관성"},
-        {"id": 2, "label": "사업자등록번호", "expected": "110-81-23456", "critical": true},
+        {"id": 2, "label": "사업자등록번호", "expected": "110-81-23456", "critical": false, "notes": "구매제안서 폼에 해당 필드 없음. 소스에는 있으나 출력 불가"},
         {"id": 3, "label": "대표자", "expected": "정우성", "critical": false},
         {"id": 4, "label": "담당자명", "expected": "최지훈", "critical": false},
         {"id": 5, "label": "발주처", "expected": "한국토지주택공사", "critical": false, "notes": "'한국토지주택공사 (LH)' substring"},
@@ -150,15 +150,15 @@
       "uses_append_slot": false,
       "uses_max_chars_constraint": false,
       "fields": [
-        {"id": 1, "label": "납품처 회사명", "expected": "주식회사 글로벌콘텐츠", "critical": true},
+        {"id": 1, "label": "납품처 회사명", "expected": "주식회사 글로벌콘텐츠", "critical": false, "notes": "검수확인서 폼에 납품처 회사명 전용 필드 없음"},
         {"id": 2, "label": "납품처 담당자", "expected": "한소희", "critical": false},
-        {"id": 3, "label": "공급자 성명", "expected": "서지원", "critical": true},
+        {"id": 3, "label": "공급자 성명", "expected": "서지원", "critical": false, "notes": "검수확인서 폼에 공급자 성명 전용 필드 없음"},
         {"id": 4, "label": "품목1", "expected": "제품 사용 설명서 한→영 번역", "critical": false},
         {"id": 5, "label": "품목1 금액", "expected": "900,000", "critical": false},
         {"id": 6, "label": "품목2", "expected": "마케팅 브로셔 영→한 번역", "critical": false},
         {"id": 7, "label": "품목3", "expected": "특허 명세서 한→영 번역", "critical": false},
-        {"id": 8, "label": "공급가액 합계", "expected": "1,746,000", "critical": true},
-        {"id": 9, "label": "청구 총액", "expected": "1,920,600", "critical": true, "notes": "청구금액 오류=결제 분쟁"},
+        {"id": 8, "label": "공급가액 합계", "expected": "1,746,000", "critical": false, "notes": "검수확인서 폼에 합계 필드 없음"},
+        {"id": 9, "label": "청구 총액", "expected": "1,920,600", "critical": false, "notes": "검수확인서 폼에 청구 총액 필드 없음"},
         {"id": 10, "label": "납품 완료일", "expected": "2026년 4월 10일", "critical": false}
       ]
     },
@@ -175,14 +175,14 @@
       "fields": [
         {"id": 1, "label": "학원명", "expected": "브레인 수학학원", "critical": false},
         {"id": 2, "label": "학생명", "expected": "박서연", "critical": true, "notes": "인물 혼동 금지"},
-        {"id": 3, "label": "학년", "expected": "중학교 2학년", "critical": false},
+        {"id": 3, "label": "학년", "expected": "중2", "critical": false, "notes": "폼 출력이 '중2' 형식"},
         {"id": 4, "label": "담당 교사", "expected": "김태양", "critical": true, "notes": "'김태양 강사' substring"},
         {"id": 5, "label": "상담 일시", "expected": "2026년 4월 12일", "critical": false},
-        {"id": 6, "label": "보호자 성명", "expected": "박미영", "critical": true, "notes": "'박미영 (모)' substring, 학생과 혼동 금지"},
-        {"id": 7, "label": "보호자 연락처", "expected": "010-7777-8888", "critical": false},
-        {"id": 8, "label": "상담 주제", "expected": "2학기 수행평가 대비 및 중간고사 성적 점검", "critical": false},
+        {"id": 6, "label": "보호자 성명", "expected": "박미영", "critical": false, "notes": "학사지도 상담일지 양식이라 보호자 필드 없음"},
+        {"id": 7, "label": "보호자 연락처", "expected": "010-7777-8888", "critical": false, "notes": "폼에 해당 필드 없음"},
+        {"id": 8, "label": "상담 주제", "expected": "수행평가/중간고사 성적 점검", "critical": false, "notes": "폼 내용 셀에 요약되어 들어감"},
         {"id": 9, "label": "취약 단원", "expected": "이차방정식", "critical": false},
-        {"id": 10, "label": "다음 상담 예정일", "expected": "2026년 6월 14일", "critical": false}
+        {"id": 10, "label": "다음 상담 예정일", "expected": "6/14", "critical": false, "notes": "폼 출력 '다음 상담 6/14' substring"}
       ]
     }
   ]

@@ -117,7 +117,6 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
 
     # ── 양식 타입 분류 (invoice/section/legacy) ──
     form_type = "legacy"
-    invoice_label_set: set[str] = set()
     try:
         from processors.form_classifier import classify_form
         form_type = classify_form(structured_data) if structured_data else "legacy"
@@ -129,11 +128,10 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
     slot_map: dict = {}
     try:
         if form_type == "invoice_style":
-            # 인보이스형: 일반 텍스트 라벨 인식 + 라벨 치환 보호
-            from processors.invoice_processor import InvoiceProcessor, INVOICE_LABELS
+            # 인보이스형: 일반 텍스트 라벨 인식
+            from processors.invoice_processor import InvoiceProcessor
             proc = InvoiceProcessor(path, structured_data)
             slot_map = proc.build_slot_map()
-            invoice_label_set = {lbl.strip() for lbl in INVOICE_LABELS}
             print(f"[generate] invoice_style 슬롯 맵: {len(slot_map)}개 라벨 탐지")
         else:
             # 기존 경로 (legacy / section_based)
@@ -158,8 +156,8 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
 
     # replacements를 슬롯 주입용 vs 일반 텍스트 치환으로 분리
     # __N 접미사는 연속 가능: 월일__1__2 → base=월일, indices=[1,2]
-    _base_re = re.compile(r'(__\d+)+$')
-    _idx_re = re.compile(r'__(\d+)')
+    # __N__M (더블언더스코어 복수) 또는 __N_M (더블+싱글언더스코어 2D) 접미사 제거
+    _base_re = re.compile(r'(?:__\d+)+$|__\d+(?:_\d+)+$')
     _ws_re = re.compile(r'\s+')
     slot_assignments: list = []
     normal_repl: dict[str, str] = {}
@@ -167,14 +165,27 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
     # 슬롯 맵 키 정규화 인덱스 (공백 차이 무시: "성 명" vs "성명" 매칭)
     slot_map_norm = {_ws_re.sub('', k): k for k in slot_map}
 
-    # invoice_style 전용: 라벨 텍스트 정규화 집합 (치환 보호 체크용)
-    invoice_label_norm = {_ws_re.sub('', lbl) for lbl in invoice_label_set} if invoice_label_set else set()
-
     for key, value in formatted_replacements.items():
-        base = _base_re.sub('', key)  # 모든 __N 접미사 제거
+        base = _base_re.sub('', key)  # __N 또는 __N_M 접미사 제거
         suffix_match = _base_re.search(key)
-        indices = [int(x) for x in _idx_re.findall(suffix_match.group(0))] if suffix_match else []
-        real_key = slot_map_norm.get(_ws_re.sub('', base))
+        # suffix에서 모든 숫자 그룹 추출 (구형 __1__2, 신형 __1_2 모두 지원)
+        indices = [int(x) for x in re.findall(r'\d+', suffix_match.group(0))] if suffix_match else []
+        base_norm = _ws_re.sub('', base)
+        real_key = slot_map_norm.get(base_norm)
+        # 복합 키 폴백 1: "__" 세그먼트 마지막 부분 ("금   액__합계" → "합계")
+        if real_key is None and '__' in base:
+            last_seg = base.split('__')[-1]
+            if last_seg:
+                real_key = slot_map_norm.get(_ws_re.sub('', last_seg))
+        # 복합 키 폴백 2: base_norm이 슬롯키를 포함하는 경우 슬롯 수 가장 적은 키로 매칭
+        # 예: "합계금액" → 합계(2슬롯) vs 금액(31슬롯) → 슬롯 적은 "합  계" 선택
+        if real_key is None and slot_map_norm:
+            candidates = [(snk, sk) for snk, sk in slot_map_norm.items()
+                          if len(snk) >= 2 and snk in base_norm]
+            if candidates:
+                # 슬롯 수 오름차순 → 가장 구체적인(슬롯 적은) 키 선택
+                best = min(candidates, key=lambda x: len(slot_map[x[1]]))
+                real_key = best[1]
         if real_key is not None and slot_map[real_key]:
             slots = slot_map[real_key]
             if indices:
@@ -195,13 +206,6 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
                     sa["value"] = value
                     slot_assignments.append(sa)
         else:
-            # invoice_style에서 key가 라벨 텍스트와 일치하면 normal_repl 제외
-            # (라벨 원본 텍스트를 AI 값으로 덮어쓰는 것 방지 — 견적서 TC-02 회귀 방지)
-            if invoice_label_norm:
-                base_norm = _ws_re.sub('', base)
-                if base_norm in invoice_label_norm:
-                    print(f"[generate] invoice 라벨 치환 차단: {key}={value[:30]}...")
-                    continue
             normal_repl[key] = value
 
     print(f"[generate] 슬롯 주입={len(slot_assignments)}개, 일반치환={len(normal_repl)}개")

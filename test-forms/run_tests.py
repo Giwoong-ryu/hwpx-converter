@@ -37,6 +37,7 @@ import subprocess
 import tempfile
 import shutil
 import traceback
+import time
 from pathlib import Path
 from datetime import datetime
 
@@ -241,7 +242,6 @@ def run_ai_mapping(form_path, input_path, output_hwpx):
 
     # 양식 타입 분류 + 슬롯 맵 빌드 (form.py와 동일)
     form_type = "legacy"
-    invoice_label_set = set()
     try:
         from processors.form_classifier import classify_form
         form_type = classify_form(structured)
@@ -252,10 +252,9 @@ def run_ai_mapping(form_path, input_path, output_hwpx):
     slot_map = {}
     try:
         if form_type == "invoice_style":
-            from processors.invoice_processor import InvoiceProcessor, INVOICE_LABELS
+            from processors.invoice_processor import InvoiceProcessor
             proc = InvoiceProcessor(str(hwpx_path), structured)
             slot_map = proc.build_slot_map()
-            invoice_label_set = {lbl.strip() for lbl in INVOICE_LABELS}
             print(f"[generate] invoice 슬롯 맵: {len(slot_map)}개 라벨")
         else:
             slot_map = build_header_slot_map(str(hwpx_path))
@@ -272,20 +271,32 @@ def run_ai_mapping(form_path, input_path, output_hwpx):
             pass
 
     # 슬롯 주입용 vs 일반 치환 분리
-    # __N 접미사는 연속 가능: 월일__1__2 → base=월일, indices=[1,2]
-    _base_re = re.compile(r"(__\d+)+$")
-    _idx_re = re.compile(r"__(\d+)")
+    # __N__M (더블언더스코어 복수) 또는 __N_M (2D 인덱스) 접미사 제거
+    _base_re = re.compile(r"(?:__\d+)+$|__\d+(?:_\d+)+$")
     _ws_re = re.compile(r"\s+")
     slot_map_norm = {_ws_re.sub("", k): k for k in slot_map}
-    invoice_label_norm = {_ws_re.sub("", lbl) for lbl in invoice_label_set}
 
     slot_assignments = []
     normal_repl = {}
     for key, value in formatted.items():
-        base = _base_re.sub("", key)  # 모든 __N 접미사 제거
-        indices_str = _base_re.search(key).group(0) if _base_re.search(key) else ""
-        indices = [int(x) for x in _idx_re.findall(indices_str)] if indices_str else []
-        real_key = slot_map_norm.get(_ws_re.sub("", base))
+        base = _base_re.sub("", key)  # __N 또는 __N_M 접미사 제거
+        suffix_match = _base_re.search(key)
+        # suffix에서 모든 숫자 그룹 추출 (구형 __1__2, 신형 __1_2 모두 지원)
+        indices = [int(x) for x in re.findall(r"\d+", suffix_match.group(0))] if suffix_match else []
+        base_norm = _ws_re.sub("", base)
+        real_key = slot_map_norm.get(base_norm)
+        # 복합 키 폴백 1: "__" 세그먼트 마지막 부분
+        if real_key is None and "__" in base:
+            last_seg = base.split("__")[-1]
+            if last_seg:
+                real_key = slot_map_norm.get(_ws_re.sub("", last_seg))
+        # 복합 키 폴백 2: base_norm이 슬롯키를 포함 → 슬롯 수 가장 적은 키 선택
+        if real_key is None and slot_map_norm:
+            candidates = [(snk, sk) for snk, sk in slot_map_norm.items()
+                          if len(snk) >= 2 and snk in base_norm]
+            if candidates:
+                best = min(candidates, key=lambda x: len(slot_map[x[1]]))
+                real_key = best[1]
         if real_key is not None and slot_map[real_key]:
             slots = slot_map[real_key]
             if indices:
@@ -308,11 +319,6 @@ def run_ai_mapping(form_path, input_path, output_hwpx):
                     sa["value"] = value
                     slot_assignments.append(sa)
         else:
-            # invoice_style에서 라벨 텍스트가 키로 오면 치환 차단 (원본 라벨 보호)
-            if invoice_label_norm:
-                base_norm = _ws_re.sub("", base)
-                if base_norm in invoice_label_norm:
-                    continue
             normal_repl[key] = value
 
     # Phase 1: 슬롯 주입
@@ -533,6 +539,8 @@ def main():
             })
             with open(tc_dir / "error.txt", "w", encoding="utf-8") as f:
                 f.write(err)
+            if len(tcs) > 1:
+                time.sleep(2)
             continue
 
         # AI 매핑 원본 저장
@@ -552,6 +560,8 @@ def main():
                 "error": f"본문 추출 실패: {e}",
                 "grade": "ERROR",
             })
+            if len(tcs) > 1:
+                time.sleep(2)
             continue
 
         # 채점
@@ -570,6 +580,9 @@ def main():
 
         tc_results.append(score)
         print()
+        # TC 간 API 부하 완화 (연속 실행 시 rate limit / 불량 응답 방지)
+        if len(tcs) > 1:
+            time.sleep(2)
 
     # 종합 결과
     print("=" * 60)
