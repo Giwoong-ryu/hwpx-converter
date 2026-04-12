@@ -1,0 +1,20 @@
+{
+  "interval_hours": 6,
+  "max_iterations": 16,
+  "max_new_rules": 4,
+  "baseline_runs": 3,
+  "verify_runs": 3,
+  "exclude_tcs": {
+    "TC-01": "구조적 한계 (병합 셀)",
+    "TC-03": "COM 환경 의존",
+    "TC-05": "구조적 한계 (단락 빈칸)",
+    "TC-06": "구조적 한계 (양식 필드 부재)"
+  },
+  "target_tcs": ["TC-02", "TC-04", "TC-07"],
+  "exclude_fields": {
+    "TC-02": [9],
+    "TC-04": [2],
+    "TC-07": [6, 7]
+  },
+  "regression_tolerance": 0
+}
