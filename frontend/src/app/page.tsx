@@ -185,26 +185,28 @@ export default function LandingPage() {
 
           {/* 왼쪽: 카피 */}
           <div className="lg:col-span-6">
-            {/* 태그라인 — 타겟 호명 */}
+            {/* 태그라인 — 페인 질문 */}
             <div className="hero-stagger hero-s1 mb-4">
-              <span className="text-sm text-[#57423c]/60 tracking-wide">기관마다 양식이 다를 때</span>
+              <span className="text-sm text-[#57423c]/60 tracking-wide">언제까지 HWP를 직접 입력하실건가요?</span>
             </div>
 
-            {/* H1 — 수치 충격 */}
-            <h1 className="hero-stagger hero-s2 text-[2.4rem] lg:text-[3rem] font-extrabold leading-[1.15] tracking-tight mb-4">
-              협력기관 양식 8종<br />
-              <span className="text-[#1E40AF]">수동 3시간 → AI 5분</span>
+            {/* H1 */}
+            <h1 className="hero-stagger hero-s2 text-[2.4rem] lg:text-[3rem] font-extrabold leading-[1.15] tracking-tight mb-6">
+              이젠 AI가<br />
+              <span className="text-[#1E40AF]">다 채워드립니다</span>
             </h1>
 
-            {/* 공감 줄 — H1 바로 아래, 내 얘기다 반응 */}
-            <p className="hero-stagger hero-s3 text-base text-[#57423c]/70 mb-4">
-              내용은 똑같은데 기관마다 칸이 달라서 매번 처음부터 치고 있나
-            </p>
-
-            <p className="hero-stagger hero-s3 text-base text-[#57423c] leading-relaxed max-w-lg mb-8">
-              원본 문서만 올리면 <strong className="text-[#1a1c1b]">상대 기관 양식에 맞춰 AI가 옮겨드립니다.</strong><br />
-              HWP·HWPX·DOCX·엑셀 — 기관 양식 그대로.
-            </p>
+            {/* 즉시 이해 예시 — 아이콘 없이 두 줄 */}
+            <div className="hero-stagger hero-s3 mb-8 flex flex-col gap-2">
+              <div className="flex items-center gap-3 text-sm text-[#57423c]/80">
+                <span className="text-[#1E40AF] font-bold shrink-0">→</span>
+                <span>협력기관 양식 8종에 같은 내용 넣기 <strong className="text-[#1a1c1b]">1번에</strong></span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-[#57423c]/80">
+                <span className="text-[#1E40AF] font-bold shrink-0">→</span>
+                <span>엑셀 100행을 문서 100개로 <strong className="text-[#1a1c1b]">한꺼번에</strong></span>
+              </div>
+            </div>
 
             <div className="hero-stagger hero-s4 flex flex-wrap items-center gap-4 mb-3">
               <Link
