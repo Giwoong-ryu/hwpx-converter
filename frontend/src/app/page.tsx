@@ -528,7 +528,7 @@ export default function LandingPage() {
             <div className="scroll-fade p-6" data-delay="0">
               <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">복지관 · 공공기관 실무자</p>
               <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
-                &ldquo;협력기관마다 양식이 달라서<br />
+                &ldquo;기관마다 양식이 달라<br />
                 같은 내용을<br />
                 5번 다시 치고 있어요&rdquo;
               </p>
@@ -548,7 +548,7 @@ export default function LandingPage() {
               <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
                 &ldquo;급여명세서 85장<br />
                 이름이랑 숫자만 다른 걸<br />
-                한 장씩 열어서 바꾸고 있는 나&rdquo;
+                한 장씩 열어서 바꾸는 나&rdquo;
               </p>
             </div>
             {/* 카드 4 — 대량 생성 */}
@@ -556,7 +556,7 @@ export default function LandingPage() {
               <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">교육기관 · 학원 담당자</p>
               <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
                 &ldquo;수료증 50장<br />
-                이름만 다른 걸<br />
+                이름만 다른데<br />
                 50번 처음부터 만들기&rdquo;
               </p>
             </div>
