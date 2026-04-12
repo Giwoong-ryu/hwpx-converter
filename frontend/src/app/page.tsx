@@ -187,23 +187,23 @@ export default function LandingPage() {
           <div className="lg:col-span-6">
             {/* 태그라인 — 타겟 호명 */}
             <div className="hero-stagger hero-s1 mb-4">
-              <span className="text-sm text-[#57423c]/60 tracking-wide">월말마다 HWP 야근하는 분들을 위해</span>
+              <span className="text-sm text-[#57423c]/60 tracking-wide">기관마다 양식이 다를 때</span>
             </div>
 
             {/* H1 — 수치 충격 */}
             <h1 className="hero-stagger hero-s2 text-[2.4rem] lg:text-[3rem] font-extrabold leading-[1.15] tracking-tight mb-4">
-              세금계산서 50건<br />
-              <span className="text-[#1E40AF]">수동 3시간 → AI 8분</span>
+              협력기관 양식 8종<br />
+              <span className="text-[#1E40AF]">수동 3시간 → AI 5분</span>
             </h1>
 
             {/* 공감 줄 — H1 바로 아래, 내 얘기다 반응 */}
             <p className="hero-stagger hero-s3 text-base text-[#57423c]/70 mb-4">
-              엑셀에 다 있는 정보를 왜 또 손으로 치고 있나
+              내용은 똑같은데 기관마다 칸이 달라서 매번 처음부터 치고 있나
             </p>
 
             <p className="hero-stagger hero-s3 text-base text-[#57423c] leading-relaxed max-w-lg mb-8">
-              내 자료만 올리면 <strong className="text-[#1a1c1b]">양식에 맞춰 AI가 넣어드립니다.</strong><br />
-              엑셀, 워드, 텍스트 — HWP·HWPX·DOCX 모두.
+              원본 문서만 올리면 <strong className="text-[#1a1c1b]">상대 기관 양식에 맞춰 AI가 옮겨드립니다.</strong><br />
+              HWP·HWPX·DOCX·엑셀 — 기관 양식 그대로.
             </p>
 
             <div className="hero-stagger hero-s4 flex flex-wrap items-center gap-4 mb-3">
@@ -515,46 +515,46 @@ export default function LandingPage() {
       <section className="py-14 bg-white border-t border-gray-100">
         <div className="max-w-screen-xl mx-auto px-8 lg:px-12">
           <h2 className="text-2xl font-extrabold tracking-tight text-center mb-2">
-            HWP를 쓰는 한,<br className="sm:hidden" /> 이 반복은 끝나지 않습니다
+            기관은 달라도,<br className="sm:hidden" /> 내용은 같습니다
           </h2>
           <p className="text-sm text-[#57423c]/60 text-center mb-10">
-            사업자번호, 상호명, 대표자명, 주소. 지난달이랑 거래처 하나도 안 바뀌었는데 왜 또 처음부터.
+            협력기관, 지자체, 상위기관 — 요구하는 양식이 다 달라서 같은 내용을 몇 번이나 다시 치고 있나요.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            {/* 카드 1 — 세무·회계 */}
+            {/* 카드 1 — 복지관 실무자 */}
             <div className="scroll-fade p-6" data-delay="0">
-              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">세무 · 회계</p>
+              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">복지관 · 복지재단 실무자</p>
               <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
-                &ldquo;다 치고 나서<br />
-                오타 있는지<br />
-                처음부터 다시 검수&rdquo;
+                &ldquo;협력기관 보고 양식이<br />
+                7종인데 내용은<br />
+                전부 같습니다&rdquo;
               </p>
             </div>
-            {/* 카드 2 — 공무원 */}
+            {/* 카드 2 — 공공기관 담당자 */}
             <div className="scroll-fade p-6" data-delay="100">
-              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">공무원 · 공공기관</p>
+              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">공공기관 · 지자체 담당자</p>
               <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
-                &ldquo;지난달이랑 수신처 하나도<br />
-                안 바뀌었는데<br />
-                왜 또 처음부터 치고 있나&rdquo;
+                &ldquo;상위기관 양식 따로<br />
+                내부 결재 양식 따로<br />
+                두 번 치는 게 일이 됐어요&rdquo;
               </p>
             </div>
-            {/* 카드 3 — 소상공인 */}
+            {/* 카드 3 — 비영리단체 */}
             <div className="scroll-fade p-6" data-delay="200">
-              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">소상공인 · 자영업</p>
+              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">비영리단체 · NGO 사무국</p>
               <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
-                &ldquo;미팅 끝나고 주차장에서<br />
-                파일 열어서 이름이랑 주소<br />
-                바꾸고 있는 나&rdquo;
+                &ldquo;지자체 보조금 양식이<br />
+                또 바뀌었네<br />
+                처음부터 다시&rdquo;
               </p>
             </div>
-            {/* 카드 4 — 프리랜서 */}
+            {/* 카드 4 — 사회복지사 */}
             <div className="scroll-fade p-6" data-delay="300">
-              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">프리랜서 · 외주</p>
+              <p className="text-xs text-[#57423c]/50 mb-3 tracking-wide">사회복지사 · 케어매니저</p>
               <p className="text-lg font-medium text-[#1a1c1b] leading-snug">
-                &ldquo;거래처 10개인데<br />
-                이름만 다른 서류를<br />
-                10번 처음부터 만들기&rdquo;
+                &ldquo;케이스 기록은 똑같은데<br />
+                제출처마다<br />
+                서식이 달라요&rdquo;
               </p>
             </div>
           </div>
