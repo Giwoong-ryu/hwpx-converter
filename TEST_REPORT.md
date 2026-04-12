@@ -159,7 +159,8 @@ hwpx-converter/
 | 1 | TC-01 세금계산서: 병합 셀 구조 → 슬롯 주입 불가 | 구조적 한계 | - |
 | 2 | TC-03 정부공문: COM 의존 → 한컴 없는 환경 ERROR | 환경 의존 | - |
 | 3 | TC-05 근로계약서: 단락 빈칸 → 슬롯 탐지 불가 | 구조적 한계 | - |
-| 4 | invoice_style 라벨 손상 (P1): InvoiceProcessor slot_map 누락 시 라벨 셀 교체 | P1 | InvoiceProcessor 보강 후 |
+| 4 | invoice_style 라벨 손상 (P1): Step 1+2 완료 (e4f6b21). Step 3 (form.py 차단) 보류 | P1 | Step 3 적용 시점 검토 필요 |
+| 6 | TC-02 total 필드 AI 변동성: 합  계 셀에 3,215,000 또는 3,536,500 혼재 | AI 특성 | AI 프롬프트 개선 |
 | 5 | TC-07 상담일지: AI 변동성으로 5-6/10 편차 | AI 특성 | 프롬프트 개선 |
 
 ### P1 상세 (invoice_style 라벨 손상)
@@ -169,10 +170,14 @@ hwpx-converter/
     → normal_repl 경로 → clone_form이 "합계금액" 라벨 셀 텍스트를 값으로 교체
     → 라벨 사라지고 값은 들어감 (기능은 되지만 문서 구조 손상)
 
-수정 순서:
-  1. InvoiceProcessor.build_slot_map()에 합계 라벨 + 인접 빈 셀 슬롯 추가
-  2. TC-02 슬롯 주입 경로 확인
-  3. form.py normal_repl INVOICE_LABELS 차단 적용
+수정 이력:
+  1. [완료 e4f6b21] _is_total_label() + Phase 1+2 2단계 스캔
+     합  계, 총 견적 금액 등 비표준 합계 라벨 → slot_map 포함
+  2. [완료] TC-02 slot injection 경로 확인
+  3. [보류] form.py INVOICE_LABELS 차단 — slot_map 불완전 시 값 미삽입 위험
+
+TC-02 AI 변동성 (별도 이슈):
+  합  계 셀에 실행마다 3,215,000 또는 3,536,500 혼재 → AI 프롬프트 개선 필요
 ```
 
 ---
@@ -181,5 +186,6 @@ hwpx-converter/
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-04-12 | [e4f6b21] InvoiceProcessor: _is_total_label() + Phase 1+2 2단계 스캔 (P1 Step 1 완료) |
 | 2026-04-12 | processors/ 패키지 추가 (form_classifier, invoice_processor), TC 간 2s sleep, test_spec 불가 critical 수정 |
 | 2026-03-23 | 초기 API 테스트 리포트 (사업계획서 단일 양식, 100% 통과) |
