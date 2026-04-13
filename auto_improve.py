@@ -301,20 +301,24 @@ pass rate: {failure['pass_rate']:.0%} (3회 중 {int(failure['pass_rate']*3)}회
 - 1-3줄 이내"""
 
     client = genai.Client(api_key=api_key)
-    try:
-        response = client.models.generate_content(
-            model=config.get("model", "gemini-2.5-flash"),
-            contents=prompt,
-            config=types.GenerateContentConfig(temperature=0.1, max_output_tokens=500),
-        )
-        rule_text = response.text.strip()
-        # Rule 번호로 시작하는 줄만 추출
-        for line in rule_text.split("\n"):
-            if line.strip().startswith(f"{next_num}."):
-                return line.strip(), None
-        return rule_text.split("\n")[0].strip(), None
-    except Exception as e:
-        return None, str(e)
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content(
+                model=config.get("model", "gemini-2.5-flash"),
+                contents=prompt,
+                config=types.GenerateContentConfig(temperature=0.1, max_output_tokens=500),
+            )
+            rule_text = response.text.strip()
+            # Rule 번호로 시작하는 줄만 추출
+            for line in rule_text.split("\n"):
+                if line.strip().startswith(f"{next_num}."):
+                    return line.strip(), None
+            return rule_text.split("\n")[0].strip(), None
+        except Exception as e:
+            print(f"[WARN] Gemini 호출 실패 (시도 {attempt+1}/3): {e}")
+            if attempt < 2:
+                time.sleep(10)
+    return None, "Gemini 3회 시도 실패"
 
 
 # ── Rule 적용/복원 ──
@@ -333,9 +337,20 @@ def apply_rule(rule_text):
     if close_q < 0:
         return False
 
-    # 닫는 """ 직전에 Rule 삽입
-    new_text = text[:close_q] + "\n" + rule_text + text[close_q:]
+    # Rule 텍스트에서 triple quote 제거 (Python 구문 깨짐 방지)
+    safe_rule = rule_text.replace('"""', '').replace("'''", "")
+
+    # 닫는 """ 직전에 Rule 삽입 (개행 + Rule + 개행)
+    new_text = text[:close_q] + "\n" + safe_rule + "\n" + text[close_q:]
     MAPPER_PATH.write_text(new_text, encoding="utf-8")
+
+    # 구문 검증: import 가능한지 확인
+    try:
+        compile(new_text, "ai_mapper.py", "exec")
+    except SyntaxError as e:
+        print(f"[FAIL] Rule 삽입 후 구문 오류: {e}")
+        revert_rule()
+        return False
     return True
 
 
@@ -499,7 +514,18 @@ def main():
             print(f"[STOP] max_new_rules={max_rules} 도달")
             break
 
-        iteration = run_iteration(baseline, spec, config, log)
+        try:
+            iteration = run_iteration(baseline, spec, config, log)
+        except Exception as e:
+            print(f"\n[ERROR] Iteration 예외: {e}")
+            iteration = {
+                "timestamp": datetime.now().isoformat(),
+                "tc": None, "field_id": None, "rule": None,
+                "result": "exception", "details": {"error": str(e)},
+            }
+            # 안전 복원 (Rule이 적용된 상태일 수 있으므로)
+            revert_rule()
+
         log["iterations"].append(iteration)
         save_log(log)
 
