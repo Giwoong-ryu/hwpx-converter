@@ -223,7 +223,7 @@ class InvoiceProcessor:
             r33 = 합계
         """
         # 품목 헤더 후보 찾기: 한 행에 품목 헤더 라벨 3개 이상
-        item_header_keywords = {"품목", "품 목", "품명", "수량", "단가", "단 가", "금액", "금 액", "월일", "일자"}
+        item_header_keywords = {"품목", "품 목", "품명", "수량", "단가", "단 가", "금액", "금 액", "월일", "일자", "구성품 내역", "구성품내역", "내역", "규격", "NO", "No", "번호"}
 
         for r, cells in by_row.items():
             label_count = 0

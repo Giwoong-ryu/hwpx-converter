@@ -1,0 +1,506 @@
+{
+  "TC-01": {
+    "scores": [
+      0,
+      3,
+      4
+    ],
+    "min": 0,
+    "max": 4,
+    "avg": 2.3333333333333335,
+    "grades": [
+      "ERROR",
+      "D",
+      "D"
+    ],
+    "field_pass_rate": {
+      "1": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "2": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "3": {
+        "passes": 1,
+        "total": 3,
+        "rate": 0.3333333333333333
+      },
+      "4": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "5": {
+        "passes": 2,
+        "total": 3,
+        "rate": 0.6666666666666666
+      },
+      "6": {
+        "passes": 2,
+        "total": 3,
+        "rate": 0.6666666666666666
+      },
+      "7": {
+        "passes": 2,
+        "total": 3,
+        "rate": 0.6666666666666666
+      },
+      "8": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "9": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "10": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      }
+    }
+  },
+  "TC-02": {
+    "scores": [
+      8,
+      8,
+      8
+    ],
+    "min": 8,
+    "max": 8,
+    "avg": 8.0,
+    "grades": [
+      "B",
+      "B",
+      "B"
+    ],
+    "field_pass_rate": {
+      "1": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "2": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "3": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "4": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "5": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "6": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "7": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "8": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "9": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "10": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      }
+    }
+  },
+  "TC-03": {
+    "scores": [
+      5,
+      5,
+      5
+    ],
+    "min": 5,
+    "max": 5,
+    "avg": 5.0,
+    "grades": [
+      "D",
+      "D",
+      "D"
+    ],
+    "field_pass_rate": {
+      "1": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "2": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "3": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "4": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "5": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "6": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "7": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "8": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "9": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "10": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      }
+    }
+  },
+  "TC-04": {
+    "scores": [
+      6,
+      7,
+      7
+    ],
+    "min": 6,
+    "max": 7,
+    "avg": 6.666666666666667,
+    "grades": [
+      "C",
+      "C",
+      "C"
+    ],
+    "field_pass_rate": {
+      "1": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "2": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "3": {
+        "passes": 1,
+        "total": 3,
+        "rate": 0.3333333333333333
+      },
+      "4": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "5": {
+        "passes": 2,
+        "total": 3,
+        "rate": 0.6666666666666666
+      },
+      "6": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "7": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "8": {
+        "passes": 2,
+        "total": 3,
+        "rate": 0.6666666666666666
+      },
+      "9": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "10": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      }
+    }
+  },
+  "TC-05": {
+    "scores": [
+      7,
+      7,
+      5
+    ],
+    "min": 5,
+    "max": 7,
+    "avg": 6.333333333333333,
+    "grades": [
+      "D",
+      "D",
+      "D"
+    ],
+    "field_pass_rate": {
+      "1": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "2": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "3": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "4": {
+        "passes": 2,
+        "total": 3,
+        "rate": 0.6666666666666666
+      },
+      "5": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "6": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "7": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "8": {
+        "passes": 2,
+        "total": 3,
+        "rate": 0.6666666666666666
+      },
+      "9": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "10": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      }
+    }
+  },
+  "TC-06": {
+    "scores": [
+      10,
+      7,
+      10
+    ],
+    "min": 7,
+    "max": 10,
+    "avg": 9.0,
+    "grades": [
+      "A",
+      "C",
+      "A"
+    ],
+    "field_pass_rate": {
+      "1": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "2": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "3": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "4": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "5": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "6": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "7": {
+        "passes": 2,
+        "total": 3,
+        "rate": 0.6666666666666666
+      },
+      "8": {
+        "passes": 2,
+        "total": 3,
+        "rate": 0.6666666666666666
+      },
+      "9": {
+        "passes": 2,
+        "total": 3,
+        "rate": 0.6666666666666666
+      },
+      "10": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      }
+    }
+  },
+  "TC-07": {
+    "scores": [
+      5,
+      6,
+      5
+    ],
+    "min": 5,
+    "max": 6,
+    "avg": 5.333333333333333,
+    "grades": [
+      "C",
+      "C",
+      "C"
+    ],
+    "field_pass_rate": {
+      "1": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "2": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "3": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "4": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "5": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "6": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "7": {
+        "passes": 0,
+        "total": 3,
+        "rate": 0.0
+      },
+      "8": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "9": {
+        "passes": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "10": {
+        "passes": 1,
+        "total": 3,
+        "rate": 0.3333333333333333
+      }
+    }
+  },
+  "_meta": {
+    "created": "2026-04-21T00:07:20.685386",
+    "runs": 3,
+    "config": {
+      "interval_hours": 6,
+      "max_iterations": 16,
+      "max_new_rules": 4,
+      "baseline_runs": 3,
+      "verify_runs": 3,
+      "exclude_tcs": {
+        "TC-01": "구조적 한계 (병합 셀)",
+        "TC-03": "COM 환경 의존",
+        "TC-05": "구조적 한계 (단락 빈칸)",
+        "TC-06": "구조적 한계 (양식 필드 부재)"
+      },
+      "target_tcs": [
+        "TC-02",
+        "TC-04",
+        "TC-07"
+      ],
+      "exclude_fields": {
+        "TC-02": [
+          9
+        ],
+        "TC-04": [
+          2
+        ],
+        "TC-07": [
+          6,
+          7
+        ]
+      },
+      "regression_tolerance": 0
+    }
+  }
+}

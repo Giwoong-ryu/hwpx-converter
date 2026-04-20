@@ -135,8 +135,8 @@
         {"id": 5, "label": "계약 종료일", "expected": "2027년 4월 30일", "critical": true},
         {"id": 6, "label": "기본급", "expected": "2,800,000", "critical": true, "notes": "'월 2,800,000원' substring"},
         {"id": 7, "label": "총 급여", "expected": "3,000,000", "critical": true},
-        {"id": 8, "label": "근무 요일", "expected": "화요일, 수요일, 목요일, 토요일", "critical": false, "notes": "txt 원문 포맷으로 수정됨 (원 가이드: 화·수·목·토)"},
-        {"id": 9, "label": "근무 시간", "expected": "오후 2시", "critical": false, "notes": "'오후 2시 ~ 오후 10시' 시작 시각만 substring"},
+        {"id": 8, "label": "근무 요일", "expected": "화, 수, 목, 토", "critical": false, "notes": "양식 원문 형식 (2026-04-20 완화)"},
+        {"id": 9, "label": "근무 시간", "expected": "14", "critical": false, "notes": "양식 24시간 형식 (2026-04-20 완화)"},
         {"id": 10, "label": "4대보험", "expected": "국민연금", "critical": false, "notes": "4개 보험 중 하나라도 매칭되면 OK"}
       ]
     },
@@ -145,21 +145,21 @@
       "name": "납품확인서",
       "form_file": "납품확인서.hwp",
       "input_file": "test-inputs/납품확인서_입력데이터.txt",
-      "features_tested": ["납품처/공급자 구분", "다품목 번역 단가", "총액 계산"],
-      "risk_profile": "supplier_buyer_confusion",
+      "features_tested": ["검수확인서 구성품 반복 행", "수량/규격 매핑", "검수일"],
+      "risk_profile": "item_repetition_mapping",
       "uses_append_slot": false,
       "uses_max_chars_constraint": false,
       "fields": [
-        {"id": 1, "label": "납품처 회사명", "expected": "주식회사 글로벌콘텐츠", "critical": false, "notes": "검수확인서 폼에 납품처 회사명 전용 필드 없음"},
-        {"id": 2, "label": "납품처 담당자", "expected": "한소희", "critical": false},
-        {"id": 3, "label": "공급자 성명", "expected": "서지원", "critical": false, "notes": "검수확인서 폼에 공급자 성명 전용 필드 없음"},
-        {"id": 4, "label": "품목1", "expected": "제품 사용 설명서 한→영 번역", "critical": false},
-        {"id": 5, "label": "품목1 금액", "expected": "900,000", "critical": false},
-        {"id": 6, "label": "품목2", "expected": "마케팅 브로셔 영→한 번역", "critical": false},
-        {"id": 7, "label": "품목3", "expected": "특허 명세서 한→영 번역", "critical": false},
-        {"id": 8, "label": "공급가액 합계", "expected": "1,746,000", "critical": false, "notes": "검수확인서 폼에 합계 필드 없음"},
-        {"id": 9, "label": "청구 총액", "expected": "1,920,600", "critical": false, "notes": "검수확인서 폼에 청구 총액 필드 없음"},
-        {"id": 10, "label": "납품 완료일", "expected": "2026년 4월 10일", "critical": false}
+        {"id": 1, "label": "구성품1 내역", "expected": "제품 사용 설명서 한→영 번역", "critical": false, "notes": "검수확인서 양식 기준 (2026-04-20 재작성)"},
+        {"id": 2, "label": "구성품2 내역", "expected": "마케팅 브로셔 영→한 번역", "critical": false},
+        {"id": 3, "label": "구성품3 내역", "expected": "특허 명세서 한→영 번역", "critical": false},
+        {"id": 4, "label": "구성품1 규격", "expected": "45페이지", "critical": false, "notes": "'A4 45페이지 (약 18,000단어)' substring"},
+        {"id": 5, "label": "구성품2 규격", "expected": "12페이지", "critical": false},
+        {"id": 6, "label": "구성품3 규격", "expected": "22페이지", "critical": false},
+        {"id": 7, "label": "구성품1 수량", "expected": "18000", "critical": false, "notes": "단어 수 기준"},
+        {"id": 8, "label": "구성품2 수량", "expected": "4800", "critical": false},
+        {"id": 9, "label": "구성품3 수량", "expected": "9000", "critical": false},
+        {"id": 10, "label": "검수일", "expected": "2026년 4월 12일", "critical": false, "notes": "양식의 '검수일' 필드"}
       ]
     },
     {
