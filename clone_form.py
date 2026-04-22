@@ -448,6 +448,68 @@ def _replace_across_runs(xml_text, replacements):
     return re.sub(r"<hp:p\b[^>]*>.*?</hp:p>", _replace_para, xml_text, flags=re.DOTALL)
 
 
+_DATE_UNITS = {'년', '월', '일', '시', '분'}
+
+
+def _apply_date_inline_in_xml(xml_text, date_repl):
+    """'\\s{2,}(년|월|일|시|분)' 패턴의 공백 구역에 값을 삽입한다.
+
+    AI가 '년__1': '2026' 형태로 반환한 날짜 단위 키를 처리한다.
+    기존 _apply_ordered_in_xml은 "년" 텍스트를 값으로 교체해버려 단위 글자가 사라지고
+    "근로개시일" 같은 라벨이 파괴되는 문제가 있어 별도 처리.
+
+    date_repl: {'년': ['2026', '2027'], '월': ['5'], '일': ['1'], '시': [...], '분': [...]}
+        각 단위의 N번째 occurrence를 values[N-1]로 치환.
+    """
+    if not date_repl:
+        return xml_text
+
+    # 각 단위별 occurrence 카운터
+    occ_count = {u: 0 for u in date_repl}
+
+    def _replace_para(para_match):
+        para = para_match.group(0)
+        t_matches = list(re.finditer(r"<hp:t>(.*?)</hp:t>", para, re.DOTALL))
+        if not t_matches:
+            return para
+        combined = "".join(re.sub(r"<[^>]+>", "", m.group(1)) for m in t_matches)
+
+        modified = combined
+        for unit, values in date_repl.items():
+            pattern = re.compile(rf'(\s{{2,}})({unit})')
+            start = 0
+            while True:
+                m = pattern.search(modified, start)
+                if not m:
+                    break
+                idx = occ_count[unit]
+                occ_count[unit] += 1
+                if idx >= len(values) or not values[idx]:
+                    # 스킵: 이 match는 건너뛰고 다음 search 시작 위치를 m.end()로
+                    start = m.end()
+                    continue
+                value = values[idx]
+                spaces = m.group(1)
+                new_spaces = ' ' * max(1, len(spaces) - len(value))
+                replacement = f'{new_spaces}{value}{unit}'
+                modified = modified[:m.start()] + replacement + modified[m.end():]
+                # 다음 search는 치환된 뒤에서 시작
+                start = m.start() + len(replacement)
+        if modified == combined:
+            return para
+
+        # 치환 결과를 첫 <hp:t>에 삽입, 나머지 비움
+        # combined는 <hp:t> 내부 텍스트(XML 엔티티 상태)이므로 다시 escape하지 않음
+        result = para
+        for i, m in enumerate(t_matches):
+            old_tag = m.group(0)
+            new_tag = f"<hp:t>{modified}</hp:t>" if i == 0 else "<hp:t></hp:t>"
+            result = result.replace(old_tag, new_tag, 1)
+        return result
+
+    return re.sub(r"<hp:p\b[^>]*>.*?</hp:p>", _replace_para, xml_text, flags=re.DOTALL)
+
+
 def _split_ordered_replacements(replacements):
     """__N 접미사 키를 일반 치환과 순서 기반 치환으로 분리한다.
 
@@ -587,6 +649,26 @@ def clone(src_path, dst_path, replacements=None, keywords=None,
     """
     # __N 접미사 키 분리 (순서 기반 치환 vs 일반 치환)
     normal_repl, ordered_repl = _split_ordered_replacements(replacements or {})
+
+    # 날짜 단위 키 분리: '년__1', '월__1', '일__1', '시__1', '분__1' 등
+    # 섹션 접두사도 포함: '근로개시일_년', '계약체결일_년' 등 (_년/_월/_일/_시/_분으로 끝나는 키)
+    # 이들은 "년"/"월"/"일" 텍스트를 교체하면 안 되므로 앞 공백에 삽입하는 별도 처리
+    date_inline_repl = {}
+    # normal_repl에서 처리 (섹션 접두사 포함 키는 __N 없으므로 normal_repl에 있음)
+    for key in list(normal_repl.keys()):
+        # 정확 일치 또는 _단위 끝맺음
+        for unit in _DATE_UNITS:
+            if key == unit or key.endswith(f'_{unit}'):
+                date_inline_repl.setdefault(unit, []).append(normal_repl.pop(key))
+                break
+    # ordered_repl에서 처리 (년__1, 근로개시일_년__1 등)
+    for key in list(ordered_repl.keys()):
+        for unit in _DATE_UNITS:
+            if key == unit or key.endswith(f'_{unit}'):
+                # ordered_repl[key]는 리스트
+                date_inline_repl.setdefault(unit, []).extend(ordered_repl.pop(key))
+                break
+
     # 긴 키 우선 정렬: "중소벤처기업부 장관"이 "중소벤처기업부"보다 먼저 매칭되어야 함
     replacements = dict(sorted(normal_repl.items(), key=lambda x: len(x[0]), reverse=True))
     sorted_keywords = _prepare_keywords(keywords) if keywords else []
@@ -636,6 +718,11 @@ def clone(src_path, dst_path, replacements=None, keywords=None,
                         r"<hp:fieldBegin\b[^>]*>.*?<hp:fieldEnd\b[^>]*/>",
                         _protect_field, text, flags=re.DOTALL,
                     )
+
+                    # Phase -2: 날짜 단위 키 인라인 삽입 (년/월/일/시/분)
+                    # "      년" 형태 공백 구역에 값 삽입 (단위 글자 보존)
+                    if date_inline_repl:
+                        text = _apply_date_inline_in_xml(text, date_inline_repl)
 
                     # Phase -1: __N 순서 기반 치환 (중복 셀 개별 처리)
                     if ordered_repl:
