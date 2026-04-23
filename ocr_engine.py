@@ -92,7 +92,8 @@ def ocr_with_gemini(image_path: str, api_key: str) -> dict:
 4. 배경색은 bg_color, 글자색은 text_color (hex)
 5. 반드시 JSON만 출력"""
 
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    # Vision 용도는 OCR 모델 별도 지정 가능 (3.1 Pro 권장), 없으면 기본 fallback
+    model = os.getenv("DOCFLOW_OCR_MODEL") or os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
     payload = json.dumps({

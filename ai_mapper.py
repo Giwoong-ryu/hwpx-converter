@@ -25,6 +25,48 @@ from google.genai import types
 
 MODEL_NAME = os.environ.get("DOCFLOW_MODEL", "gemini-2.5-flash")
 
+# Structured Output (Gemini response_schema) — 기본 OFF, env로 활성화 가능
+# 배열 형식 스키마로 동적 키 문제 회피 (2.5 Flash도 지원)
+STRUCTURED_OUTPUT = os.environ.get("DOCFLOW_STRUCTURED", "0") == "1"
+
+# 배열 형식 매핑 스키마 (고정 스키마 → 모든 Gemini 모델 호환)
+_MAPPING_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "mappings": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "key": {"type": "string"},
+                    "value": {"type": "string", "nullable": True},
+                },
+                "required": ["key", "value"],
+            },
+        }
+    },
+    "required": ["mappings"],
+}
+
+
+def _normalize_structured_response(parsed):
+    """Structured Output 배열 형식을 기존 dict 형식으로 변환.
+
+    배열 {"mappings": [{"key": k, "value": v}, ...]} → {k: v, ...}
+    value가 None/빈문자열인 항목은 제외.
+    """
+    if isinstance(parsed, dict) and "mappings" in parsed and isinstance(parsed["mappings"], list):
+        result = {}
+        for item in parsed["mappings"]:
+            if not isinstance(item, dict):
+                continue
+            k = item.get("key")
+            v = item.get("value")
+            if k and v:  # None/빈문자열 제외
+                result[k] = v
+        return result
+    return parsed  # 기존 dict 형식 그대로 반환
+
 # ── 필드 타입 자동 분류 ──
 _EXACT_PATTERNS = re.compile(
     r"금액|합계|총액|단가|비용|가격|원가|수수료|급여|수당|세금|부가세|공급가"
@@ -139,17 +181,17 @@ SYSTEM_PROMPT = """\
     - 중학교 1학년 → '중1', 중학교 2학년 → '중2', 중학교 3학년 → '중3'
     - 고등학교 1학년 → '고1', 고등학교 2학년 → '고2', 고등학교 3학년 → '고3'
     - '중학교 2학년', '2학년' 같은 풀네임 형식은 절대 금지.
-15. 양식에 여러 주소 필드가 있을 경우, 해당 주소의
-16. 소스 자료의 항목에 부가 정보(예: 연도, 금액
+15. 양식에 같은 라벨의 주소/소재지/전화/상호 등 개체 정보 필드가
+    복수(__1, __2)로 존재하면, 소스 자료에서 각 주체(공급자/공급받는자,
+    시공업체/고객, 갑/을 등)를 구분하여 각각의 값을 정확히 매칭하세요.
+    - 동일 값을 여러 주체에 복사 금지
+    - 주체가 불분명하면 __1에 공급자(작성자) 측, __2에 수신자 측
 
-17. 숫자 필드(단가, 수량, 금액 등)는
-
-18. 공문/결재 양식에서 결재란(결재선)이 세로로 빈 셀 2-4개가 나열된 경우,
+16. 공문/결재 양식에서 결재란이 세로로 빈 셀 2-4개가 나열된 경우,
     위→아래 순서로 기안자 → 검토자 → 결재자 → 최종결재자 순으로 매핑하세요.
     라벨이 없거나 직책만 기재되어 있어도 이 관례를 적용합니다.
-    소스 자료에 해당 인물이 명시된 경우 이름을 채우세요.
 
-19. 양식의 라벨 셀이 ▸, ▪, ●, ○, □, ☞ 같은 기호만 있거나 매우 짧은 경우,
+17. 양식의 라벨 셀이 ▸, ▪, ●, ○, □, ☞ 같은 기호만 있거나 매우 짧은 경우,
     그 뒤 빈 칸의 맥락(주변 필드 구성)을 보고 추론하세요.
     - 문서 제목 위치에 있으면 '제목' 필드
     - 수신/발신 근처에 있으면 '수신' 또는 '발신' 필드
@@ -1016,13 +1058,17 @@ def map_content(form_texts, user_content, content_file=None, structured=None,
             except UnicodeEncodeError:
                 pass  # Windows cp949 콘솔 출력 실패는 무시 (특수문자 포함 시 발생)
 
-            response = _call_with_retry(client, model_name, prompt, system_prompt, temperature)
+            schema = _MAPPING_SCHEMA if STRUCTURED_OUTPUT else None
+            response = _call_with_retry(client, model_name, prompt, system_prompt, temperature,
+                                         response_schema=schema)
 
             try:
                 print(f"[ai/map] AI 응답 앞부분:\n{response.text[:800] if response.text else '(빈 응답)'}")
             except UnicodeEncodeError:
                 pass
-            parsed = _parse_json_response(response.text)
+            parsed = _parse_json_response(response.text, structured_output=STRUCTURED_OUTPUT)
+            if STRUCTURED_OUTPUT:
+                parsed = _normalize_structured_response(parsed)
             if parsed:
                 all_results = _collect_results(parsed)
                 print(f"[ai/map] 파싱 결과: {len(all_results)}개 키")
@@ -1067,8 +1113,12 @@ def map_content(form_texts, user_content, content_file=None, structured=None,
                             )
                         )
 
-                    response = _call_cached_with_retry(client, model_name, cache.name, prompt, temperature)
-                    parsed = _parse_json_response(response.text)
+                    schema = _MAPPING_SCHEMA if STRUCTURED_OUTPUT else None
+                    response = _call_cached_with_retry(client, model_name, cache.name, prompt, temperature,
+                                                       response_schema=schema)
+                    parsed = _parse_json_response(response.text, structured_output=STRUCTURED_OUTPUT)
+                    if STRUCTURED_OUTPUT:
+                        parsed = _normalize_structured_response(parsed)
                     if parsed:
                         for k, v in _collect_results(parsed).items():
                             all_results[k] = v
@@ -1084,8 +1134,12 @@ def map_content(form_texts, user_content, content_file=None, structured=None,
                         if batch_idx > 0:
                             import time
                             time.sleep(0.5)
-                        response = _call_with_retry(client, model_name, prompt, system_prompt, temperature)
-                        parsed = _parse_json_response(response.text)
+                        schema = _MAPPING_SCHEMA if STRUCTURED_OUTPUT else None
+                        response = _call_with_retry(client, model_name, prompt, system_prompt, temperature,
+                                                     response_schema=schema)
+                        parsed = _parse_json_response(response.text, structured_output=STRUCTURED_OUTPUT)
+                        if STRUCTURED_OUTPUT:
+                            parsed = _normalize_structured_response(parsed)
                         if parsed:
                             for k, v in _collect_results(parsed).items():
                                 all_results[k] = v
