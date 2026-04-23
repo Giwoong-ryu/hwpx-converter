@@ -5,6 +5,7 @@
 
 반환 값:
     "invoice_style" — 견적서/세금계산서/납품확인서 (일반 텍스트 라벨 기반)
+    "government"    — 정부공문/행정기안문 (작성과/담당자/연락처, 결재란)
     "section_based" — 자기소개서 (섹션 헤더 + 제목 append + 본문)
     "legacy"        — 기존 슬롯형 양식 (bold/bg 헤더 기반, build_header_slot_map)
 """
@@ -45,8 +46,57 @@ def classify_form(structured: dict) -> str:
     if _is_invoice_style(all_text, text_norm):
         return "invoice_style"
 
-    # ─ 3. 기본값: legacy (기존 경로)
+    # ─ 3. government 판정 (정부공문/기안문)
+    if _is_government(all_text, text_norm):
+        return "government"
+
+    # ─ 4. 기본값: legacy (기존 경로)
     return "legacy"
+
+
+def _is_government(all_text: str, text_norm: str) -> bool:
+    """정부공문/행정양식 판정.
+
+    강한 시그널:
+    - "작성과" + "담당자" + "연락처" (행정 양식 공통 헤더 트리오)
+    - "기안자" + "검토자" + "결재자" (결재란)
+    - "수신자" + "시행일자"
+    - "공문" 또는 "기안문" 타이틀
+    - "▸" 또는 "▶" 기호 반복 (정부양식 제목 마커)
+    """
+    signals = []
+
+    # 헤더 트리오
+    if ("작성과" in text_norm or "주관부서" in text_norm) \
+       and "담당자" in text_norm and "연락처" in text_norm:
+        signals.append("gov_header_trio")
+
+    # 결재란 (3역할)
+    critical_approvers = sum(1 for kw in ["기안자", "검토자", "결재자"] if kw in text_norm)
+    if critical_approvers >= 2:
+        signals.append("approval_line")
+
+    # 수신자 + 시행일자
+    if "수신자" in text_norm and ("시행일자" in text_norm or "시행일" in text_norm):
+        signals.append("recipient_date")
+
+    # 타이틀
+    if "공문" in text_norm and not "공문서함" in text_norm:
+        signals.append("gov_title")
+    if "기안문" in text_norm:
+        signals.append("draft_title")
+
+    # 기호 제목 마커 (양식에 ▸, ▶ 다수 등장 + 본문 글머리 □, ○)
+    bullet_marker_count = all_text.count("▸") + all_text.count("▶")
+    header_marker_count = all_text.count("□") + all_text.count("○")
+    if bullet_marker_count >= 2 and header_marker_count >= 2:
+        signals.append("gov_bullet_markers")
+
+    # 결재자 (차관/대표이사) + 기관 도장
+    if ("차관" in text_norm or "대표이사" in text_norm) and "(인)" in all_text:
+        signals.append("exec_signature")
+
+    return len(signals) > 0
 
 
 def _is_section_based(structured: dict, all_text: str, text_norm: str) -> bool:

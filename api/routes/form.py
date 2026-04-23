@@ -134,6 +134,12 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
             proc = InvoiceProcessor(path, structured_data)
             slot_map = proc.build_slot_map()
             print(f"[generate] invoice_style 슬롯 맵: {len(slot_map)}개 라벨 탐지")
+        elif form_type == "government":
+            # 정부공문/행정양식: 작성과/담당자/결재란 등
+            from processors.government_processor import GovernmentProcessor
+            proc = GovernmentProcessor(path, structured_data)
+            slot_map = proc.build_slot_map()
+            print(f"[generate] government 슬롯 맵: {len(slot_map)}개 라벨 탐지")
         else:
             # 기존 경로 (legacy / section_based)
             slot_map = build_header_slot_map(path)

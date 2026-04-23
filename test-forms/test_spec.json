@@ -78,21 +78,21 @@
       "name": "정부공문",
       "form_file": "정부공문_행정안전부양식.hwp",
       "input_file": "test-inputs/정부공문_입력데이터.txt",
-      "features_tested": ["결재선 3필드 분리", "수신/발신 구분", "본문 숫자 정확성"],
-      "risk_profile": "approval_chain_confusion",
+      "features_tested": ["공문 헤더 매핑", "시행일자", "제목/본문 기호 라벨"],
+      "risk_profile": "header_symbol_labels",
       "uses_append_slot": false,
       "uses_max_chars_constraint": false,
       "fields": [
-        {"id": 1, "label": "수신", "expected": "서울특별시장", "critical": false, "notes": "'서울특별시장 (경제진흥본부장 경유)' substring"},
-        {"id": 2, "label": "제목", "expected": "2026년 1분기 소상공인 지원 사업 추진 실적 보고", "critical": false},
-        {"id": 3, "label": "발신 기관", "expected": "강남구청", "critical": false},
-        {"id": 4, "label": "담당자", "expected": "이은지", "critical": false},
-        {"id": 5, "label": "시행일자", "expected": "2026년 4월 12일", "critical": false},
-        {"id": 6, "label": "기안자", "expected": "이은지", "critical": true, "notes": "결재선 3필드 교차 금지"},
-        {"id": 7, "label": "검토자", "expected": "김현수", "critical": true},
-        {"id": 8, "label": "결재자", "expected": "박인호", "critical": true},
-        {"id": 9, "label": "본문 첫 항목", "expected": "경영 컨설팅 지원", "critical": false},
-        {"id": 10, "label": "지원 건수", "expected": "47건", "critical": false}
+        {"id": 1, "label": "작성과", "expected": "지역경제과", "critical": false, "notes": "양식 상단 헤더 필드 (2026-04-23 재작성: 기존 결재선은 이 양식에 없음)"},
+        {"id": 2, "label": "담당자", "expected": "이은지", "critical": false},
+        {"id": 3, "label": "연락처", "expected": "02-3423-", "critical": false, "notes": "전화번호 일부 substring"},
+        {"id": 4, "label": "시행일자", "expected": "2026년 4월 12일", "critical": false, "notes": "'20   년    월   일' 단락 공백 슬롯"},
+        {"id": 5, "label": "제목 본문", "expected": "2026년 1분기 소상공인 지원 사업 추진 실적 보고", "critical": false, "notes": "▸ ▸ 기호 라벨 뒤"},
+        {"id": 6, "label": "본문 항목1", "expected": "경영 컨설팅 지원", "critical": false, "notes": "○/□ 글머리 첫 항목"},
+        {"id": 7, "label": "본문 항목2", "expected": "47건", "critical": false, "notes": "지원 건수 substring"},
+        {"id": 8, "label": "차관 서명", "expected": "박인호", "critical": false, "notes": "차관 : (인) 서명란"},
+        {"id": 9, "label": "대표이사 서명", "expected": "김현수", "critical": false, "notes": "대표이사 : (인) 서명란"},
+        {"id": 10, "label": "붙임 첨부명", "expected": "분기 보고서", "critical": false, "notes": "붙임1 첨부 텍스트 substring"}
       ]
     },
     {
