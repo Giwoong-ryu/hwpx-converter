@@ -7,6 +7,7 @@
     "invoice_style" — 견적서/세금계산서/납품확인서 (일반 텍스트 라벨 기반)
     "government"    — 정부공문/행정기안문 (작성과/담당자/연락처, 결재란)
     "contract"      — 근로계약서/계약서 (갑/을, 단락 기반 조건 나열)
+    "proposal"      — 사업/구매 제안서 (제안자+제목+제안내용+품목 테이블)
     "section_based" — 자기소개서 (섹션 헤더 + 제목 append + 본문)
     "legacy"        — 기존 슬롯형 양식 (bold/bg 헤더 기반, build_header_slot_map)
 """
@@ -55,8 +56,32 @@ def classify_form(structured: dict) -> str:
     if _is_contract(all_text, text_norm):
         return "contract"
 
-    # ─ 5. 기본값: legacy (기존 경로)
+    # ─ 5. proposal 판정 (사업제안서/구매제안서)
+    if _is_proposal(all_text, text_norm):
+        return "proposal"
+
+    # ─ 6. 기본값: legacy (기존 경로)
     return "legacy"
+
+
+def _is_proposal(all_text: str, text_norm: str) -> bool:
+    """사업제안서/구매제안서 판정.
+
+    강한 시그널:
+    - "제안서" 타이틀 (구매제안서, 사업제안서, 용역제안서)
+    - "제안자" + "제안내용" 조합
+    - "물품(서비스)명" 또는 "규격∙사양" 등장
+    """
+    signals = []
+    if "구매제안서" in text_norm or "사업제안서" in text_norm \
+       or "용역제안서" in text_norm:
+        signals.append("proposal_title")
+    # 모호하게 "제안서"만 있는 경우 (좁게 체크)
+    if "제안자" in text_norm and ("제안내용" in text_norm or "제안물품" in text_norm):
+        signals.append("proposer_content")
+    if "물품(서비스)명" in all_text or "물품 (서비스)명" in all_text:
+        signals.append("product_service_name")
+    return len(signals) > 0
 
 
 def _is_contract(all_text: str, text_norm: str) -> bool:

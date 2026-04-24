@@ -218,6 +218,9 @@ def run_ai_mapping(form_path, input_path, output_hwpx):
         elif form_type_early == "contract":
             from processors.contract_processor import CONTRACT_LABELS
             ai_extra_labels = CONTRACT_LABELS
+        elif form_type_early == "proposal":
+            from processors.proposal_processor import PROPOSAL_LABELS
+            ai_extra_labels = PROPOSAL_LABELS
     except Exception:
         pass
 
@@ -272,6 +275,10 @@ def run_ai_mapping(form_path, input_path, output_hwpx):
             proc = ContractProcessor(str(hwpx_path), structured)
             slot_map = proc.build_slot_map()
             print(f"[generate] contract (단락 기반, slot_map 빈값)")
+        elif form_type == "proposal":
+            # proposal은 build_header_slot_map 폴백
+            slot_map = build_header_slot_map(str(hwpx_path))
+            print(f"[generate] proposal: {len(slot_map)}개 헤더 탐지")
         else:
             slot_map = build_header_slot_map(str(hwpx_path))
     except Exception as slot_e:
