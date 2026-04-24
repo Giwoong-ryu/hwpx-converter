@@ -212,6 +212,12 @@ def run_ai_mapping(form_path, input_path, output_hwpx):
         if form_type_early == "invoice_style":
             from processors.invoice_processor import INVOICE_LABELS
             ai_extra_labels = INVOICE_LABELS
+        elif form_type_early == "government":
+            from processors.government_processor import GOVERNMENT_LABELS
+            ai_extra_labels = GOVERNMENT_LABELS
+        elif form_type_early == "contract":
+            from processors.contract_processor import CONTRACT_LABELS
+            ai_extra_labels = CONTRACT_LABELS
     except Exception:
         pass
 
@@ -256,6 +262,16 @@ def run_ai_mapping(form_path, input_path, output_hwpx):
             proc = InvoiceProcessor(str(hwpx_path), structured)
             slot_map = proc.build_slot_map()
             print(f"[generate] invoice 슬롯 맵: {len(slot_map)}개 라벨")
+        elif form_type == "government":
+            from processors.government_processor import GovernmentProcessor
+            proc = GovernmentProcessor(str(hwpx_path), structured)
+            slot_map = proc.build_slot_map()
+            print(f"[generate] government 슬롯 맵: {len(slot_map)}개 라벨")
+        elif form_type == "contract":
+            from processors.contract_processor import ContractProcessor
+            proc = ContractProcessor(str(hwpx_path), structured)
+            slot_map = proc.build_slot_map()
+            print(f"[generate] contract (단락 기반, slot_map 빈값)")
         else:
             slot_map = build_header_slot_map(str(hwpx_path))
     except Exception as slot_e:

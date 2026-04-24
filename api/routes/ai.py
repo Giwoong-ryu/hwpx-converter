@@ -92,6 +92,12 @@ async def ai_map(
             if form_type == "invoice_style":
                 from processors.invoice_processor import INVOICE_LABELS
                 ai_extra_labels = INVOICE_LABELS
+            elif form_type == "government":
+                from processors.government_processor import GOVERNMENT_LABELS
+                ai_extra_labels = GOVERNMENT_LABELS
+            elif form_type == "contract":
+                from processors.contract_processor import CONTRACT_LABELS
+                ai_extra_labels = CONTRACT_LABELS
         except Exception as cls_e:
             print(f"[ai/map] 분류 실패 (기본 경로): {cls_e}")
 

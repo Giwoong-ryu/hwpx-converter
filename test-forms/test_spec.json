@@ -129,14 +129,14 @@
       "uses_max_chars_constraint": false,
       "fields": [
         {"id": 1, "label": "사업장명 (갑)", "expected": "브레인 수학학원", "critical": true, "notes": "갑=사업자"},
-        {"id": 2, "label": "사업자등록번호 (갑)", "expected": "333-44-55566", "critical": true},
-        {"id": 3, "label": "근로자 성명 (을)", "expected": "김태양", "critical": true, "notes": "을=근로자, 갑↔을 혼동 금지"},
-        {"id": 4, "label": "계약 시작일", "expected": "2026년 5월 1일", "critical": true, "notes": "계약 기간 법적 효력"},
-        {"id": 5, "label": "계약 종료일", "expected": "2027년 4월 30일", "critical": true},
+        {"id": 2, "label": "근로개시일", "expected": "2026년 5월 1일", "critical": true, "notes": "양식 '1. 근로개시일 :' 단락 (2026-04-24 재작성: 표준근로계약서에 계약기간/종료일/사업자번호/총급여 필드 없음)"},
+        {"id": 3, "label": "근무장소", "expected": "브레인 수학학원", "critical": false, "notes": "'2. 근 무 장 소 :' 단락"},
+        {"id": 4, "label": "업무내용", "expected": "중학교", "critical": false, "notes": "'3. 업무의 내용 :' substring (중학교 수학 강의)"},
+        {"id": 5, "label": "근무 시간", "expected": "14시", "critical": false, "notes": "'시/분' 연속공백 슬롯 (14시 00분 ~ 22시)"},
         {"id": 6, "label": "기본급", "expected": "2,800,000", "critical": true, "notes": "'월 2,800,000원' substring"},
-        {"id": 7, "label": "총 급여", "expected": "3,000,000", "critical": true},
-        {"id": 8, "label": "근무 요일", "expected": "화, 수, 목, 토", "critical": false, "notes": "양식 원문 형식 (2026-04-20 완화)"},
-        {"id": 9, "label": "근무 시간", "expected": "14", "critical": false, "notes": "양식 24시간 형식 (2026-04-20 완화)"},
+        {"id": 7, "label": "대표자", "expected": "오수미", "critical": false, "notes": "사업주 서명란 대표자"},
+        {"id": 8, "label": "근무 요일", "expected": "화, 수, 목, 토", "critical": false},
+        {"id": 9, "label": "전화", "expected": "031-777-8888", "critical": false, "notes": "사업주 전화"},
         {"id": 10, "label": "4대보험", "expected": "국민연금", "critical": false, "notes": "4개 보험 중 하나라도 매칭되면 OK"}
       ]
     },

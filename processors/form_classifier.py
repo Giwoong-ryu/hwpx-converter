@@ -6,6 +6,7 @@
 반환 값:
     "invoice_style" — 견적서/세금계산서/납품확인서 (일반 텍스트 라벨 기반)
     "government"    — 정부공문/행정기안문 (작성과/담당자/연락처, 결재란)
+    "contract"      — 근로계약서/계약서 (갑/을, 단락 기반 조건 나열)
     "section_based" — 자기소개서 (섹션 헤더 + 제목 append + 본문)
     "legacy"        — 기존 슬롯형 양식 (bold/bg 헤더 기반, build_header_slot_map)
 """
@@ -50,8 +51,35 @@ def classify_form(structured: dict) -> str:
     if _is_government(all_text, text_norm):
         return "government"
 
-    # ─ 4. 기본값: legacy (기존 경로)
+    # ─ 4. contract 판정 (근로계약서/계약서)
+    if _is_contract(all_text, text_norm):
+        return "contract"
+
+    # ─ 5. 기본값: legacy (기존 경로)
     return "legacy"
+
+
+def _is_contract(all_text: str, text_norm: str) -> bool:
+    """근로계약서/계약서 판정.
+
+    강한 시그널:
+    - "표준근로계약서" 타이틀
+    - "사업주" + "근로자" 조합
+    - "근로계약" + "근로개시일" 조합
+    - "갑" + "을" (이하 "사업주"라 함) 패턴
+    """
+    signals = []
+    if "표준근로계약서" in text_norm or "근로계약서" in text_norm:
+        signals.append("contract_title")
+    if "사업주" in text_norm and "근로자" in text_norm \
+       and ("근로계약" in text_norm or "근로개시일" in text_norm):
+        signals.append("employment_parties")
+    if "소정근로시간" in text_norm and "임금지급일" in text_norm:
+        signals.append("work_conditions")
+    # 갑/을 패턴: (이하 "갑"이라 함) 또는 (이하 "을"이라 함)
+    if re.search(r'\(이하\s*["""][갑을사업주근로자][^)]*\)', all_text):
+        signals.append("party_convention")
+    return len(signals) > 0
 
 
 def _is_government(all_text: str, text_norm: str) -> bool:

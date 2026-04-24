@@ -140,6 +140,12 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
             proc = GovernmentProcessor(path, structured_data)
             slot_map = proc.build_slot_map()
             print(f"[generate] government 슬롯 맵: {len(slot_map)}개 라벨 탐지")
+        elif form_type == "contract":
+            # 근로계약서/계약서: 단락 기반 (slot_map 비어있음, AI 프롬프트에 라벨 전달)
+            from processors.contract_processor import ContractProcessor
+            proc = ContractProcessor(path, structured_data)
+            slot_map = proc.build_slot_map()
+            print(f"[generate] contract 타입 감지 (단락 기반, AI extra_labels 활용)")
         else:
             # 기존 경로 (legacy / section_based)
             slot_map = build_header_slot_map(path)
