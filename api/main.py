@@ -55,10 +55,12 @@ async def cleanup_stale_gemini_caches():
         pass  # 캐시 정리 실패해도 서버 시작은 정상 진행
 
 
-_allowed_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
+_cors_env = os.environ.get("CORS_ORIGINS", "")
+_allowed_origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
+    allow_origin_regex=r"https://.*\.eazyhwpx\.kr",
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=True,
