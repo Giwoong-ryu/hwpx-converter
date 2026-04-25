@@ -56,7 +56,8 @@ async def cleanup_stale_gemini_caches():
 
 
 _cors_env = os.environ.get("CORS_ORIGINS", "")
-_allowed_origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
+# "*"는 credentials와 함께 쓸 수 없으므로 필터링. regex로 처리.
+_allowed_origins = [o.strip() for o in _cors_env.split(",") if o.strip() and o.strip() != "*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
