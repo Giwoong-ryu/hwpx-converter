@@ -22,6 +22,13 @@ from api.routes import form, ai, batch, extract, periodic, stamp, merge, excel, 
 app = FastAPI(title="Eazy HWPX API")
 
 
+# 미처리 예외도 CORS 미들웨어를 통과하도록 전역 핸들러 등록
+# (ServerErrorMiddleware가 CORS 바깥에서 잡기 전에 ExceptionMiddleware가 먼저 처리)
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
 # 임시 파일 자동 정리 (30분마다)
 @app.on_event("startup")
 async def start_cleanup_scheduler():

@@ -36,8 +36,11 @@ async def sign_in(email: str, password: str):
 
 async def get_user_from_token(token: str):
     sb = get_supabase()
-    result = sb.auth.get_user(token)
-    return result.user if result else None
+    try:
+        result = sb.auth.get_user(token)
+        return result.user if result else None
+    except Exception:
+        return None
 
 
 async def get_profile(user_id: str):
