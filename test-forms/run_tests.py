@@ -221,6 +221,9 @@ def run_ai_mapping(form_path, input_path, output_hwpx):
         elif form_type_early == "proposal":
             from processors.proposal_processor import PROPOSAL_LABELS
             ai_extra_labels = PROPOSAL_LABELS
+        elif form_type_early == "resume":
+            from processors.resume_processor import RESUME_LABELS
+            ai_extra_labels = RESUME_LABELS
     except Exception:
         pass
 
@@ -279,6 +282,9 @@ def run_ai_mapping(form_path, input_path, output_hwpx):
             # proposal은 build_header_slot_map 폴백
             slot_map = build_header_slot_map(str(hwpx_path))
             print(f"[generate] proposal: {len(slot_map)}개 헤더 탐지")
+        elif form_type == "resume":
+            slot_map = build_header_slot_map(str(hwpx_path))
+            print(f"[generate] resume: {len(slot_map)}개 헤더 탐지")
         else:
             slot_map = build_header_slot_map(str(hwpx_path))
     except Exception as slot_e:

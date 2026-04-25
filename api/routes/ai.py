@@ -101,6 +101,9 @@ async def ai_map(
             elif form_type == "proposal":
                 from processors.proposal_processor import PROPOSAL_LABELS
                 ai_extra_labels = PROPOSAL_LABELS
+            elif form_type == "resume":
+                from processors.resume_processor import RESUME_LABELS
+                ai_extra_labels = RESUME_LABELS
         except Exception as cls_e:
             print(f"[ai/map] 분류 실패 (기본 경로): {cls_e}")
 

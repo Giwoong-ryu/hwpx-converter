@@ -8,6 +8,7 @@
     "government"    — 정부공문/행정기안문 (작성과/담당자/연락처, 결재란)
     "contract"      — 근로계약서/계약서 (갑/을, 단락 기반 조건 나열)
     "proposal"      — 사업/구매 제안서 (제안자+제목+제안내용+품목 테이블)
+    "resume"        — 한국형 이력서 (인적사항/학력/자격증/기술/경력 + 자소서)
     "section_based" — 자기소개서 (섹션 헤더 + 제목 append + 본문)
     "legacy"        — 기존 슬롯형 양식 (bold/bg 헤더 기반, build_header_slot_map)
 """
@@ -39,10 +40,14 @@ def classify_form(structured: dict) -> str:
     all_text = _collect_all_text(structured)
     text_norm = re.sub(r"\s+", "", all_text)
 
-    # ─ 1. section_based 판정 (자기소개서형)
+    # ─ 1. section_based 판정 (자기소개서형, 1컬럼 섹션 테이블 강한 시그널)
     # 시그널: "자기소개서" 제목 + "제목 :" 반복 3회 이상 + 1컬럼 섹션 테이블
     if _is_section_based(structured, all_text, text_norm):
         return "section_based"
+
+    # ─ 1.5. resume 판정 (한국 이력서: 인적사항+학력+경력 동시 등장)
+    if _is_resume(all_text, text_norm):
+        return "resume"
 
     # ─ 2. invoice_style 판정 (견적서/세금계산서/납품확인서)
     if _is_invoice_style(all_text, text_norm):
@@ -62,6 +67,47 @@ def classify_form(structured: dict) -> str:
 
     # ─ 6. 기본값: legacy (기존 경로)
     return "legacy"
+
+
+def _is_resume(all_text: str, text_norm: str) -> bool:
+    """한국 이력서/자기소개서 양식 판정.
+
+    강한 시그널 (다중 조합):
+    - "이력서" 또는 "Resume" + "인적사항" 또는 "성명/이름"
+    - "학력" + "경력" + "자격증" 중 2개 이상 동시 등장 (이력서 표준 5섹션)
+    - "지원동기" + "성격" + "포부" 등 자소서 키워드 2개+ (자소서 양식)
+    - "이력서양식" / "표준이력서" / "지원서" 타이틀
+    """
+    signals = []
+
+    # 명시적 타이틀
+    if "이력서" in text_norm or "지원서" in text_norm or "입사지원" in text_norm:
+        signals.append("resume_title")
+    if "Resume" in all_text or "RESUME" in all_text or "CV" in all_text:
+        signals.append("resume_english_title")
+
+    # 5섹션 키워드 카운트 (학력+경력+자격증+기술 동시)
+    section_kws = ["학력", "경력", "자격증", "보유기술", "보유 기술"]
+    section_count = sum(1 for kw in section_kws if kw in text_norm)
+    if section_count >= 2:
+        signals.append(f"section_count_{section_count}")
+
+    # 자소서 키워드 (2개 이상이면 자소서)
+    intro_kws = ["지원동기", "성격의장단점", "성격의장점", "직무적합성",
+                 "입사후포부", "성장과정", "자기소개서"]
+    intro_count = sum(1 for kw in intro_kws if kw in text_norm)
+    if intro_count >= 2:
+        signals.append(f"self_intro_{intro_count}")
+
+    # 인적사항 트리오
+    if "성명" in text_norm and ("연락처" in text_norm or "이메일" in text_norm) \
+       and ("주소" in text_norm or "거주지" in text_norm):
+        signals.append("personal_info_trio")
+
+    # 다른 양식과 충돌 방지: 이미 invoice/contract/government/proposal 시그널 있으면 제외
+    # → classify_form 호출 순서로 처리됨 (resume는 invoice/contract/government/proposal보다 먼저 체크)
+
+    return len(signals) >= 2  # 시그널 2개 이상 시 resume로 분류
 
 
 def _is_proposal(all_text: str, text_norm: str) -> bool:

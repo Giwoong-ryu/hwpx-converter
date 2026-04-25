@@ -150,6 +150,10 @@ async def generate_form(req: GenerateRequest, authorization: Optional[str] = Hea
             # 사업제안서/구매제안서: bold 헤더 기반 → build_header_slot_map 폴백
             slot_map = build_header_slot_map(path)
             print(f"[generate] proposal 타입: {len(slot_map)}개 헤더 탐지 (AI extra_labels 활용)")
+        elif form_type == "resume":
+            # 한국 이력서/자소서: build_header_slot_map 폴백 + RESUME_LABELS AI 전달
+            slot_map = build_header_slot_map(path)
+            print(f"[generate] resume 타입: {len(slot_map)}개 헤더 탐지 (AI extra_labels 활용)")
         else:
             # 기존 경로 (legacy / section_based)
             slot_map = build_header_slot_map(path)
