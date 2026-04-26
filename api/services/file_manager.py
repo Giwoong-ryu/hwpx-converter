@@ -142,6 +142,11 @@ class FileManager:
                 timeout=60.0,
             )
         if resp.status_code != 200:
+            if resp.status_code in (502, 503, 504, 530):
+                raise RuntimeError(
+                    "HWP 변환 서버가 일시적으로 점검 중입니다. "
+                    "한글에서 '다른 이름으로 저장 > HWPX'로 저장 후 다시 업로드해주세요."
+                )
             detail = resp.text[:200] if resp.text else "변환 서버 오류"
             raise RuntimeError(
                 f"HWP 변환 서버 오류 ({resp.status_code}): {detail}"
