@@ -153,11 +153,17 @@ async def use_gallery_form(form_id: int, authorization: str = Header(None)):
         path = file_manager.get_path(file_id)
 
     # 텍스트 추출
-    from clone_form import extract_texts
-    fields = extract_texts(path)
+    try:
+        from clone_form import extract_texts
+        fields = extract_texts(path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"양식 분석 실패: {e}")
 
-    from api.services.doc_type_detector import detect_doc_type
-    doc_info = detect_doc_type(fields)
+    try:
+        from api.services.doc_type_detector import detect_doc_type
+        doc_info = detect_doc_type(fields)
+    except Exception:
+        doc_info = {"type": None, "smart_fields": []}
 
     try:
         os.unlink(tmp.name)
