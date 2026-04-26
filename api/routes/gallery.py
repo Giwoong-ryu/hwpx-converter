@@ -140,17 +140,29 @@ async def use_gallery_form(form_id: int, authorization: str = Header(None)):
     if path and path.lower().endswith(".hwp"):
         try:
             file_id = file_manager.convert_hwp(file_id)
-        except Exception:
-            pass
-        path = file_manager.get_path(file_id)
+            path = file_manager.get_path(file_id)
+        except Exception as e:
+            raise HTTPException(
+                status_code=422,
+                detail=f"HWP 양식 변환 실패: {e}. 한글에서 '다른 이름으로 저장 > HWPX'로 저장 후 다시 업로드된 양식을 사용해주세요."
+            )
 
     # DOCX → HWPX 변환
     if path and path.lower().endswith(".docx"):
         try:
             file_id = file_manager.convert_docx(file_id)
-        except Exception:
-            pass
-        path = file_manager.get_path(file_id)
+            path = file_manager.get_path(file_id)
+        except Exception as e:
+            raise HTTPException(
+                status_code=422,
+                detail=f"DOCX 양식 변환 실패: {e}"
+            )
+
+    if not path or not path.lower().endswith(".hwpx"):
+        raise HTTPException(
+            status_code=422,
+            detail="HWPX 형식으로 변환되지 않은 양식입니다. 양식 업로더에게 문의해주세요."
+        )
 
     # 텍스트 추출
     try:
