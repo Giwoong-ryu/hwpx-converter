@@ -62,6 +62,14 @@ async def cleanup_stale_gemini_caches():
         pass  # 캐시 정리 실패해도 서버 시작은 정상 진행
 
 
+# 미들웨어 등록 순서 주의:
+# Starlette는 "나중에 add_middleware한 것이 바깥 레이어"가 됨.
+# 따라서 CORSMiddleware는 가장 마지막에 add 해야 모든 응답(거부/예외 포함)에 CORS 헤더가 붙음.
+
+# Rate limit (AI API 분당 2회) - CORS 안쪽에 위치
+from api.services.rate_limit import RateLimitMiddleware
+app.add_middleware(RateLimitMiddleware)
+
 _cors_env = os.environ.get("CORS_ORIGINS", "")
 # "*"는 credentials와 함께 쓸 수 없으므로 필터링. regex로 처리.
 _allowed_origins = [o.strip() for o in _cors_env.split(",") if o.strip() and o.strip() != "*"]
@@ -73,10 +81,6 @@ app.add_middleware(
     allow_headers=["*"],
     allow_credentials=True,
 )
-
-# Rate limit (AI API 분당 2회)
-from api.services.rate_limit import RateLimitMiddleware
-app.add_middleware(RateLimitMiddleware)
 
 # API 라우터
 app.include_router(form.router, prefix="/api/form", tags=["form"])

@@ -3,7 +3,8 @@
 import time
 from collections import defaultdict, deque
 
-from fastapi import Request, HTTPException
+from fastapi import Request
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 # AI API 경로 (rate limit 적용 대상)
@@ -43,9 +44,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             timestamps.popleft()
 
         if len(timestamps) >= _MAX_PER_MINUTE:
-            raise HTTPException(
+            # BaseHTTPMiddleware 안에서 raise HTTPException은 ExceptionHandler가 잡지 못해
+            # CORS 헤더가 빠진 채 500으로 빠질 수 있음. JSONResponse를 직접 반환해야
+            # 바깥의 CORSMiddleware가 정상적으로 헤더를 부착할 수 있다.
+            return JSONResponse(
                 status_code=429,
-                detail="요청이 너무 빠릅니다. 30초 후 다시 시도해주세요.",
+                content={"detail": "요청이 너무 빠릅니다. 30초 후 다시 시도해주세요."},
             )
 
         timestamps.append(now)
